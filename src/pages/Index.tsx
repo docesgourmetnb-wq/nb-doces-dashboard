@@ -1,12 +1,43 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { AppSidebar } from '@/components/AppSidebar';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { ProdutosPage } from '@/pages/ProdutosPage';
+import { VendasPage } from '@/pages/VendasPage';
+import { ProducaoPage } from '@/pages/ProducaoPage';
+import { EstoquePage } from '@/pages/EstoquePage';
+import { FinanceiroPage } from '@/pages/FinanceiroPage';
 
 const Index = () => {
+  const [currentPage, setCurrentPage] = useState('dashboard');
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <DashboardPage />;
+      case 'produtos':
+        return <ProdutosPage />;
+      case 'vendas':
+        return <VendasPage />;
+      case 'producao':
+        return <ProducaoPage />;
+      case 'estoque':
+        return <EstoquePage />;
+      case 'financeiro':
+        return <FinanceiroPage />;
+      default:
+        return <DashboardPage />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="flex min-h-screen w-full bg-background">
+      <AppSidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+      
+      <main className="flex-1 lg:ml-0 p-4 lg:p-8 pt-16 lg:pt-8 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          {renderPage()}
+        </div>
+      </main>
     </div>
   );
 };
