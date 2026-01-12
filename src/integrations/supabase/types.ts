@@ -14,7 +14,308 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      brigadeiros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_unitario: number
+          descricao: string | null
+          id: string
+          margem_lucro: number | null
+          nome: string
+          preco_venda: number
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_unitario?: number
+          descricao?: string | null
+          id?: string
+          margem_lucro?: number | null
+          nome: string
+          preco_venda?: number
+          tipo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_unitario?: number
+          descricao?: string | null
+          id?: string
+          margem_lucro?: number | null
+          nome?: string
+          preco_venda?: number
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      insumos: {
+        Row: {
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consumo_medio?: number
+          created_at?: string
+          id?: string
+          nome: string
+          preco_unitario?: number
+          quantidade_atual?: number
+          quantidade_minima?: number
+          ultima_compra?: string | null
+          unidade: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consumo_medio?: number
+          created_at?: string
+          id?: string
+          nome?: string
+          preco_unitario?: number
+          quantidade_atual?: number
+          quantidade_minima?: number
+          ultima_compra?: string | null
+          unidade?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      itens_pedido: {
+        Row: {
+          brigadeiro_id: string | null
+          brigadeiro_nome: string
+          id: string
+          pedido_id: string
+          preco_unitario: number
+          quantidade: number
+        }
+        Insert: {
+          brigadeiro_id?: string | null
+          brigadeiro_nome: string
+          id?: string
+          pedido_id: string
+          preco_unitario?: number
+          quantidade?: number
+        }
+        Update: {
+          brigadeiro_id?: string | null
+          brigadeiro_nome?: string
+          id?: string
+          pedido_id?: string
+          preco_unitario?: number
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_pedido_brigadeiro_id_fkey"
+            columns: ["brigadeiro_id"]
+            isOneToOne: false
+            referencedRelation: "brigadeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          cliente: string
+          created_at: string
+          data: string
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          status: string
+          tipo_pedido: string
+          updated_at: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          data?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_pedido?: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          data?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_pedido?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
+      producao_diaria: {
+        Row: {
+          brigadeiro_id: string | null
+          brigadeiro_nome: string
+          created_at: string
+          custo_total: number
+          data: string
+          id: string
+          quantidade: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          brigadeiro_id?: string | null
+          brigadeiro_nome: string
+          created_at?: string
+          custo_total?: number
+          data?: string
+          id?: string
+          quantidade?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          brigadeiro_id?: string | null
+          brigadeiro_nome?: string
+          created_at?: string
+          custo_total?: number
+          data?: string
+          id?: string
+          quantidade?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producao_diaria_brigadeiro_id_fkey"
+            columns: ["brigadeiro_id"]
+            isOneToOne: false
+            referencedRelation: "brigadeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transacoes: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          referencia: string | null
+          tipo: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data?: string
+          descricao: string
+          id?: string
+          referencia?: string | null
+          tipo: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          referencia?: string | null
+          tipo?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
