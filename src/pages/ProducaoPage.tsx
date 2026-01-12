@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Plus, Calendar } from 'lucide-react';
-import { producaoDiaria as initialProducao, brigadeiros } from '@/data/mockData';
-import { ProducaoDiaria } from '@/types';
+import { Plus, Calendar, Loader2 } from 'lucide-react';
+import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
+import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,11 +24,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function ProducaoPage() {
-  const [producao, setProducao] = useState<ProducaoDiaria[]>(initialProducao);
+  const { producao, loading, addProducao, updateProducaoStatus } = useProducao();
+  const { brigadeiros } = useBrigadeiros();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     data: format(new Date(), 'yyyy-MM-dd'),
-    brigadeiroId: '',
+    brigadeiro_id: '',
     quantidade: '',
   });
 
@@ -38,49 +40,54 @@ export function ProducaoPage() {
     'concluido': { label: 'Concluído', class: 'bg-success/20 text-success' },
   };
 
+  const today = format(new Date(), 'yyyy-MM-dd');
   const totalCustoHoje = producao
-    .filter(p => format(p.data, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'))
-    .reduce((acc, p) => acc + p.custoTotal, 0);
+    .filter(p => p.data === today)
+    .reduce((acc, p) => acc + p.custo_total, 0);
 
   const totalUnidadesHoje = producao
-    .filter(p => format(p.data, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'))
+    .filter(p => p.data === today)
     .reduce((acc, p) => acc + p.quantidade, 0);
 
-  const handleAddProducao = () => {
-    const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiroId);
+  const handleAddProducao = async () => {
+    const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiro_id);
     if (!brigadeiro) return;
 
+    setSaving(true);
     const quantidade = parseInt(formData.quantidade);
-    const custoTotal = quantidade * brigadeiro.custoUnitario;
+    const custo_total = quantidade * brigadeiro.custo_unitario;
 
-    const novaProducao: ProducaoDiaria = {
-      id: Date.now().toString(),
-      data: new Date(formData.data),
-      brigadeiroId: brigadeiro.id,
-      brigadeiroNome: brigadeiro.nome,
+    await addProducao({
+      data: formData.data,
+      brigadeiro_id: brigadeiro.id,
+      brigadeiro_nome: brigadeiro.nome,
       quantidade,
-      custoTotal,
+      custo_total,
       status: 'planejado',
-    };
+    });
 
-    setProducao([...producao, novaProducao]);
+    setSaving(false);
     setIsDialogOpen(false);
-    setFormData({ data: format(new Date(), 'yyyy-MM-dd'), brigadeiroId: '', quantidade: '' });
-  };
-
-  const updateStatus = (id: string, status: ProducaoDiaria['status']) => {
-    setProducao(producao.map(p => p.id === id ? { ...p, status } : p));
+    setFormData({ data: format(new Date(), 'yyyy-MM-dd'), brigadeiro_id: '', quantidade: '' });
   };
 
   // Group by date
   const producaoByDate = producao.reduce((acc, item) => {
-    const dateKey = format(item.data, 'yyyy-MM-dd');
+    const dateKey = item.data;
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(item);
     return acc;
   }, {} as Record<string, ProducaoDiaria[]>);
 
   const sortedDates = Object.keys(producaoByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -113,8 +120,8 @@ export function ProducaoPage() {
               <div className="space-y-2">
                 <Label>Sabor</Label>
                 <Select
-                  value={formData.brigadeiroId}
-                  onValueChange={(value) => setFormData({ ...formData, brigadeiroId: value })}
+                  value={formData.brigadeiro_id}
+                  onValueChange={(value) => setFormData({ ...formData, brigadeiro_id: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o sabor" />
@@ -137,17 +144,18 @@ export function ProducaoPage() {
                   placeholder="Ex: 50"
                 />
               </div>
-              {formData.brigadeiroId && formData.quantidade && (
+              {formData.brigadeiro_id && formData.quantidade && (
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm font-medium">
                     Custo estimado: R$ {(
                       parseInt(formData.quantidade) * 
-                      (brigadeiros.find(b => b.id === formData.brigadeiroId)?.custoUnitario || 0)
+                      (brigadeiros.find(b => b.id === formData.brigadeiro_id)?.custo_unitario || 0)
                     ).toFixed(2)}
                   </p>
                 </div>
               )}
-              <Button onClick={handleAddProducao} className="w-full">
+              <Button onClick={handleAddProducao} className="w-full" disabled={saving || !formData.brigadeiro_id}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Adicionar à Produção
               </Button>
             </div>
@@ -170,46 +178,53 @@ export function ProducaoPage() {
       </div>
 
       {/* Production Timeline */}
-      <div className="space-y-6">
-        {sortedDates.map((dateKey) => (
-          <div key={dateKey} className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-muted/50 px-5 py-3 flex items-center gap-2 border-b border-border">
-              <Calendar size={18} className="text-muted-foreground" />
-              <h3 className="font-display font-semibold">
-                {format(new Date(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-              </h3>
-            </div>
-            <div className="divide-y divide-border">
-              {producaoByDate[dateKey].map((item) => (
-                <div key={item.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{item.brigadeiroNome}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {item.quantidade} unidades • Custo: R$ {item.custoTotal.toFixed(2)}
-                    </p>
+      {sortedDates.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Nenhuma produção planejada.</p>
+          <p className="text-sm">Clique em "Planejar Produção" para adicionar.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {sortedDates.map((dateKey) => (
+            <div key={dateKey} className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-muted/50 px-5 py-3 flex items-center gap-2 border-b border-border">
+                <Calendar size={18} className="text-muted-foreground" />
+                <h3 className="font-display font-semibold">
+                  {format(new Date(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </h3>
+              </div>
+              <div className="divide-y divide-border">
+                {producaoByDate[dateKey].map((item) => (
+                  <div key={item.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{item.brigadeiro_nome}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {item.quantidade} unidades • Custo: R$ {item.custo_total.toFixed(2)}
+                      </p>
+                    </div>
+                    <Select
+                      value={item.status}
+                      onValueChange={(value: ProducaoDiaria['status']) => updateProducaoStatus(item.id, value)}
+                    >
+                      <SelectTrigger className={cn(
+                        "w-full sm:w-[160px] text-sm font-medium border-0",
+                        statusLabels[item.status].class
+                      )}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planejado">Planejado</SelectItem>
+                        <SelectItem value="em-andamento">Em Andamento</SelectItem>
+                        <SelectItem value="concluido">Concluído</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select
-                    value={item.status}
-                    onValueChange={(value: ProducaoDiaria['status']) => updateStatus(item.id, value)}
-                  >
-                    <SelectTrigger className={cn(
-                      "w-full sm:w-[160px] text-sm font-medium border-0",
-                      statusLabels[item.status].class
-                    )}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="planejado">Planejado</SelectItem>
-                      <SelectItem value="em-andamento">Em Andamento</SelectItem>
-                      <SelectItem value="concluido">Concluído</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

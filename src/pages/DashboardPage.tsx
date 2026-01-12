@@ -6,7 +6,9 @@ import {
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
-import { vendasPorMes, saboresMaisVendidos, pedidos } from '@/data/mockData';
+import { usePedidos } from '@/hooks/usePedidos';
+import { useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { useTransacoes } from '@/hooks/useTransacoes';
 import {
   BarChart,
   Bar,
@@ -18,14 +20,40 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
 
+const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F'];
+
 export function DashboardPage() {
-  const totalVendas = vendasPorMes.reduce((acc, curr) => acc + curr.vendas, 0);
-  const totalPedidos = vendasPorMes.reduce((acc, curr) => acc + curr.pedidos, 0);
-  const totalBrigadeiros = saboresMaisVendidos.reduce((acc, curr) => acc + curr.quantidade, 0);
-  const lucroEstimado = totalVendas * 0.45; // 45% margin estimate
+  const { pedidos } = usePedidos();
+  const { brigadeiros } = useBrigadeiros();
+  const { transacoes } = useTransacoes();
+
+  // Calculate stats
+  const totalVendas = transacoes
+    .filter(t => t.tipo === 'entrada')
+    .reduce((acc, t) => acc + t.valor, 0);
+
+  const totalDespesas = transacoes
+    .filter(t => t.tipo === 'saida')
+    .reduce((acc, t) => acc + t.valor, 0);
+
+  const lucroEstimado = totalVendas - totalDespesas;
+
+  const totalBrigadeiros = pedidos.reduce((acc, p) => {
+    return acc + (p.itens?.reduce((itemAcc, item) => itemAcc + item.quantidade, 0) || 0);
+  }, 0);
+
+  // Prepare chart data
+  const vendasPorMes = [
+    { mes: 'Vendas', vendas: totalVendas, pedidos: pedidos.length },
+  ];
+
+  const saboresMaisVendidos = brigadeiros.slice(0, 6).map((b, index) => ({
+    nome: b.nome.split(' ').slice(0, 2).join(' '),
+    quantidade: Math.floor(Math.random() * 100) + 10, // Mock data for now
+    cor: COLORS[index % COLORS.length],
+  }));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -38,34 +66,32 @@ export function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Faturamento Mensal"
-          value={`R$ ${(totalVendas / 6).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          subtitle="Média dos últimos 6 meses"
+          title="Faturamento Total"
+          value={`R$ ${totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          subtitle="Total de entradas"
           icon={DollarSign}
           variant="primary"
-          trend={{ value: 12, isPositive: true }}
         />
         <StatCard
-          title="Pedidos no Mês"
+          title="Total de Pedidos"
           value={pedidos.length}
-          subtitle="4 pedidos esta semana"
+          subtitle="Pedidos registrados"
           icon={ShoppingBag}
           variant="default"
         />
         <StatCard
-          title="Brigadeiros Produzidos"
-          value={totalBrigadeiros.toLocaleString('pt-BR')}
-          subtitle="Nos últimos 6 meses"
+          title="Produtos Cadastrados"
+          value={brigadeiros.length}
+          subtitle="Sabores disponíveis"
           icon={Cookie}
           variant="default"
         />
         <StatCard
           title="Lucro Estimado"
-          value={`R$ ${(lucroEstimado / 6).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          subtitle="Margem média de 45%"
+          value={`R$ ${lucroEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          subtitle="Entradas - Saídas"
           icon={TrendingUp}
           variant="success"
-          trend={{ value: 8, isPositive: true }}
         />
       </div>
 
@@ -73,20 +99,24 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4">Vendas por Período</h3>
+          <h3 className="font-display font-semibold text-lg mb-4">Resumo Financeiro</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={vendasPorMes}>
+              <BarChart data={[
+                { categoria: 'Entradas', valor: totalVendas },
+                { categoria: 'Saídas', valor: totalDespesas },
+                { categoria: 'Lucro', valor: lucroEstimado },
+              ]}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
-                  dataKey="mes" 
+                  dataKey="categoria" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  tickFormatter={(value) => `R$${value / 1000}k`}
+                  tickFormatter={(value) => `R$${value.toLocaleString('pt-BR')}`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -94,10 +124,10 @@ export function DashboardPage() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                   }}
-                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Vendas']}
+                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Valor']}
                 />
                 <Bar 
-                  dataKey="vendas" 
+                  dataKey="valor" 
                   fill="hsl(var(--primary))" 
                   radius={[4, 4, 0, 0]}
                 />
@@ -108,37 +138,42 @@ export function DashboardPage() {
 
         {/* Flavors Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={saboresMaisVendidos}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="quantidade"
-                  nameKey="nome"
-                  label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {saboresMaisVendidos.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.cor} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                  }}
-                  formatter={(value: number) => [value, 'Unidades']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <h3 className="font-display font-semibold text-lg mb-4">Produtos Cadastrados</h3>
+          {brigadeiros.length > 0 ? (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={saboresMaisVendidos}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="quantidade"
+                    nameKey="nome"
+                    label={({ nome }) => nome}
+                    labelLine={false}
+                  >
+                    {saboresMaisVendidos.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.cor} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <p>Cadastre produtos para ver o gráfico</p>
+            </div>
+          )}
         </div>
       </div>
 

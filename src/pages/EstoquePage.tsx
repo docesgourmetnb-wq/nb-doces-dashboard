@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Plus, AlertTriangle, Package } from 'lucide-react';
-import { insumos as initialInsumos } from '@/data/mockData';
-import { Insumo } from '@/types';
+import { Plus, AlertTriangle, Package, Loader2 } from 'lucide-react';
+import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,20 +15,21 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 
 export function EstoquePage() {
-  const [insumos, setInsumos] = useState<Insumo[]>(initialInsumos);
+  const { insumos, loading, addInsumo, updateInsumo, deleteInsumo } = useInsumos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     unidade: '',
-    quantidadeAtual: '',
-    quantidadeMinima: '',
-    consumoMedio: '',
-    precoUnitario: '',
+    quantidade_atual: '',
+    quantidade_minima: '',
+    consumo_medio: '',
+    preco_unitario: '',
   });
 
-  const insumosEmFalta = insumos.filter(i => i.quantidadeAtual <= i.quantidadeMinima);
-  const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidadeAtual * i.precoUnitario), 0);
+  const insumosEmFalta = insumos.filter(i => i.quantidade_atual <= i.quantidade_minima);
+  const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
 
   const handleOpenDialog = (insumo?: Insumo) => {
     if (insumo) {
@@ -37,60 +37,66 @@ export function EstoquePage() {
       setFormData({
         nome: insumo.nome,
         unidade: insumo.unidade,
-        quantidadeAtual: insumo.quantidadeAtual.toString(),
-        quantidadeMinima: insumo.quantidadeMinima.toString(),
-        consumoMedio: insumo.consumoMedio.toString(),
-        precoUnitario: insumo.precoUnitario.toString(),
+        quantidade_atual: insumo.quantidade_atual.toString(),
+        quantidade_minima: insumo.quantidade_minima.toString(),
+        consumo_medio: insumo.consumo_medio.toString(),
+        preco_unitario: insumo.preco_unitario.toString(),
       });
     } else {
       setEditingInsumo(null);
       setFormData({
         nome: '',
         unidade: '',
-        quantidadeAtual: '',
-        quantidadeMinima: '',
-        consumoMedio: '',
-        precoUnitario: '',
+        quantidade_atual: '',
+        quantidade_minima: '',
+        consumo_medio: '',
+        preco_unitario: '',
       });
     }
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true);
+    
     if (editingInsumo) {
-      setInsumos(insumos.map(i => 
-        i.id === editingInsumo.id 
-          ? { 
-              ...i, 
-              ...formData,
-              quantidadeAtual: parseFloat(formData.quantidadeAtual),
-              quantidadeMinima: parseFloat(formData.quantidadeMinima),
-              consumoMedio: parseFloat(formData.consumoMedio),
-              precoUnitario: parseFloat(formData.precoUnitario),
-            }
-          : i
-      ));
-    } else {
-      const novoInsumo: Insumo = {
-        id: Date.now().toString(),
+      await updateInsumo(editingInsumo.id, {
         nome: formData.nome,
         unidade: formData.unidade,
-        quantidadeAtual: parseFloat(formData.quantidadeAtual),
-        quantidadeMinima: parseFloat(formData.quantidadeMinima),
-        consumoMedio: parseFloat(formData.consumoMedio),
-        precoUnitario: parseFloat(formData.precoUnitario),
-      };
-      setInsumos([...insumos, novoInsumo]);
+        quantidade_atual: parseFloat(formData.quantidade_atual),
+        quantidade_minima: parseFloat(formData.quantidade_minima),
+        consumo_medio: parseFloat(formData.consumo_medio),
+        preco_unitario: parseFloat(formData.preco_unitario),
+      });
+    } else {
+      await addInsumo({
+        nome: formData.nome,
+        unidade: formData.unidade,
+        quantidade_atual: parseFloat(formData.quantidade_atual),
+        quantidade_minima: parseFloat(formData.quantidade_minima),
+        consumo_medio: parseFloat(formData.consumo_medio),
+        preco_unitario: parseFloat(formData.preco_unitario),
+      });
     }
+    
+    setSaving(false);
     setIsDialogOpen(false);
   };
 
   const getStockStatus = (insumo: Insumo) => {
-    const ratio = insumo.quantidadeAtual / insumo.quantidadeMinima;
+    const ratio = insumo.quantidade_atual / insumo.quantidade_minima;
     if (ratio < 0.5) return { status: 'critical', color: 'bg-destructive' };
     if (ratio <= 1) return { status: 'low', color: 'bg-warning' };
     return { status: 'ok', color: 'bg-success' };
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -138,8 +144,8 @@ export function EstoquePage() {
                   <Input
                     type="number"
                     step="0.1"
-                    value={formData.quantidadeAtual}
-                    onChange={(e) => setFormData({ ...formData, quantidadeAtual: e.target.value })}
+                    value={formData.quantidade_atual}
+                    onChange={(e) => setFormData({ ...formData, quantidade_atual: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -147,8 +153,8 @@ export function EstoquePage() {
                   <Input
                     type="number"
                     step="0.1"
-                    value={formData.quantidadeMinima}
-                    onChange={(e) => setFormData({ ...formData, quantidadeMinima: e.target.value })}
+                    value={formData.quantidade_minima}
+                    onChange={(e) => setFormData({ ...formData, quantidade_minima: e.target.value })}
                   />
                 </div>
               </div>
@@ -158,8 +164,8 @@ export function EstoquePage() {
                   <Input
                     type="number"
                     step="0.1"
-                    value={formData.consumoMedio}
-                    onChange={(e) => setFormData({ ...formData, consumoMedio: e.target.value })}
+                    value={formData.consumo_medio}
+                    onChange={(e) => setFormData({ ...formData, consumo_medio: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -167,12 +173,13 @@ export function EstoquePage() {
                   <Input
                     type="number"
                     step="0.01"
-                    value={formData.precoUnitario}
-                    onChange={(e) => setFormData({ ...formData, precoUnitario: e.target.value })}
+                    value={formData.preco_unitario}
+                    onChange={(e) => setFormData({ ...formData, preco_unitario: e.target.value })}
                   />
                 </div>
               </div>
-              <Button onClick={handleSave} className="w-full">
+              <Button onClick={handleSave} className="w-full" disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {editingInsumo ? 'Salvar Alterações' : 'Adicionar Insumo'}
               </Button>
             </div>
@@ -213,55 +220,62 @@ export function EstoquePage() {
       </div>
 
       {/* Inventory List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {insumos.map((insumo) => {
-          const stockStatus = getStockStatus(insumo);
-          const progressValue = Math.min((insumo.quantidadeAtual / insumo.quantidadeMinima) * 100, 100);
-          
-          return (
-            <div
-              key={insumo.id}
-              onClick={() => handleOpenDialog(insumo)}
-              className="bg-card border border-border rounded-xl p-5 card-hover shadow-sm cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-display font-semibold">{insumo.nome}</h3>
-                {stockStatus.status !== 'ok' && (
-                  <span className={cn(
-                    "px-2 py-1 rounded-full text-xs font-medium",
-                    stockStatus.status === 'critical' 
-                      ? 'bg-destructive/20 text-destructive' 
-                      : 'bg-warning/20 text-warning'
-                  )}>
-                    {stockStatus.status === 'critical' ? 'Crítico' : 'Baixo'}
-                  </span>
-                )}
-              </div>
-              
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Estoque atual</span>
-                  <span className="font-medium">
-                    {insumo.quantidadeAtual} / {insumo.quantidadeMinima} {insumo.unidade}
-                  </span>
+      {insumos.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Nenhum insumo cadastrado.</p>
+          <p className="text-sm">Clique em "Novo Insumo" para adicionar.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {insumos.map((insumo) => {
+            const stockStatus = getStockStatus(insumo);
+            const progressValue = Math.min((insumo.quantidade_atual / insumo.quantidade_minima) * 100, 100);
+            
+            return (
+              <div
+                key={insumo.id}
+                onClick={() => handleOpenDialog(insumo)}
+                className="bg-card border border-border rounded-xl p-5 card-hover shadow-sm cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="font-display font-semibold">{insumo.nome}</h3>
+                  {stockStatus.status !== 'ok' && (
+                    <span className={cn(
+                      "px-2 py-1 rounded-full text-xs font-medium",
+                      stockStatus.status === 'critical' 
+                        ? 'bg-destructive/20 text-destructive' 
+                        : 'bg-warning/20 text-warning'
+                    )}>
+                      {stockStatus.status === 'critical' ? 'Crítico' : 'Baixo'}
+                    </span>
+                  )}
                 </div>
-                <Progress value={progressValue} className="h-2" />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm pt-3 border-t border-border">
-                <div>
-                  <p className="text-muted-foreground">Consumo/Sem.</p>
-                  <p className="font-medium">{insumo.consumoMedio} {insumo.unidade}</p>
+                
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Estoque atual</span>
+                    <span className="font-medium">
+                      {insumo.quantidade_atual} / {insumo.quantidade_minima} {insumo.unidade}
+                    </span>
+                  </div>
+                  <Progress value={progressValue} className="h-2" />
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Valor Unit.</p>
-                  <p className="font-medium">R$ {insumo.precoUnitario.toFixed(2)}</p>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm pt-3 border-t border-border">
+                  <div>
+                    <p className="text-muted-foreground">Consumo/Sem.</p>
+                    <p className="font-medium">{insumo.consumo_medio} {insumo.unidade}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Valor Unit.</p>
+                    <p className="font-medium">R$ {insumo.preco_unitario.toFixed(2)}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

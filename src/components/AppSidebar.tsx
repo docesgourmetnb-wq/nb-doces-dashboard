@@ -8,9 +8,11 @@ import {
   DollarSign,
   Menu,
   X,
-  Cookie
+  Cookie,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AppSidebarProps {
   currentPage: string;
@@ -28,6 +30,11 @@ const menuItems = [
 
 export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { signOut, user } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <>
@@ -95,8 +102,20 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-white/10">
+          {/* User & Logout */}
+          <div className="p-4 border-t border-white/10 space-y-3">
+            {user && (
+              <p className="text-xs text-white/60 truncate px-2">
+                {user.email}
+              </p>
+            )}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <LogOut size={18} />
+              <span className="text-sm">Sair</span>
+            </button>
             <p className="text-xs text-white/50 text-center">
               © 2024 NB Doces Gourmet
             </p>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { transacoes as initialTransacoes } from '@/data/mockData';
-import { TransacaoFinanceira } from '@/types';
+import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import { useTransacoes, Transacao } from '@/hooks/useTransacoes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,11 +33,12 @@ import {
 } from 'recharts';
 
 export function FinanceiroPage() {
-  const [transacoes, setTransacoes] = useState<TransacaoFinanceira[]>(initialTransacoes);
+  const { transacoes, loading, addTransacao } = useTransacoes();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [tipoFilter, setTipoFilter] = useState<string>('todos');
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    tipo: 'entrada' as TransacaoFinanceira['tipo'],
+    tipo: 'entrada' as Transacao['tipo'],
     categoria: '',
     descricao: '',
     valor: '',
@@ -59,16 +59,16 @@ export function FinanceiroPage() {
     tipoFilter === 'todos' || t.tipo === tipoFilter
   );
 
-  const handleAddTransacao = () => {
-    const novaTransacao: TransacaoFinanceira = {
-      id: Date.now().toString(),
+  const handleAddTransacao = async () => {
+    setSaving(true);
+    await addTransacao({
       tipo: formData.tipo,
       categoria: formData.categoria,
       descricao: formData.descricao,
       valor: parseFloat(formData.valor),
-      data: new Date(formData.data),
-    };
-    setTransacoes([novaTransacao, ...transacoes]);
+      data: formData.data,
+    });
+    setSaving(false);
     setIsDialogOpen(false);
     setFormData({
       tipo: 'entrada',
@@ -81,10 +81,17 @@ export function FinanceiroPage() {
 
   // Chart data
   const chartData = [
-    { mes: 'Nov', entradas: 5500, saidas: 1800 },
-    { mes: 'Dez', entradas: 8200, saidas: 2500 },
-    { mes: 'Jan', entradas: 4800, saidas: 1400 },
+    { categoria: 'Entradas', valor: totalEntradas },
+    { categoria: 'Saídas', valor: totalSaidas },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -110,7 +117,7 @@ export function FinanceiroPage() {
                 <Label>Tipo</Label>
                 <Select
                   value={formData.tipo}
-                  onValueChange={(value: TransacaoFinanceira['tipo']) => setFormData({ ...formData, tipo: value })}
+                  onValueChange={(value: Transacao['tipo']) => setFormData({ ...formData, tipo: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -156,7 +163,8 @@ export function FinanceiroPage() {
                   />
                 </div>
               </div>
-              <Button onClick={handleAddTransacao} className="w-full">
+              <Button onClick={handleAddTransacao} className="w-full" disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Adicionar Transação
               </Button>
             </div>
@@ -215,14 +223,14 @@ export function FinanceiroPage() {
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
-                dataKey="mes" 
+                dataKey="categoria" 
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
               />
               <YAxis 
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                tickFormatter={(value) => `R$${value / 1000}k`}
+                tickFormatter={(value) => `R$${value.toLocaleString('pt-BR')}`}
               />
               <Tooltip
                 contentStyle={{
@@ -232,17 +240,9 @@ export function FinanceiroPage() {
                 }}
                 formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
               />
-              <Legend />
               <Bar 
-                name="Entradas"
-                dataKey="entradas" 
-                fill="hsl(var(--success))" 
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar 
-                name="Saídas"
-                dataKey="saidas" 
-                fill="hsl(var(--destructive))" 
+                dataKey="valor" 
+                fill="hsl(var(--primary))" 
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -265,35 +265,41 @@ export function FinanceiroPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="divide-y divide-border">
-          {filteredTransacoes.map((transacao) => (
-            <div key={transacao.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-2 rounded-lg",
-                  transacao.tipo === 'entrada' ? 'bg-success/10' : 'bg-destructive/10'
+        {filteredTransacoes.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            <p>Nenhuma transação registrada.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {filteredTransacoes.map((transacao) => (
+              <div key={transacao.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-2 rounded-lg",
+                    transacao.tipo === 'entrada' ? 'bg-success/10' : 'bg-destructive/10'
+                  )}>
+                    {transacao.tipo === 'entrada' 
+                      ? <TrendingUp className="w-4 h-4 text-success" />
+                      : <TrendingDown className="w-4 h-4 text-destructive" />
+                    }
+                  </div>
+                  <div>
+                    <p className="font-medium">{transacao.descricao}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {transacao.categoria} • {format(new Date(transacao.data), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+                <p className={cn(
+                  "font-semibold",
+                  transacao.tipo === 'entrada' ? 'text-success' : 'text-destructive'
                 )}>
-                  {transacao.tipo === 'entrada' 
-                    ? <TrendingUp className="w-4 h-4 text-success" />
-                    : <TrendingDown className="w-4 h-4 text-destructive" />
-                  }
-                </div>
-                <div>
-                  <p className="font-medium">{transacao.descricao}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {transacao.categoria} • {format(transacao.data, 'dd/MM/yyyy', { locale: ptBR })}
-                  </p>
-                </div>
+                  {transacao.tipo === 'entrada' ? '+' : '-'} R$ {transacao.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
-              <p className={cn(
-                "font-semibold",
-                transacao.tipo === 'entrada' ? 'text-success' : 'text-destructive'
-              )}>
-                {transacao.tipo === 'entrada' ? '+' : '-'} R$ {transacao.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
