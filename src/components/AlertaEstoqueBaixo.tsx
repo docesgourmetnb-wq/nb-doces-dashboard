@@ -1,16 +1,27 @@
-import { AlertTriangle } from 'lucide-react';
-import { insumos } from '@/data/mockData';
+import { useInsumos } from '@/hooks/useInsumos';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 
 export function AlertaEstoqueBaixo() {
+  const { insumos, loading } = useInsumos();
+
+  if (loading) {
+    return (
+      <div className="bg-muted rounded-xl p-4 animate-pulse">
+        <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+      </div>
+    );
+  }
+
   const insumosEmFalta = insumos.filter(
-    (insumo) => insumo.quantidadeAtual <= insumo.quantidadeMinima
+    (insumo) => insumo.quantidade_atual <= insumo.quantidade_minima
   );
 
   if (insumosEmFalta.length === 0) {
     return (
-      <div className="bg-success/10 border border-success/20 rounded-xl p-4">
+      <div className="bg-success/10 border border-success/20 rounded-xl p-4 flex items-center gap-2">
+        <CheckCircle className="w-5 h-5 text-success" />
         <p className="text-success font-medium text-sm">
-          ✓ Todos os insumos estão em nível adequado
+          Todos os insumos estão em nível adequado
         </p>
       </div>
     );
@@ -27,7 +38,7 @@ export function AlertaEstoqueBaixo() {
       
       <div className="space-y-3">
         {insumosEmFalta.map((insumo) => {
-          const percentual = (insumo.quantidadeAtual / insumo.quantidadeMinima) * 100;
+          const percentual = (insumo.quantidade_atual / insumo.quantidade_minima) * 100;
           const isCritical = percentual < 50;
           
           return (
@@ -35,7 +46,7 @@ export function AlertaEstoqueBaixo() {
               <div>
                 <p className="font-medium text-sm">{insumo.nome}</p>
                 <p className="text-xs text-muted-foreground">
-                  {insumo.quantidadeAtual} {insumo.unidade} restante(s)
+                  {insumo.quantidade_atual} {insumo.unidade} restante(s)
                 </p>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
