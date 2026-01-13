@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, Loader2, User, Mail, Phone } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2, User, Mail, Phone, Eye, ShoppingBag, Calendar } from 'lucide-react';
 import { useClientes, Cliente } from '@/hooks/useClientes';
+import { usePedidos } from '@/hooks/usePedidos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,12 +25,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export function ClientesPage() {
   const { clientes, loading, addCliente, updateCliente, deleteCliente } = useClientes();
+  const { pedidos } = usePedidos();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [viewingCliente, setViewingCliente] = useState<Cliente | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
   // Form state
@@ -42,6 +46,25 @@ export function ClientesPage() {
     c.email?.toLowerCase().includes(search.toLowerCase()) ||
     c.telefone?.includes(search)
   );
+
+  const getClientePedidos = (clienteNome: string) => {
+    return pedidos.filter(p => p.cliente.toLowerCase() === clienteNome.toLowerCase());
+  };
+
+  const getClienteStats = (clienteNome: string) => {
+    const clientePedidos = getClientePedidos(clienteNome);
+    const totalPedidos = clientePedidos.length;
+    const totalGasto = clientePedidos.reduce((acc, p) => acc + p.valor_total, 0);
+    return { totalPedidos, totalGasto };
+  };
+
+  const statusLabels: Record<string, { label: string; class: string }> = {
+    'pendente': { label: 'Pendente', class: 'bg-muted text-muted-foreground' },
+    'em-producao': { label: 'Em Produção', class: 'bg-info/20 text-info' },
+    'pronto': { label: 'Pronto', class: 'bg-warning/20 text-warning' },
+    'entregue': { label: 'Entregue', class: 'bg-success/20 text-success' },
+    'cancelado': { label: 'Cancelado', class: 'bg-destructive/20 text-destructive' },
+  };
 
   const resetForm = () => {
     setNome('');
@@ -182,77 +205,187 @@ export function ClientesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClientes.map((cliente) => (
-            <div
-              key={cliente.id}
-              className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
+          {filteredClientes.map((cliente) => {
+            const stats = getClienteStats(cliente.nome);
+            return (
+              <div
+                key={cliente.id}
+                className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{cliente.nome}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Cliente desde {format(new Date(cliente.created_at), "MMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setViewingCliente(cliente)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <Eye size={16} className="text-muted-foreground" />
+                    </button>
+                    <button
+                      onClick={() => openEditDialog(cliente)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <Edit2 size={16} className="text-muted-foreground" />
+                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="p-2 hover:bg-destructive/10 rounded-lg transition-colors">
+                          <Trash2 size={16} className="text-destructive" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover cliente?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover {cliente.nome}? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteCliente(cliente.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {cliente.email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail size={14} />
+                      <span className="truncate">{cliente.email}</span>
+                    </div>
+                  )}
+                  {cliente.telefone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone size={14} />
+                      <span>{cliente.telefone}</span>
+                    </div>
+                  )}
+                  {!cliente.email && !cliente.telefone && (
+                    <p className="text-sm text-muted-foreground italic">Sem informações de contato</p>
+                  )}
+                </div>
+                {/* Stats */}
+                <div className="mt-4 pt-4 border-t border-border flex gap-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <ShoppingBag size={14} className="text-primary" />
+                    <span className="text-muted-foreground">{stats.totalPedidos} pedidos</span>
+                  </div>
+                  <div className="text-sm font-medium text-primary">
+                    R$ {stats.totalGasto.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Client Detail Dialog with Order History */}
+      <Dialog open={!!viewingCliente} onOpenChange={(open) => !open && setViewingCliente(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {viewingCliente && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-2xl flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <User className="w-5 h-5 text-primary" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{cliente.nome}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Cliente desde {format(new Date(cliente.created_at), "MMM 'de' yyyy", { locale: ptBR })}
+                  {viewingCliente.nome}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                {/* Contact Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">E-mail</p>
+                    <p className="font-medium">{viewingCliente.email || '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Telefone</p>
+                    <p className="font-medium">{viewingCliente.telefone || '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Cliente desde</p>
+                    <p className="font-medium">
+                      {format(new Date(viewingCliente.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Total gasto</p>
+                    <p className="font-semibold text-primary">
+                      R$ {getClienteStats(viewingCliente.nome).totalGasto.toFixed(2)}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => openEditDialog(cliente)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors"
-                  >
-                    <Edit2 size={16} className="text-muted-foreground" />
-                  </button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button className="p-2 hover:bg-destructive/10 rounded-lg transition-colors">
-                        <Trash2 size={16} className="text-destructive" />
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remover cliente?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja remover {cliente.nome}? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteCliente(cliente.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+
+                {/* Order History */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <ShoppingBag size={18} />
+                    Histórico de Pedidos
+                  </h3>
+                  {getClientePedidos(viewingCliente.nome).length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center bg-muted/30 rounded-lg">
+                      Nenhum pedido encontrado para este cliente.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {getClientePedidos(viewingCliente.nome).map((pedido) => (
+                        <div
+                          key={pedido.id}
+                          className="p-4 bg-muted/30 rounded-lg border border-border"
                         >
-                          Remover
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar size={14} />
+                              {format(new Date(pedido.data), "dd/MM/yyyy", { locale: ptBR })}
+                            </div>
+                            <span className={cn(
+                              "text-xs px-2 py-1 rounded-full font-medium",
+                              statusLabels[pedido.status]?.class
+                            )}>
+                              {statusLabels[pedido.status]?.label}
+                            </span>
+                          </div>
+                          {pedido.itens && pedido.itens.length > 0 && (
+                            <div className="text-sm text-muted-foreground mb-2">
+                              {pedido.itens.map(item => `${item.quantidade}x ${item.brigadeiro_nome}`).join(', ')}
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {pedido.tipo_pedido.replace('-', ' ')}
+                            </span>
+                            <span className="font-semibold">
+                              R$ {pedido.valor_total.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="space-y-2">
-                {cliente.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail size={14} />
-                    <span className="truncate">{cliente.email}</span>
-                  </div>
-                )}
-                {cliente.telefone && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone size={14} />
-                    <span>{cliente.telefone}</span>
-                  </div>
-                )}
-                {!cliente.email && !cliente.telefone && (
-                  <p className="text-sm text-muted-foreground italic">Sem informações de contato</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
