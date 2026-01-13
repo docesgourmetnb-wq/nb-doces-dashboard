@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Search, Eye, Loader2 } from 'lucide-react';
 import { usePedidos, Pedido } from '@/hooks/usePedidos';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NovoPedidoForm } from '@/components/NovoPedidoForm';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function VendasPage() {
-  const { pedidos, loading, updatePedidoStatus } = usePedidos();
+  const { pedidos, loading, updatePedidoStatus, refetch } = usePedidos();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
 
@@ -63,6 +63,7 @@ export function VendasPage() {
           <h1 className="font-display text-3xl font-semibold text-foreground">Vendas</h1>
           <p className="text-muted-foreground mt-1">Gerencie seus pedidos</p>
         </div>
+        <NovoPedidoForm onSuccess={refetch} />
       </div>
 
       {/* Filters */}
