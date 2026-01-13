@@ -9,7 +9,8 @@ import {
   Menu,
   X,
   Cookie,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +23,7 @@ interface AppSidebarProps {
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'produtos', label: 'Produtos', icon: Package },
+  { id: 'clientes', label: 'Clientes', icon: Users },
   { id: 'vendas', label: 'Vendas', icon: ShoppingCart },
   { id: 'producao', label: 'Produção', icon: Factory },
   { id: 'estoque', label: 'Estoque', icon: Warehouse },

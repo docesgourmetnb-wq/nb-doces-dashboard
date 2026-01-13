@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProdutosPage } from '@/pages/ProdutosPage';
+import { ClientesPage } from '@/pages/ClientesPage';
 import { VendasPage } from '@/pages/VendasPage';
 import { ProducaoPage } from '@/pages/ProducaoPage';
 import { EstoquePage } from '@/pages/EstoquePage';
@@ -16,6 +17,8 @@ const Index = () => {
         return <DashboardPage />;
       case 'produtos':
         return <ProdutosPage />;
+      case 'clientes':
+        return <ClientesPage />;
       case 'vendas':
         return <VendasPage />;
       case 'producao':
