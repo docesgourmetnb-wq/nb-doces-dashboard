@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido } from '@/hooks/usePedidos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,11 +28,14 @@ interface NovoPedidoFormProps {
 
 export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const { brigadeiros } = useBrigadeiros();
+  const { clientes } = useClientes();
   const { addPedido } = usePedidos();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [cliente, setCliente] = useState('');
+  const [clienteId, setClienteId] = useState('');
+  const [clienteNovo, setClienteNovo] = useState('');
+  const [modoCliente, setModoCliente] = useState<'existente' | 'novo'>('existente');
   const [tipoPedido, setTipoPedido] = useState<Pedido['tipo_pedido']>('encomenda');
   const [formaPagamento, setFormaPagamento] = useState<Pedido['forma_pagamento']>('pix');
   const [observacoes, setObservacoes] = useState('');
@@ -42,6 +46,10 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const [quantidade, setQuantidade] = useState(1);
 
   const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.preco_unitario), 0);
+
+  const clienteNome = modoCliente === 'existente' 
+    ? clientes.find(c => c.id === clienteId)?.nome || ''
+    : clienteNovo.trim();
 
   const handleAddItem = () => {
     if (!selectedBrigadeiro) return;
@@ -73,12 +81,12 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (!cliente.trim() || itens.length === 0) return;
+    if (!clienteNome || itens.length === 0) return;
     
     setLoading(true);
     try {
       await addPedido({
-        cliente: cliente.trim(),
+        cliente: clienteNome,
         data: new Date().toISOString(),
         tipo_pedido: tipoPedido,
         valor_total: valorTotal,
@@ -88,11 +96,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
       }, itens);
       
       // Reset form
-      setCliente('');
-      setTipoPedido('encomenda');
-      setFormaPagamento('pix');
-      setObservacoes('');
-      setItens([]);
+      resetForm();
       setOpen(false);
       onSuccess?.();
     } finally {
@@ -101,7 +105,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   };
 
   const resetForm = () => {
-    setCliente('');
+    setClienteId('');
+    setClienteNovo('');
+    setModoCliente('existente');
     setTipoPedido('encomenda');
     setFormaPagamento('pix');
     setObservacoes('');
@@ -127,30 +133,66 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
         </DialogHeader>
         
         <div className="space-y-6 py-4">
-          {/* Client Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cliente">Nome do Cliente *</Label>
-              <Input
-                id="cliente"
-                value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                placeholder="Ex: Maria Silva"
-              />
+          {/* Client Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label>Cliente *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setModoCliente(modoCliente === 'existente' ? 'novo' : 'existente')}
+                className="text-xs gap-1.5"
+              >
+                <UserPlus size={14} />
+                {modoCliente === 'existente' ? 'Novo cliente' : 'Cliente cadastrado'}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label>Tipo de Pedido</Label>
-              <Select value={tipoPedido} onValueChange={(v: Pedido['tipo_pedido']) => setTipoPedido(v)}>
+            
+            {modoCliente === 'existente' ? (
+              <Select value={clienteId} onValueChange={setClienteId}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione um cliente cadastrado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="encomenda">Encomenda</SelectItem>
-                  <SelectItem value="pronta-entrega">Pronta Entrega</SelectItem>
-                  <SelectItem value="evento">Evento</SelectItem>
+                  {clientes.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      Nenhum cliente cadastrado
+                    </div>
+                  ) : (
+                    clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span>{c.nome}</span>
+                        {c.telefone && (
+                          <span className="text-muted-foreground ml-2">• {c.telefone}</span>
+                        )}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
-            </div>
+            ) : (
+              <Input
+                value={clienteNovo}
+                onChange={(e) => setClienteNovo(e.target.value)}
+                placeholder="Nome do novo cliente"
+              />
+            )}
+          </div>
+
+          {/* Order Type */}
+          <div className="space-y-2">
+            <Label>Tipo de Pedido</Label>
+            <Select value={tipoPedido} onValueChange={(v: Pedido['tipo_pedido']) => setTipoPedido(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="encomenda">Encomenda</SelectItem>
+                <SelectItem value="pronta-entrega">Pronta Entrega</SelectItem>
+                <SelectItem value="evento">Evento</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Add Items */}
@@ -252,7 +294,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
             </Button>
             <Button 
               onClick={handleSubmit} 
-              disabled={loading || !cliente.trim() || itens.length === 0}
+              disabled={loading || !clienteNome || itens.length === 0}
             >
               {loading ? (
                 <>
