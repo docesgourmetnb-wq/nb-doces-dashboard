@@ -71,7 +71,7 @@ export function useClientes() {
     }
   };
 
-  const updateCliente = async (id: string, updates: Partial<Omit<Cliente, 'id' | 'created_at'>>) => {
+  const updateCliente = async (id: string, updates: Partial<Omit<Cliente, 'id'>>) => {
     try {
       const { error } = await supabase
         .from('clientes')

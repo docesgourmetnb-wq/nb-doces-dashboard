@@ -23,6 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,7 @@ export function ClientesPage() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [clienteDesde, setClienteDesde] = useState<Date | undefined>(undefined);
 
   const filteredClientes = clientes.filter((c) =>
     c.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -70,6 +73,7 @@ export function ClientesPage() {
     setNome('');
     setEmail('');
     setTelefone('');
+    setClienteDesde(undefined);
     setEditingCliente(null);
   };
 
@@ -78,6 +82,7 @@ export function ClientesPage() {
     setNome(cliente.nome);
     setEmail(cliente.email || '');
     setTelefone(cliente.telefone || '');
+    setClienteDesde(new Date(cliente.created_at));
     setDialogOpen(true);
   };
 
@@ -91,6 +96,7 @@ export function ClientesPage() {
           nome: nome.trim(),
           email: email.trim() || null,
           telefone: telefone.trim() || null,
+          ...(clienteDesde && { created_at: clienteDesde.toISOString() }),
         });
       } else {
         await addCliente({
@@ -167,6 +173,35 @@ export function ClientesPage() {
                   placeholder="(11) 99999-9999"
                 />
               </div>
+              {editingCliente && (
+                <div className="space-y-2">
+                  <Label>Cliente desde</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !clienteDesde && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {clienteDesde ? format(clienteDesde, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione a data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-50" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={clienteDesde}
+                        onSelect={setClienteDesde}
+                        initialFocus
+                        locale={ptBR}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={formLoading}>
                   Cancelar
