@@ -167,6 +167,59 @@ export type Database = {
           },
         ]
       }
+      massas_congeladas: {
+        Row: {
+          created_at: string
+          data_congelamento: string
+          data_producao: string
+          foto_url: string | null
+          id: string
+          peso_total: number
+          recipiente_id: string
+          status: string
+          tipo_massa: string
+          updated_at: string
+          user_id: string
+          validade: string
+        }
+        Insert: {
+          created_at?: string
+          data_congelamento?: string
+          data_producao?: string
+          foto_url?: string | null
+          id?: string
+          peso_total: number
+          recipiente_id: string
+          status?: string
+          tipo_massa?: string
+          updated_at?: string
+          user_id: string
+          validade: string
+        }
+        Update: {
+          created_at?: string
+          data_congelamento?: string
+          data_producao?: string
+          foto_url?: string | null
+          id?: string
+          peso_total?: number
+          recipiente_id?: string
+          status?: string
+          tipo_massa?: string
+          updated_at?: string
+          user_id?: string
+          validade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "massas_congeladas_recipiente_id_fkey"
+            columns: ["recipiente_id"]
+            isOneToOne: false
+            referencedRelation: "recipientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           cliente: string
@@ -275,6 +328,48 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recipientes: {
+        Row: {
+          capacidade_aproximada: number | null
+          codigo: string
+          created_at: string
+          foto_url: string | null
+          id: string
+          observacoes: string | null
+          peso_vazio: number
+          status: string
+          tipo_recipiente: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capacidade_aproximada?: number | null
+          codigo: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          observacoes?: string | null
+          peso_vazio: number
+          status?: string
+          tipo_recipiente?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          capacidade_aproximada?: number | null
+          codigo?: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          observacoes?: string | null
+          peso_vazio?: number
+          status?: string
+          tipo_recipiente?: string
           updated_at?: string
           user_id?: string
         }

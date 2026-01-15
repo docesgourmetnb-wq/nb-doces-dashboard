@@ -10,7 +10,8 @@ import {
   X,
   Cookie,
   LogOut,
-  Users
+  Users,
+  Snowflake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,7 @@ const menuItems = [
   { id: 'clientes', label: 'Clientes', icon: Users },
   { id: 'vendas', label: 'Vendas', icon: ShoppingCart },
   { id: 'producao', label: 'Produção', icon: Factory },
+  { id: 'massas', label: 'Massas', icon: Snowflake },
   { id: 'estoque', label: 'Estoque', icon: Warehouse },
   { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
 ];
