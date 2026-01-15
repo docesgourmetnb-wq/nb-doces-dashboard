@@ -6,6 +6,7 @@ import { ClientesPage } from '@/pages/ClientesPage';
 import { VendasPage } from '@/pages/VendasPage';
 import { ProducaoPage } from '@/pages/ProducaoPage';
 import { EstoquePage } from '@/pages/EstoquePage';
+import { MassasPage } from '@/pages/MassasPage';
 import { FinanceiroPage } from '@/pages/FinanceiroPage';
 
 const Index = () => {
@@ -23,6 +24,8 @@ const Index = () => {
         return <VendasPage />;
       case 'producao':
         return <ProducaoPage />;
+      case 'massas':
+        return <MassasPage />;
       case 'estoque':
         return <EstoquePage />;
       case 'financeiro':
