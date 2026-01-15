@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Plus, Trash2, Loader2, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Loader2, UserPlus, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido } from '@/hooks/usePedidos';
@@ -21,6 +23,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
   onSuccess?: () => void;
@@ -36,6 +41,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const [clienteId, setClienteId] = useState('');
   const [clienteNovo, setClienteNovo] = useState('');
   const [modoCliente, setModoCliente] = useState<'existente' | 'novo'>('existente');
+  const [dataPedido, setDataPedido] = useState<Date>(new Date());
   const [tipoPedido, setTipoPedido] = useState<Pedido['tipo_pedido']>('encomenda');
   const [formaPagamento, setFormaPagamento] = useState<Pedido['forma_pagamento']>('pix');
   const [observacoes, setObservacoes] = useState('');
@@ -87,7 +93,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     try {
       await addPedido({
         cliente: clienteNome,
-        data: new Date().toISOString(),
+        data: dataPedido.toISOString(),
         tipo_pedido: tipoPedido,
         valor_total: valorTotal,
         forma_pagamento: formaPagamento,
@@ -108,6 +114,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     setClienteId('');
     setClienteNovo('');
     setModoCliente('existente');
+    setDataPedido(new Date());
     setTipoPedido('encomenda');
     setFormaPagamento('pix');
     setObservacoes('');
@@ -178,6 +185,35 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 placeholder="Nome do novo cliente"
               />
             )}
+          </div>
+
+          {/* Order Date */}
+          <div className="space-y-2">
+            <Label>Data do Pedido</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dataPedido && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {format(dataPedido, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 z-50" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={dataPedido}
+                  onSelect={(date) => date && setDataPedido(date)}
+                  initialFocus
+                  locale={ptBR}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Order Type */}
