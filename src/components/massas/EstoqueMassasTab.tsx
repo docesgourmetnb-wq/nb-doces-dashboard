@@ -44,10 +44,13 @@ export function EstoqueMassasTab() {
     massasProximasValidade 
   } = useMassasCongeladas();
   const { brigadeiros, loading: loadingBrigadeiros } = useBrigadeiros();
-  
+
   const brigadeirosAtivos = brigadeiros.filter(b => b.ativo);
   const tiposUnicos = [...new Set(massas.map(m => m.tipo_massa))];
-  
+  const tiposBrigadeiros = brigadeirosAtivos.map(b => b.nome);
+  const tiposExtras = tiposUnicos.filter(t => !tiposBrigadeiros.includes(t));
+  const tiposParaFiltro = [...tiposBrigadeiros, ...tiposExtras];
+
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [selectedMassa, setSelectedMassa] = useState<MassaComPesoCalculado | null>(null);
@@ -117,14 +120,17 @@ export function EstoqueMassasTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-1 text-sm">
-              {tiposUnicos.map(tipo => {
+              {tiposParaFiltro.map(tipo => {
                 const total = estoqueAtual
                   .filter(m => m.tipo_massa === tipo)
                   .reduce((sum, m) => sum + m.peso_massa, 0);
                 if (total === 0) return null;
+
+                const isExtra = tiposExtras.includes(tipo);
+
                 return (
                   <p key={tipo}>
-                    {tipo}: <strong>{total.toFixed(0)}g</strong>
+                    {tipo}{isExtra ? ' (não cadastrado)' : ''}: <strong>{total.toFixed(0)}g</strong>
                   </p>
                 );
               })}
@@ -183,11 +189,14 @@ export function EstoqueMassasTab() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {tiposUnicos.map(tipo => (
-                <SelectItem key={tipo} value={tipo}>
-                  {tipo}
-                </SelectItem>
-              ))}
+              {tiposParaFiltro.map(tipo => {
+                const isExtra = tiposExtras.includes(tipo);
+                return (
+                  <SelectItem key={tipo} value={tipo}>
+                    {tipo}{isExtra ? ' (não cadastrado)' : ''}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
