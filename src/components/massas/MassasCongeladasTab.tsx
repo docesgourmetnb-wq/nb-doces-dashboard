@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRecipientes } from '@/hooks/useRecipientes';
 import { useMassasCongeladas } from '@/hooks/useMassasCongeladas';
+import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,24 +21,20 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 
-const tipoMassaLabels = {
-  branco: 'Branco',
-  '100_cacau': '100% Cacau',
-  outros: 'Outros',
-};
-
 export function MassasCongeladasTab() {
   const { recipientes, loading: loadingRecipientes } = useRecipientes();
   const { addMassa, uploadFoto } = useMassasCongeladas();
+  const { brigadeiros, loading: loadingBrigadeiros } = useBrigadeiros();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const recipientesDisponiveis = recipientes.filter(r => r.status === 'disponivel');
+  const brigadeirosAtivos = brigadeiros.filter(b => b.ativo);
 
   const [formData, setFormData] = useState({
     recipiente_id: '',
-    tipo_massa: 'branco' as 'branco' | '100_cacau' | 'outros',
+    tipo_massa: '',
     peso_total: '',
     data_producao: new Date(),
     data_congelamento: new Date(),
@@ -53,7 +50,7 @@ export function MassasCongeladasTab() {
   const resetForm = () => {
     setFormData({
       recipiente_id: '',
-      tipo_massa: 'branco',
+      tipo_massa: '',
       peso_total: '',
       data_producao: new Date(),
       data_congelamento: new Date(),
@@ -94,7 +91,7 @@ export function MassasCongeladasTab() {
     setSaving(false);
   };
 
-  if (loadingRecipientes) {
+  if (loadingRecipientes || loadingBrigadeiros) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -193,24 +190,31 @@ export function MassasCongeladasTab() {
             )}
           </div>
 
-          {/* Tipo de Massa */}
+          {/* Tipo de Massa (Brigadeiro) */}
           <div className="space-y-2">
-            <Label>Tipo de Massa *</Label>
+            <Label>Tipo de Massa (Brigadeiro) *</Label>
             <Select
               value={formData.tipo_massa}
-              onValueChange={(value: 'branco' | '100_cacau' | 'outros') =>
+              onValueChange={(value) =>
                 setFormData(prev => ({ ...prev, tipo_massa: value }))
               }
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione o brigadeiro" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="branco">Branco</SelectItem>
-                <SelectItem value="100_cacau">100% Cacau</SelectItem>
-                <SelectItem value="outros">Outros</SelectItem>
+                {brigadeirosAtivos.map(b => (
+                  <SelectItem key={b.id} value={b.nome}>
+                    {b.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {brigadeirosAtivos.length === 0 && (
+              <p className="text-xs text-amber-600">
+                Nenhum brigadeiro cadastrado. Cadastre produtos primeiro.
+              </p>
+            )}
           </div>
 
           {/* Peso Total */}
@@ -309,7 +313,7 @@ export function MassasCongeladasTab() {
           <Button
             size="lg"
             onClick={handleSave}
-            disabled={saving || !formData.recipiente_id || !formData.peso_total || pesoMassaCalculado <= 0}
+            disabled={saving || !formData.recipiente_id || !formData.tipo_massa || !formData.peso_total || pesoMassaCalculado <= 0}
           >
             {saving ? (
               <>

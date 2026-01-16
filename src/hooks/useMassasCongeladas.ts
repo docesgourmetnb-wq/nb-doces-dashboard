@@ -7,7 +7,7 @@ import { Recipiente } from './useRecipientes';
 export interface MassaCongelada {
   id: string;
   recipiente_id: string;
-  tipo_massa: 'branco' | '100_cacau' | 'outros';
+  tipo_massa: string;
   peso_total: number;
   data_producao: string;
   data_congelamento: string;
@@ -65,7 +65,7 @@ export function useMassasCongeladas() {
 
   const addMassa = async (massa: {
     recipiente_id: string;
-    tipo_massa: 'branco' | '100_cacau' | 'outros';
+    tipo_massa: string;
     peso_total: number;
     data_producao: string;
     data_congelamento: string;
