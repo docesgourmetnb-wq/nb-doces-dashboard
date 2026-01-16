@@ -3,6 +3,7 @@ import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertTriangle, Package, Scale, Loader2, Trash2, Edit2, Eye } from 'lucide-react';
 import { useMassasCongeladas, MassaComPesoCalculado } from '@/hooks/useMassasCongeladas';
+import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,12 +33,6 @@ const statusColors = {
   consumido: 'bg-gray-100 text-gray-800',
 };
 
-const tipoMassaLabels = {
-  branco: 'Branco',
-  '100_cacau': '100% Cacau',
-  outros: 'Outros',
-};
-
 export function EstoqueMassasTab() {
   const { 
     massas, 
@@ -48,6 +43,10 @@ export function EstoqueMassasTab() {
     totalPesoEstoque,
     massasProximasValidade 
   } = useMassasCongeladas();
+  const { brigadeiros, loading: loadingBrigadeiros } = useBrigadeiros();
+  
+  const brigadeirosAtivos = brigadeiros.filter(b => b.ativo);
+  const tiposUnicos = [...new Set(massas.map(m => m.tipo_massa))];
   
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterTipo, setFilterTipo] = useState<string>('all');
@@ -82,7 +81,7 @@ export function EstoqueMassasTab() {
     }
   };
 
-  if (loading) {
+  if (loading || loadingBrigadeiros) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -118,14 +117,14 @@ export function EstoqueMassasTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-1 text-sm">
-              {(['branco', '100_cacau', 'outros'] as const).map(tipo => {
+              {tiposUnicos.map(tipo => {
                 const total = estoqueAtual
                   .filter(m => m.tipo_massa === tipo)
                   .reduce((sum, m) => sum + m.peso_massa, 0);
                 if (total === 0) return null;
                 return (
                   <p key={tipo}>
-                    {tipoMassaLabels[tipo]}: <strong>{total.toFixed(0)}g</strong>
+                    {tipo}: <strong>{total.toFixed(0)}g</strong>
                   </p>
                 );
               })}
@@ -179,14 +178,16 @@ export function EstoqueMassasTab() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Tipo:</span>
           <Select value={filterTipo} onValueChange={setFilterTipo}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="branco">Branco</SelectItem>
-              <SelectItem value="100_cacau">100% Cacau</SelectItem>
-              <SelectItem value="outros">Outros</SelectItem>
+              {tiposUnicos.map(tipo => (
+                <SelectItem key={tipo} value={tipo}>
+                  {tipo}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -224,7 +225,7 @@ export function EstoqueMassasTab() {
                       {massa.recipiente?.codigo || 'Prato'}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {tipoMassaLabels[massa.tipo_massa]}
+                      {massa.tipo_massa}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -318,7 +319,7 @@ export function EstoqueMassasTab() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Tipo de Massa</p>
-                  <p className="font-medium">{tipoMassaLabels[selectedMassa.tipo_massa]}</p>
+                  <p className="font-medium">{selectedMassa.tipo_massa}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Peso Total (prato+massa)</p>
