@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 export interface ItemPedido {
   id?: string;
@@ -69,12 +70,36 @@ export function usePedidos() {
 
   const updatePedidoStatus = async (id: string, status: Pedido['status']) => {
     try {
+      const pedido = pedidos.find(p => p.id === id);
       const { error } = await supabase
         .from('pedidos')
         .update({ status })
         .eq('id', id);
 
       if (error) throw error;
+
+      // Se mudar para "entregue", criar transação de entrada (se não existir)
+      if (status === 'entregue' && pedido && pedido.status !== 'entregue') {
+        // Verificar se já existe transação para este pedido
+        const { data: existingTx } = await supabase
+          .from('transacoes')
+          .select('id')
+          .eq('referencia', id)
+          .maybeSingle();
+
+        if (!existingTx && pedido.valor_total > 0) {
+          await supabase.from('transacoes').insert({
+            tipo: 'entrada',
+            categoria: 'Venda',
+            descricao: `Pedido - ${pedido.cliente}`,
+            valor: pedido.valor_total,
+            data: pedido.data,
+            referencia: id,
+            user_id: user!.id,
+          });
+        }
+      }
+
       setPedidos(pedidos.map(p => p.id === id ? { ...p, status } : p));
       toast({ title: 'Status atualizado!' });
     } catch (error: any) {
@@ -120,6 +145,19 @@ export function usePedidos() {
           })));
 
         if (itensError) throw itensError;
+      }
+
+      // Se o pedido for "entregue", criar transação de entrada automaticamente
+      if (pedido.status === 'entregue' && pedido.valor_total > 0) {
+        await supabase.from('transacoes').insert({
+          tipo: 'entrada',
+          categoria: 'Venda',
+          descricao: `Pedido - ${pedido.cliente}`,
+          valor: pedido.valor_total,
+          data: pedido.data,
+          referencia: novoPedido.id,
+          user_id: user.id,
+        });
       }
 
       await fetchPedidos();
