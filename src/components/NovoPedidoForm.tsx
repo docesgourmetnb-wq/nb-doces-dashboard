@@ -93,7 +93,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     try {
       await addPedido({
         cliente: clienteNome,
-        data: dataPedido.toISOString(),
+        data: format(dataPedido, 'yyyy-MM-dd'),
         tipo_pedido: tipoPedido,
         valor_total: valorTotal,
         forma_pagamento: formaPagamento,
