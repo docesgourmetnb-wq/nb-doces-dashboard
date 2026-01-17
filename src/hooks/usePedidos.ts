@@ -37,7 +37,7 @@ export function usePedidos() {
       const { data: pedidosData, error: pedidosError } = await supabase
         .from('pedidos')
         .select('*')
-        .order('data', { ascending: false });
+        .order('data', { ascending: true });
 
       if (pedidosError) throw pedidosError;
 
