@@ -62,20 +62,15 @@ export function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
 
-  // Gerar lista de anos disponíveis baseado nas transações
+  // Gerar lista de anos desde 2022 até o ano atual
   const availableYears = useMemo(() => {
-    const years = new Set<number>();
-    years.add(currentYear);
-    transacoes.forEach(t => {
-      const year = parseISO(t.data).getFullYear();
-      years.add(year);
-    });
-    pedidos.forEach(p => {
-      const year = parseISO(p.data).getFullYear();
-      years.add(year);
-    });
-    return Array.from(years).sort((a, b) => b - a);
-  }, [transacoes, pedidos, currentYear]);
+    const startYear = 2022;
+    const years: number[] = [];
+    for (let year = currentYear; year >= startYear; year--) {
+      years.push(year);
+    }
+    return years;
+  }, [currentYear]);
 
   // Filtrar transações por período selecionado
   const filteredTransacoes = useMemo(() => {
