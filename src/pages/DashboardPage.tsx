@@ -103,15 +103,15 @@ export function DashboardPage() {
 
   const lucroPeriodo = vendasPeriodo - despesasPeriodo;
 
-  // Calcular faturamento do ano vigente
-  const vendasAnoVigente = useMemo(() => {
+  // Calcular faturamento do ano selecionado
+  const vendasAnoSelecionado = useMemo(() => {
     return transacoes
       .filter(t => {
         const year = parseISO(t.data).getFullYear();
-        return t.tipo === 'entrada' && year === currentYear;
+        return t.tipo === 'entrada' && year === Number(selectedYear);
       })
       .reduce((acc, t) => acc + t.valor, 0);
-  }, [transacoes, currentYear]);
+  }, [transacoes, selectedYear]);
 
   // Calcular faturamento total histórico
   const vendasTotalHistorico = useMemo(() => {
@@ -179,9 +179,9 @@ export function DashboardPage() {
             <Calendar className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Faturamento {currentYear}</p>
+            <p className="text-sm text-muted-foreground">Faturamento {selectedYear}</p>
             <p className="text-2xl font-semibold text-foreground">
-              R$ {vendasAnoVigente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {vendasAnoSelecionado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
         </div>
