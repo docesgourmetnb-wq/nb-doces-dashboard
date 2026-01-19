@@ -175,11 +175,21 @@ export function useMassasCongeladas() {
       return null;
     }
 
-    const { data: { publicUrl } } = supabase.storage
+    const { data, error: signedUrlError } = await supabase.storage
       .from('massas-fotos')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 86400); // 24 hours expiry
 
-    return publicUrl;
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+      toast({
+        title: 'Erro ao gerar URL da foto',
+        description: signedUrlError.message,
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    return data.signedUrl;
   };
 
   // Computed values
