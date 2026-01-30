@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,9 @@ const AppRoutes = () => (
       <PublicRoute>
         <AuthPage />
       </PublicRoute>
+    } />
+    <Route path="/reset-password" element={
+      <ResetPasswordPage />
     } />
     <Route path="/" element={
       <ProtectedRoute>
