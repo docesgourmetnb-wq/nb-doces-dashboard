@@ -55,14 +55,17 @@ export function ProducaoPage() {
 
     setSaving(true);
     const quantidade = parseInt(formData.quantidade);
-    const custo_total = quantidade * brigadeiro.custo_unitario;
+    if (quantidade <= 0) {
+      setSaving(false);
+      return;
+    }
 
     await addProducao({
       data: formData.data,
       brigadeiro_id: brigadeiro.id,
       brigadeiro_nome: brigadeiro.nome,
       quantidade,
-      custo_total,
+      custo_total: 0,
       status: 'planejado',
     });
 
@@ -139,10 +142,14 @@ export function ProducaoPage() {
                 <Label>Quantidade</Label>
                 <Input
                   type="number"
+                  min="1"
                   value={formData.quantidade}
                   onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })}
                   placeholder="Ex: 50"
                 />
+                {formData.quantidade && parseInt(formData.quantidade) <= 0 && (
+                  <p className="text-xs text-destructive">Quantidade deve ser maior que zero</p>
+                )}
               </div>
               {formData.brigadeiro_id && formData.quantidade && (
                 <div className="p-3 bg-muted rounded-lg">
@@ -154,7 +161,7 @@ export function ProducaoPage() {
                   </p>
                 </div>
               )}
-              <Button onClick={handleAddProducao} className="w-full" disabled={saving || !formData.brigadeiro_id}>
+              <Button onClick={handleAddProducao} className="w-full" disabled={saving || !formData.brigadeiro_id || !formData.quantidade || parseInt(formData.quantidade) <= 0}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Adicionar à Produção
               </Button>

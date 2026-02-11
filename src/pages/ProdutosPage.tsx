@@ -67,10 +67,23 @@ export function ProdutosPage() {
     setIsDialogOpen(true);
   };
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const handleSave = async () => {
-    setSaving(true);
+    const errors: Record<string, string> = {};
     const preco_venda = parseFloat(formData.preco_venda);
     const custo_unitario = parseFloat(formData.custo_unitario);
+
+    if (isNaN(preco_venda) || preco_venda < 0) {
+      errors.preco_venda = 'Preço de venda não pode ser negativo';
+    }
+    if (isNaN(custo_unitario) || custo_unitario < 0) {
+      errors.custo_unitario = 'Custo unitário não pode ser negativo';
+    }
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSaving(true);
 
     if (editingBrigadeiro) {
       await updateBrigadeiro(editingBrigadeiro.id, {
@@ -160,20 +173,24 @@ export function ProdutosPage() {
                   <Input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.preco_venda}
                     onChange={(e) => setFormData({ ...formData, preco_venda: e.target.value })}
                     placeholder="5.00"
                   />
+                  {formErrors.preco_venda && <p className="text-xs text-destructive">{formErrors.preco_venda}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Custo Unitário (R$)</Label>
                   <Input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.custo_unitario}
                     onChange={(e) => setFormData({ ...formData, custo_unitario: e.target.value })}
                     placeholder="1.80"
                   />
+                  {formErrors.custo_unitario && <p className="text-xs text-destructive">{formErrors.custo_unitario}</p>}
                 </div>
               </div>
               {formData.preco_venda && formData.custo_unitario && (

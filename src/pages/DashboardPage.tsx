@@ -124,12 +124,27 @@ export function DashboardPage() {
     return acc + (p.itens?.reduce((itemAcc, item) => itemAcc + item.quantidade, 0) || 0);
   }, 0);
 
-  // Prepare chart data
-  const saboresMaisVendidos = brigadeiros.slice(0, 6).map((b, index) => ({
-    nome: b.nome.split(' ').slice(0, 2).join(' '),
-    quantidade: Math.floor(Math.random() * 100) + 10,
-    cor: COLORS[index % COLORS.length],
-  }));
+  // Agregar sabores mais vendidos a partir dos itens de pedido (período filtrado)
+  const saboresMaisVendidos = useMemo(() => {
+    const countMap: Record<string, { nome: string; quantidade: number }> = {};
+    filteredPedidos.forEach(p => {
+      p.itens?.forEach(item => {
+        const key = item.brigadeiro_id || item.brigadeiro_nome;
+        if (!countMap[key]) {
+          countMap[key] = { nome: item.brigadeiro_nome, quantidade: 0 };
+        }
+        countMap[key].quantidade += item.quantidade;
+      });
+    });
+    return Object.values(countMap)
+      .sort((a, b) => b.quantidade - a.quantidade)
+      .slice(0, 6)
+      .map((item, index) => ({
+        nome: item.nome.split(' ').slice(0, 2).join(' '),
+        quantidade: item.quantidade,
+        cor: COLORS[index % COLORS.length],
+      }));
+  }, [filteredPedidos]);
 
   const mesLabel = MESES.find(m => m.value === selectedMonth)?.label || '';
 
@@ -281,8 +296,8 @@ export function DashboardPage() {
 
         {/* Flavors Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4">Produtos Cadastrados</h3>
-          {brigadeiros.length > 0 ? (
+          <h3 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h3>
+          {saboresMaisVendidos.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -314,7 +329,7 @@ export function DashboardPage() {
             </div>
           ) : (
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              <p>Cadastre produtos para ver o gráfico</p>
+              <p>Nenhuma venda registrada neste período</p>
             </div>
           )}
         </div>
