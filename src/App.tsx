@@ -57,11 +57,7 @@ const AppRoutes = () => (
     <Route path="/reset-password" element={
       <ResetPasswordPage />
     } />
-    <Route path="/" element={
-      <ProtectedRoute>
-        <Index />
-      </ProtectedRoute>
-    } />
+    <Route path="/" element={<Index />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
