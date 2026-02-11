@@ -58,7 +58,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     : clienteNovo.trim();
 
   const handleAddItem = () => {
-    if (!selectedBrigadeiro) return;
+    if (!selectedBrigadeiro || quantidade <= 0) return;
     
     const brigadeiro = brigadeiros.find(b => b.id === selectedBrigadeiro);
     if (!brigadeiro) return;

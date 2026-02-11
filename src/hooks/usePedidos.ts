@@ -80,7 +80,6 @@ export function usePedidos() {
 
       // Se mudar para "entregue", criar transação de entrada (se não existir)
       if (status === 'entregue' && pedido && pedido.status !== 'entregue') {
-        // Verificar se já existe transação para este pedido
         const { data: existingTx } = await supabase
           .from('transacoes')
           .select('id')
@@ -98,6 +97,14 @@ export function usePedidos() {
             user_id: user!.id,
           });
         }
+      }
+
+      // Se saiu de "entregue" para outro status, remover transação vinculada
+      if (pedido && pedido.status === 'entregue' && status !== 'entregue') {
+        await supabase
+          .from('transacoes')
+          .delete()
+          .eq('referencia', id);
       }
 
       setPedidos(pedidos.map(p => p.id === id ? { ...p, status } : p));

@@ -64,10 +64,10 @@ export function useProducao() {
         .single();
 
       if (error) throw error;
-      const newProducao = data as ProducaoDiaria;
-      setProducao([newProducao, ...producao]);
+      // Refetch to get the custo_total calculated by the DB trigger
+      await fetchProducao();
       toast({ title: 'Produção planejada!' });
-      return newProducao;
+      return data as ProducaoDiaria;
     } catch (error: any) {
       toast({
         title: 'Erro ao planejar produção',
