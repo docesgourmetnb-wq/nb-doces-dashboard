@@ -5,7 +5,8 @@ import {
   Cookie, 
   TrendingUp,
   Calendar,
-  History
+  History,
+  CheckCircle2
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
@@ -124,6 +125,8 @@ export function DashboardPage() {
     return acc + (p.itens?.reduce((itemAcc, item) => itemAcc + item.quantidade, 0) || 0);
   }, 0);
 
+  const pedidosEntregues = filteredPedidos.filter(p => p.status === 'entregue').length;
+
   // Agregar sabores mais vendidos a partir dos itens de pedido (período filtrado)
   const saboresMaisVendidos = useMemo(() => {
     const countMap: Record<string, { nome: string; quantidade: number }> = {};
@@ -219,7 +222,7 @@ export function DashboardPage() {
         <h2 className="text-lg font-medium text-muted-foreground mb-3">
           {mesLabel} de {selectedYear}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             title="Faturamento"
             value={`R$ ${vendasPeriodo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
@@ -233,6 +236,13 @@ export function DashboardPage() {
             subtitle="Pedidos no período"
             icon={ShoppingBag}
             variant="default"
+          />
+          <StatCard
+            title="Entregues"
+            value={pedidosEntregues}
+            subtitle="Pedidos entregues"
+            icon={CheckCircle2}
+            variant="success"
           />
           <StatCard
             title="Despesas"
@@ -298,34 +308,53 @@ export function DashboardPage() {
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
           <h3 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h3>
           {saboresMaisVendidos.length > 0 ? (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={saboresMaisVendidos}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="quantidade"
-                    nameKey="nome"
-                    label={({ nome }) => nome}
-                    labelLine={false}
-                  >
-                    {saboresMaisVendidos.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.cor} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="h-[300px] flex-1 min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={saboresMaisVendidos}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="quantidade"
+                      nameKey="nome"
+                    >
+                      {saboresMaisVendidos.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.cor} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Legend */}
+              <div className="flex flex-col gap-2 justify-center min-w-[180px]">
+                {(() => {
+                  const total = saboresMaisVendidos.reduce((s, i) => s + i.quantidade, 0);
+                  return saboresMaisVendidos.map((item, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <span
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: item.cor }}
+                      />
+                      <span className="truncate flex-1">{item.nome}</span>
+                      <span className="font-medium tabular-nums">{item.quantidade}</span>
+                      <span className="text-muted-foreground tabular-nums w-12 text-right">
+                        {total > 0 ? ((item.quantidade / total) * 100).toFixed(0) : 0}%
+                      </span>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
           ) : (
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">

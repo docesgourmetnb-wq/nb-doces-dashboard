@@ -1,0 +1,1 @@
+ALTER TABLE public.pedidos ALTER COLUMN data SET DEFAULT (now() AT TIME ZONE 'America/Sao_Paulo')::date;
