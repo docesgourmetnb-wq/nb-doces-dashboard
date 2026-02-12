@@ -74,11 +74,11 @@ export function ProdutosPage() {
     const preco_venda = parseFloat(formData.preco_venda);
     const custo_unitario = parseFloat(formData.custo_unitario);
 
-    if (isNaN(preco_venda) || preco_venda < 0) {
-      errors.preco_venda = 'Preço de venda não pode ser negativo';
+    if (isNaN(preco_venda) || preco_venda <= 0) {
+      errors.preco_venda = 'Preço de venda deve ser maior que zero';
     }
-    if (isNaN(custo_unitario) || custo_unitario < 0) {
-      errors.custo_unitario = 'Custo unitário não pode ser negativo';
+    if (isNaN(custo_unitario) || custo_unitario <= 0) {
+      errors.custo_unitario = 'Custo unitário deve ser maior que zero';
     }
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;

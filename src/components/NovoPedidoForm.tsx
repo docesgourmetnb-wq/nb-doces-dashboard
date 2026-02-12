@@ -93,7 +93,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     try {
       await addPedido({
         cliente: clienteNome,
-        data: format(dataPedido, 'yyyy-MM-dd'),
+        data: `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`,
         tipo_pedido: tipoPedido,
         valor_total: valorTotal,
         forma_pagamento: formaPagamento,
