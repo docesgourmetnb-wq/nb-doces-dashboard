@@ -35,7 +35,7 @@ import {
 import { format, parseISO, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F'];
+const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F', '#E67E22', '#8E44AD', '#2ECC71'];
 
 const MESES = [
   { value: '01', label: 'Janeiro' },
@@ -139,14 +139,29 @@ export function DashboardPage() {
         countMap[key].quantidade += item.quantidade;
       });
     });
-    return Object.values(countMap)
-      .sort((a, b) => b.quantidade - a.quantidade)
-      .slice(0, 6)
-      .map((item, index) => ({
-        nome: item.nome.split(' ').slice(0, 2).join(' '),
+    const sorted = Object.values(countMap).sort((a, b) => b.quantidade - a.quantidade);
+    
+    const TOP_N = 8;
+    let result: { nome: string; quantidade: number; cor: string }[];
+    
+    if (sorted.length <= TOP_N) {
+      result = sorted.map((item, index) => ({
+        nome: item.nome,
         quantidade: item.quantidade,
         cor: COLORS[index % COLORS.length],
       }));
+    } else {
+      const top = sorted.slice(0, TOP_N);
+      const outrosQtd = sorted.slice(TOP_N).reduce((s, i) => s + i.quantidade, 0);
+      result = top.map((item, index) => ({
+        nome: item.nome,
+        quantidade: item.quantidade,
+        cor: COLORS[index % COLORS.length],
+      }));
+      result.push({ nome: 'Outros', quantidade: outrosQtd, cor: '#95A5A6' });
+    }
+    
+    return result;
   }, [filteredPedidos]);
 
   const mesLabel = MESES.find(m => m.value === selectedMonth)?.label || '';
@@ -309,7 +324,7 @@ export function DashboardPage() {
           <h3 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h3>
           {saboresMaisVendidos.length > 0 ? (
             <div className="flex flex-col lg:flex-row gap-4">
-              <div className="h-[300px] flex-1 min-w-0">
+              <div className="h-[280px] flex-1 min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -357,7 +372,7 @@ export function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[280px] flex items-center justify-center text-muted-foreground">
               <p>Nenhuma venda registrada neste período</p>
             </div>
           )}
