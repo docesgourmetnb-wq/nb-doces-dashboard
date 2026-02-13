@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Search, Eye, Loader2 } from 'lucide-react';
+import { Search, Eye, Archive, ArchiveRestore, Loader2 } from 'lucide-react';
 import { usePedidos, Pedido } from '@/hooks/usePedidos';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { NovoPedidoForm } from '@/components/NovoPedidoForm';
 import {
   Dialog,
@@ -9,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -22,9 +28,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function VendasPage() {
-  const { pedidos, loading, updatePedidoStatus, refetch } = usePedidos();
+  const { pedidos, loading, updatePedidoStatus, refetch, showArchived, setShowArchived, archivePedido, unarchivePedido } = usePedidos();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [archiveReason, setArchiveReason] = useState('');
 
   const statusLabels = {
     'pendente': { label: 'Pendente', class: 'bg-muted text-muted-foreground' },
@@ -90,6 +97,16 @@ export function VendasPage() {
             <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="showArchived"
+            checked={showArchived}
+            onCheckedChange={(checked) => setShowArchived(!!checked)}
+          />
+          <Label htmlFor="showArchived" className="text-sm text-muted-foreground cursor-pointer">
+            Mostrar arquivados
+          </Label>
+        </div>
       </div>
 
       {/* Orders Table */}
@@ -114,8 +131,16 @@ export function VendasPage() {
               </thead>
               <tbody>
                 {filteredPedidos.map((pedido) => (
-                  <tr key={pedido.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                    <td className="p-4 font-medium">{pedido.cliente}</td>
+                  <tr key={pedido.id} className={cn(
+                    "border-t border-border hover:bg-muted/30 transition-colors",
+                    pedido.archived_at && "opacity-50"
+                  )}>
+                    <td className="p-4 font-medium">
+                      {pedido.cliente}
+                      {pedido.archived_at && (
+                        <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Arquivado</span>
+                      )}
+                    </td>
                     <td className="p-4 text-muted-foreground">
                       {format(new Date(pedido.data), 'dd/MM/yyyy', { locale: ptBR })}
                     </td>
@@ -151,60 +176,114 @@ export function VendasPage() {
                       </Select>
                     </td>
                     <td className="p-4">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button className="p-2 hover:bg-muted rounded-lg transition-colors">
-                            <Eye size={18} className="text-muted-foreground" />
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle className="font-display">
-                              Pedido - {pedido.cliente}
-                            </DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p className="text-muted-foreground">Cliente</p>
-                                <p className="font-medium">{pedido.cliente}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">Data</p>
-                                <p className="font-medium">
-                                  {format(new Date(pedido.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                                </p>
-                              </div>
-                            </div>
-                            {pedido.itens && pedido.itens.length > 0 && (
-                              <div>
-                                <p className="text-muted-foreground text-sm mb-2">Itens</p>
-                                <div className="space-y-2">
-                                  {pedido.itens.map((item, index) => (
-                                    <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                                      <div>
-                                        <p className="font-medium">{item.brigadeiro_nome}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                          {item.quantidade} x R$ {item.preco_unitario.toFixed(2)}
-                                        </p>
-                                      </div>
-                                      <p className="font-semibold">
-                                        R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
-                                      </p>
-                                    </div>
-                                  ))}
+                      <div className="flex items-center gap-1">
+                        {/* View details */}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+                              <Eye size={18} className="text-muted-foreground" />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle className="font-display">
+                                Pedido - {pedido.cliente}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Cliente</p>
+                                  <p className="font-medium">{pedido.cliente}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Data</p>
+                                  <p className="font-medium">
+                                    {format(new Date(pedido.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                  </p>
                                 </div>
                               </div>
-                            )}
-                            <div className="pt-4 border-t border-border flex justify-between items-center">
-                              <span className="font-medium">Total</span>
-                              <span className="text-2xl font-display font-semibold text-primary">
-                                R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
+                              {pedido.archived_at && (
+                                <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                                  <p className="text-muted-foreground">Arquivado em {format(new Date(pedido.archived_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                                  {pedido.archived_reason && <p className="mt-1">Motivo: {pedido.archived_reason}</p>}
+                                </div>
+                              )}
+                              {pedido.itens && pedido.itens.length > 0 && (
+                                <div>
+                                  <p className="text-muted-foreground text-sm mb-2">Itens</p>
+                                  <div className="space-y-2">
+                                    {pedido.itens.map((item, index) => (
+                                      <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                                        <div>
+                                          <p className="font-medium">{item.brigadeiro_nome}</p>
+                                          <p className="text-sm text-muted-foreground">
+                                            {item.quantidade} x R$ {item.preco_unitario.toFixed(2)}
+                                          </p>
+                                        </div>
+                                        <p className="font-semibold">
+                                          R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <div className="pt-4 border-t border-border flex justify-between items-center">
+                                <span className="font-medium">Total</span>
+                                <span className="text-2xl font-display font-semibold text-primary">
+                                  R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogContent>
+                        </Dialog>
+
+                        {/* Archive / Unarchive */}
+                        {pedido.archived_at ? (
+                          <button
+                            className="p-2 hover:bg-muted rounded-lg transition-colors"
+                            onClick={() => unarchivePedido(pedido.id)}
+                            title="Desarquivar"
+                          >
+                            <ArchiveRestore size={18} className="text-muted-foreground" />
+                          </button>
+                        ) : (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button className="p-2 hover:bg-muted rounded-lg transition-colors" title="Arquivar">
+                                <Archive size={18} className="text-muted-foreground" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Arquivar Pedido</DialogTitle>
+                              </DialogHeader>
+                              <p className="text-sm text-muted-foreground">
+                                O pedido de <strong>{pedido.cliente}</strong> será arquivado. Isso não afeta o financeiro.
+                              </p>
+                              <Textarea
+                                placeholder="Motivo (opcional)"
+                                value={archiveReason}
+                                onChange={(e) => setArchiveReason(e.target.value)}
+                              />
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button variant="outline">Cancelar</Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                  <Button onClick={() => {
+                                    archivePedido(pedido.id, archiveReason);
+                                    setArchiveReason('');
+                                  }}>
+                                    Arquivar
+                                  </Button>
+                                </DialogClose>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
