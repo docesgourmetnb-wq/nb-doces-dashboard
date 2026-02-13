@@ -78,33 +78,52 @@ export function usePedidos() {
 
       if (error) throw error;
 
-      // Se mudar para "entregue", criar transação de entrada (se não existir)
-      if (status === 'entregue' && pedido && pedido.status !== 'entregue') {
-        const { data: existingTx } = await supabase
-          .from('transacoes')
-          .select('id')
-          .eq('referencia', id)
-          .maybeSingle();
+      // Fetch existing transactions for this order to determine cycle
+      const { data: existingTxs } = await supabase
+        .from('transacoes')
+        .select('referencia')
+        .like('referencia', `pedido:${id}:%`);
 
-        if (!existingTx && pedido.valor_total > 0) {
+      const refs = (existingTxs || []).map(t => t.referencia || '');
+      const vendaCount = refs.filter(r => r.includes(':venda:')).length;
+      const estornoCount = refs.filter(r => r.includes(':estorno:')).length;
+
+      // Entering "entregue" → create venda
+      if (status === 'entregue' && pedido && pedido.status !== 'entregue') {
+        const cycle = 1 + estornoCount;
+        const vendaRef = `pedido:${id}:venda:${cycle}`;
+        const alreadyExists = refs.includes(vendaRef);
+
+        if (!alreadyExists && pedido.valor_total > 0) {
           await supabase.from('transacoes').insert({
             tipo: 'entrada',
-            categoria: 'Venda',
-            descricao: `Pedido - ${pedido.cliente}`,
+            categoria: 'Vendas',
+            descricao: `Venda - Pedido ${pedido.cliente}`,
             valor: pedido.valor_total,
             data: pedido.data,
-            referencia: id,
+            referencia: vendaRef,
             user_id: user!.id,
           });
         }
       }
 
-      // Se saiu de "entregue" para outro status, remover transação vinculada
+      // Leaving "entregue" → create estorno
       if (pedido && pedido.status === 'entregue' && status !== 'entregue') {
-        await supabase
-          .from('transacoes')
-          .delete()
-          .eq('referencia', id);
+        const cycle = Math.max(vendaCount, 1);
+        const estornoRef = `pedido:${id}:estorno:${cycle}`;
+        const alreadyExists = refs.includes(estornoRef);
+
+        if (!alreadyExists && pedido.valor_total > 0) {
+          await supabase.from('transacoes').insert({
+            tipo: 'saida',
+            categoria: 'Estornos',
+            descricao: `Estorno - Pedido ${pedido.cliente}`,
+            valor: pedido.valor_total,
+            data: pedido.data,
+            referencia: estornoRef,
+            user_id: user!.id,
+          });
+        }
       }
 
       setPedidos(pedidos.map(p => p.id === id ? { ...p, status } : p));
@@ -154,15 +173,15 @@ export function usePedidos() {
         if (itensError) throw itensError;
       }
 
-      // Se o pedido for "entregue", criar transação de entrada automaticamente
+      // Se o pedido for "entregue", criar transação de entrada automaticamente (ciclo 1)
       if (pedido.status === 'entregue' && pedido.valor_total > 0) {
         await supabase.from('transacoes').insert({
           tipo: 'entrada',
-          categoria: 'Venda',
-          descricao: `Pedido - ${pedido.cliente}`,
+          categoria: 'Vendas',
+          descricao: `Venda - Pedido ${pedido.cliente}`,
           valor: pedido.valor_total,
           data: pedido.data,
-          referencia: novoPedido.id,
+          referencia: `pedido:${novoPedido.id}:venda:1`,
           user_id: user.id,
         });
       }
