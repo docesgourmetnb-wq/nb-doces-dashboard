@@ -11,11 +11,14 @@ export interface ProducaoDiaria {
   quantidade: number;
   custo_total: number;
   status: 'planejado' | 'em-andamento' | 'concluido';
+  deleted_at?: string | null;
+  deleted_reason?: string | null;
 }
 
 export function useProducao() {
   const [producao, setProducao] = useState<ProducaoDiaria[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleted, setShowDeleted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -23,10 +26,16 @@ export function useProducao() {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('producao_diaria')
         .select('*')
         .order('data', { ascending: false });
+
+      if (!showDeleted) {
+        query = query.is('deleted_at', null);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setProducao((data || []) as ProducaoDiaria[]);
@@ -39,7 +48,7 @@ export function useProducao() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, showDeleted]);
 
   useEffect(() => {
     fetchProducao();
@@ -64,7 +73,6 @@ export function useProducao() {
         .single();
 
       if (error) throw error;
-      // Refetch to get the custo_total calculated by the DB trigger
       await fetchProducao();
       toast({ title: 'Produção planejada!' });
       return data as ProducaoDiaria;
@@ -96,5 +104,54 @@ export function useProducao() {
     }
   };
 
-  return { producao, loading, addProducao, updateProducaoStatus, refetch: fetchProducao };
+  const updateProducao = async (id: string, updates: { data?: string; quantidade?: number; status?: ProducaoDiaria['status'] }) => {
+    try {
+      const { error } = await supabase
+        .from('producao_diaria')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+      // Refetch to get recalculated custo_total from trigger
+      await fetchProducao();
+      toast({ title: 'Produção atualizada!' });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar produção',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const cancelProducao = async (id: string, reason?: string) => {
+    try {
+      const { error } = await supabase
+        .from('producao_diaria')
+        .update({ deleted_at: new Date().toISOString(), deleted_reason: reason || null })
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchProducao();
+      toast({ title: 'Produção cancelada.' });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao cancelar produção',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return {
+    producao,
+    loading,
+    showDeleted,
+    setShowDeleted,
+    addProducao,
+    updateProducaoStatus,
+    updateProducao,
+    cancelProducao,
+    refetch: fetchProducao,
+  };
 }
