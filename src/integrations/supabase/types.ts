@@ -269,9 +269,12 @@ export type Database = {
           created_at: string
           custo_total: number
           data: string
+          deleted_at: string | null
+          deleted_reason: string | null
           id: string
           quantidade: number
           status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -280,9 +283,12 @@ export type Database = {
           created_at?: string
           custo_total?: number
           data?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
           id?: string
           quantidade?: number
           status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -291,9 +297,12 @@ export type Database = {
           created_at?: string
           custo_total?: number
           data?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
           id?: string
           quantidade?: number
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
