@@ -22,11 +22,14 @@ export interface Pedido {
   status: 'pendente' | 'em-producao' | 'pronto' | 'entregue' | 'cancelado';
   observacoes?: string | null;
   itens?: ItemPedido[];
+  archived_at?: string | null;
+  archived_reason?: string | null;
 }
 
 export function usePedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -34,10 +37,16 @@ export function usePedidos() {
     if (!user) return;
     
     try {
-      const { data: pedidosData, error: pedidosError } = await supabase
+      let query = supabase
         .from('pedidos')
         .select('*')
         .order('data', { ascending: true });
+
+      if (!showArchived) {
+        query = query.is('archived_at', null);
+      }
+
+      const { data: pedidosData, error: pedidosError } = await query;
 
       if (pedidosError) throw pedidosError;
 
@@ -62,7 +71,7 @@ export function usePedidos() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, showArchived]);
 
   useEffect(() => {
     fetchPedidos();
@@ -198,5 +207,35 @@ export function usePedidos() {
     }
   };
 
-  return { pedidos, loading, updatePedidoStatus, addPedido, refetch: fetchPedidos };
+  const archivePedido = async (id: string, reason?: string) => {
+    try {
+      const { error } = await supabase
+        .from('pedidos')
+        .update({ archived_at: new Date().toISOString(), archived_reason: reason || null } as any)
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchPedidos();
+      toast({ title: 'Pedido arquivado!' });
+    } catch (error: any) {
+      toast({ title: 'Erro ao arquivar', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const unarchivePedido = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('pedidos')
+        .update({ archived_at: null, archived_reason: null } as any)
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchPedidos();
+      toast({ title: 'Pedido desarquivado!' });
+    } catch (error: any) {
+      toast({ title: 'Erro ao desarquivar', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  return { pedidos, loading, updatePedidoStatus, addPedido, refetch: fetchPedidos, showArchived, setShowArchived, archivePedido, unarchivePedido };
 }
