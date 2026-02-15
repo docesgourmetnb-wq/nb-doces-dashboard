@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Eye, Archive, ArchiveRestore, Loader2 } from 'lucide-react';
-import { usePedidos, Pedido } from '@/hooks/usePedidos';
+import { usePedidos, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -49,7 +49,8 @@ export function VendasPage() {
   };
 
   const filteredPedidos = pedidos.filter((p) => {
-    const matchesSearch = p.cliente.toLowerCase().includes(search.toLowerCase());
+    const displayName = getClienteDisplayName(p);
+    const matchesSearch = displayName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'todos' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -136,7 +137,7 @@ export function VendasPage() {
                     pedido.archived_at && "opacity-50"
                   )}>
                     <td className="p-4 font-medium">
-                      {pedido.cliente}
+                      {getClienteDisplayName(pedido)}
                       {pedido.archived_at && (
                         <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Arquivado</span>
                       )}
@@ -187,14 +188,14 @@ export function VendasPage() {
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle className="font-display">
-                                Pedido - {pedido.cliente}
+                                Pedido - {getClienteDisplayName(pedido)}
                               </DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
                                   <p className="text-muted-foreground">Cliente</p>
-                                  <p className="font-medium">{pedido.cliente}</p>
+                                  <p className="font-medium">{getClienteDisplayName(pedido)}</p>
                                 </div>
                                 <div>
                                   <p className="text-muted-foreground">Data</p>
@@ -260,7 +261,7 @@ export function VendasPage() {
                                 <DialogTitle>Arquivar Pedido</DialogTitle>
                               </DialogHeader>
                               <p className="text-sm text-muted-foreground">
-                                O pedido de <strong>{pedido.cliente}</strong> será arquivado. Isso não afeta o financeiro.
+                                O pedido de <strong>{getClienteDisplayName(pedido)}</strong> será arquivado. Isso não afeta o financeiro.
                               </p>
                               <Textarea
                                 placeholder="Motivo (opcional)"

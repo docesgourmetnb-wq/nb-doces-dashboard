@@ -15,6 +15,8 @@ export interface ItemPedido {
 export interface Pedido {
   id: string;
   cliente: string;
+  cliente_id?: string | null;
+  cliente_nome?: string | null; // joined from clientes table
   data: string;
   tipo_pedido: 'encomenda' | 'pronta-entrega' | 'evento';
   valor_total: number;
@@ -24,6 +26,11 @@ export interface Pedido {
   itens?: ItemPedido[];
   archived_at?: string | null;
   archived_reason?: string | null;
+}
+
+// Helper: get display name prioritizing joined client
+export function getClienteDisplayName(pedido: Pedido): string {
+  return pedido.cliente_nome || pedido.cliente;
 }
 
 export function usePedidos() {
@@ -39,7 +46,7 @@ export function usePedidos() {
     try {
       let query = supabase
         .from('pedidos')
-        .select('*')
+        .select('*, clientes(nome)')
         .order('data', { ascending: true });
 
       if (!showArchived) {
@@ -52,12 +59,17 @@ export function usePedidos() {
 
       // Fetch items for each order
       const pedidosWithItems = await Promise.all(
-        (pedidosData || []).map(async (pedido) => {
+        (pedidosData || []).map(async (pedido: any) => {
           const { data: itens } = await supabase
             .from('itens_pedido')
             .select('*')
             .eq('pedido_id', pedido.id);
-          return { ...pedido, itens: (itens || []) as ItemPedido[] } as Pedido;
+          return {
+            ...pedido,
+            cliente_nome: pedido.clientes?.nome || null,
+            clientes: undefined,
+            itens: (itens || []) as ItemPedido[],
+          } as Pedido;
         })
       );
 
@@ -154,6 +166,7 @@ export function usePedidos() {
         .from('pedidos')
         .insert({
           cliente: pedido.cliente,
+          cliente_id: (pedido as any).cliente_id || null,
           data: pedido.data,
           tipo_pedido: pedido.tipo_pedido,
           valor_total: pedido.valor_total,

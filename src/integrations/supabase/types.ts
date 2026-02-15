@@ -223,6 +223,7 @@ export type Database = {
       pedidos: {
         Row: {
           cliente: string
+          cliente_id: string | null
           created_at: string
           data: string
           forma_pagamento: string
@@ -236,6 +237,7 @@ export type Database = {
         }
         Insert: {
           cliente: string
+          cliente_id?: string | null
           created_at?: string
           data?: string
           forma_pagamento?: string
@@ -249,6 +251,7 @@ export type Database = {
         }
         Update: {
           cliente?: string
+          cliente_id?: string | null
           created_at?: string
           data?: string
           forma_pagamento?: string
@@ -260,7 +263,15 @@ export type Database = {
           user_id?: string
           valor_total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       producao_diaria: {
         Row: {
