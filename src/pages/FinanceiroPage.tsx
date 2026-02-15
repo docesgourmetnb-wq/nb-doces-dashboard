@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet } from 'lucide-react';
 import { useTransacoes, Transacao } from '@/hooks/useTransacoes';
+import { usePaginatedTransacoes } from '@/hooks/usePaginatedTransacoes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PaginationControls } from '@/components/PaginationControls';
 import {
   Dialog,
   DialogContent,
@@ -29,13 +31,19 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 export function FinanceiroPage() {
-  const { transacoes, loading, addTransacao } = useTransacoes();
+  // Full dataset for totals
+  const { transacoes: allTransacoes, loading: loadingAll, addTransacao } = useTransacoes();
+  // Paginated dataset for list
+  const {
+    transacoes, loading,
+    page, setPage, totalPages, totalCount,
+    tipoFilter, setTipoFilter,
+  } = usePaginatedTransacoes();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [tipoFilter, setTipoFilter] = useState<string>('todos');
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     tipo: 'entrada' as Transacao['tipo'],
@@ -45,19 +53,15 @@ export function FinanceiroPage() {
     data: format(new Date(), 'yyyy-MM-dd'),
   });
 
-  const totalEntradas = transacoes
+  const totalEntradas = allTransacoes
     .filter(t => t.tipo === 'entrada')
     .reduce((acc, t) => acc + t.valor, 0);
   
-  const totalSaidas = transacoes
+  const totalSaidas = allTransacoes
     .filter(t => t.tipo === 'saida')
     .reduce((acc, t) => acc + t.valor, 0);
   
   const lucroBruto = totalEntradas - totalSaidas;
-
-  const filteredTransacoes = transacoes.filter(t => 
-    tipoFilter === 'todos' || t.tipo === tipoFilter
-  );
 
   const handleAddTransacao = async () => {
     setSaving(true);
@@ -79,13 +83,12 @@ export function FinanceiroPage() {
     });
   };
 
-  // Chart data
   const chartData = [
     { categoria: 'Entradas', valor: totalEntradas },
     { categoria: 'Saídas', valor: totalSaidas },
   ];
 
-  if (loading) {
+  if (loading || loadingAll) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -222,16 +225,8 @@ export function FinanceiroPage() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="categoria" 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickFormatter={(value) => `R$${value.toLocaleString('pt-BR')}`}
-              />
+              <XAxis dataKey="categoria" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `R$${value.toLocaleString('pt-BR')}`} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
@@ -240,11 +235,7 @@ export function FinanceiroPage() {
                 }}
                 formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
               />
-              <Bar 
-                dataKey="valor" 
-                fill="hsl(var(--primary))" 
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -265,20 +256,26 @@ export function FinanceiroPage() {
             </SelectContent>
           </Select>
         </div>
-        {filteredTransacoes.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <p>Nenhuma transação registrada.</p>
+        {transacoes.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Wallet className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhuma transação registrada</h3>
+            <p className="text-muted-foreground text-sm">
+              {tipoFilter !== 'todos' ? 'Tente ajustar o filtro.' : 'Registre sua primeira transação para começar o controle financeiro.'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {filteredTransacoes.map((transacao) => (
+            {transacoes.map((transacao) => (
               <div key={transacao.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "p-2 rounded-lg",
                     transacao.tipo === 'entrada' ? 'bg-success/10' : 'bg-destructive/10'
                   )}>
-                    {transacao.tipo === 'entrada' 
+                    {transacao.tipo === 'entrada'
                       ? <TrendingUp className="w-4 h-4 text-success" />
                       : <TrendingDown className="w-4 h-4 text-destructive" />
                     }
@@ -301,6 +298,7 @@ export function FinanceiroPage() {
           </div>
         )}
       </div>
+      <PaginationControls page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
     </div>
   );
 }
