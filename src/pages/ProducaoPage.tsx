@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Calendar, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from 'lucide-react';
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -42,6 +43,9 @@ export function ProducaoPage() {
   // Edit state
   const [editItem, setEditItem] = useState<ProducaoDiaria | null>(null);
   const [editData, setEditData] = useState({ data: '', quantidade: '', status: '' as string });
+
+  // Confirmation for editing concluido
+  const [editConfirmItem, setEditConfirmItem] = useState<ProducaoDiaria | null>(null);
 
   // Cancel state
   const [cancelItem, setCancelItem] = useState<ProducaoDiaria | null>(null);
@@ -77,6 +81,23 @@ export function ProducaoPage() {
     setFormData({ data: format(new Date(), 'yyyy-MM-dd'), brigadeiro_id: '', quantidade: '' });
   };
 
+  const openEdit = (item: ProducaoDiaria) => {
+    // Guardrail: if concluido, show confirmation first
+    if (item.status === 'concluido') {
+      setEditConfirmItem(item);
+    } else {
+      setEditItem(item);
+      setEditData({ data: item.data, quantidade: String(item.quantidade), status: item.status });
+    }
+  };
+
+  const confirmEditConcluido = () => {
+    if (!editConfirmItem) return;
+    setEditItem(editConfirmItem);
+    setEditData({ data: editConfirmItem.data, quantidade: String(editConfirmItem.quantidade), status: editConfirmItem.status });
+    setEditConfirmItem(null);
+  };
+
   const handleEdit = async () => {
     if (!editItem) return;
     setSaving(true);
@@ -96,11 +117,6 @@ export function ProducaoPage() {
     setSaving(false);
     setCancelItem(null);
     setCancelReason('');
-  };
-
-  const openEdit = (item: ProducaoDiaria) => {
-    setEditItem(item);
-    setEditData({ data: item.data, quantidade: String(item.quantidade), status: item.status });
   };
 
   // Group by date
@@ -192,6 +208,25 @@ export function ProducaoPage() {
         <Label htmlFor="show-deleted" className="text-sm text-muted-foreground cursor-pointer">Mostrar canceladas</Label>
       </div>
 
+      {/* Edit Concluido Confirmation */}
+      <Dialog open={!!editConfirmItem} onOpenChange={(open) => { if (!open) setEditConfirmItem(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-warning" />
+              Produção já concluída
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A produção de <strong>{editConfirmItem?.brigadeiro_nome}</strong> já está concluída. Editar pode afetar os custos calculados. Deseja continuar?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditConfirmItem(null)}>Cancelar</Button>
+            <Button onClick={confirmEditConcluido}>Editar mesmo assim</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Dialog */}
       <Dialog open={!!editItem} onOpenChange={(open) => { if (!open) setEditItem(null); }}>
         <DialogContent className="sm:max-w-md">
@@ -246,9 +281,12 @@ export function ProducaoPage() {
 
       {/* Production Timeline */}
       {sortedDates.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhuma produção planejada.</p>
-          <p className="text-sm">Clique em "Planejar Produção" para adicionar.</p>
+        <div className="text-center py-16">
+          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Cookie className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhuma produção planejada</h3>
+          <p className="text-muted-foreground text-sm mb-4">Clique em "Planejar Produção" para adicionar sua primeira produção.</p>
         </div>
       ) : (
         <div className="space-y-6">
