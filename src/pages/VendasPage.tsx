@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Eye, Archive, ArchiveRestore, Loader2, ShoppingBag, AlertTriangle } from 'lucide-react';
+import { PedidoHistorico } from '@/components/PedidoHistorico';
 import { usePedidos, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
 import { usePaginatedPedidos } from '@/hooks/usePaginatedPedidos';
 import { Input } from '@/components/ui/input';
@@ -325,6 +326,10 @@ export function VendasPage() {
                                   <span className="text-2xl font-display font-semibold text-primary">
                                     R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </span>
+                                </div>
+                                {/* Audit History */}
+                                <div className="pt-4 border-t border-border">
+                                  <PedidoHistorico pedidoId={pedido.id} />
                                 </div>
                               </div>
                             </DialogContent>

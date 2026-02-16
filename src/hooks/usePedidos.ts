@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { format } from 'date-fns';
 
 export interface ItemPedido {
@@ -39,6 +40,7 @@ export function usePedidos() {
   const [showArchived, setShowArchived] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { log: auditLog } = useAuditLog();
 
   const fetchPedidos = useCallback(async () => {
     if (!user) return;
@@ -92,12 +94,22 @@ export function usePedidos() {
   const updatePedidoStatus = async (id: string, status: Pedido['status']) => {
     try {
       const pedido = pedidos.find(p => p.id === id);
+      if (!pedido || pedido.status === status) return; // idempotency guard
+
       const { error } = await supabase
         .from('pedidos')
         .update({ status })
         .eq('id', id);
 
       if (error) throw error;
+
+      // Audit: status change
+      await auditLog('pedido', id, 'status_changed', {
+        from: pedido.status,
+        to: status,
+        cliente: getClienteDisplayName(pedido),
+        valor_total: pedido.valor_total,
+      });
 
       // Fetch existing transactions for this order to determine cycle
       const { data: existingTxs } = await supabase
@@ -110,7 +122,7 @@ export function usePedidos() {
       const estornoCount = refs.filter(r => r.includes(':estorno:')).length;
 
       // Entering "entregue" → create venda
-      if (status === 'entregue' && pedido && pedido.status !== 'entregue') {
+      if (status === 'entregue' && pedido.status !== 'entregue') {
         const cycle = 1 + estornoCount;
         const vendaRef = `pedido:${id}:venda:${cycle}`;
         const alreadyExists = refs.includes(vendaRef);
@@ -125,11 +137,15 @@ export function usePedidos() {
             referencia: vendaRef,
             user_id: user!.id,
           });
+          await auditLog('pedido', id, 'venda_created', {
+            valor: pedido.valor_total,
+            referencia: vendaRef,
+          });
         }
       }
 
       // Leaving "entregue" → create estorno
-      if (pedido && pedido.status === 'entregue' && status !== 'entregue') {
+      if (pedido.status === 'entregue' && status !== 'entregue') {
         const cycle = Math.max(vendaCount, 1);
         const estornoRef = `pedido:${id}:estorno:${cycle}`;
         const alreadyExists = refs.includes(estornoRef);
@@ -143,6 +159,10 @@ export function usePedidos() {
             data: pedido.data,
             referencia: estornoRef,
             user_id: user!.id,
+          });
+          await auditLog('pedido', id, 'estorno_created', {
+            valor: pedido.valor_total,
+            referencia: estornoRef,
           });
         }
       }
@@ -197,14 +217,19 @@ export function usePedidos() {
 
       // Se o pedido for "entregue", criar transação de entrada automaticamente (ciclo 1)
       if (pedido.status === 'entregue' && pedido.valor_total > 0) {
+        const vendaRef = `pedido:${novoPedido.id}:venda:1`;
         await supabase.from('transacoes').insert({
           tipo: 'entrada',
           categoria: 'Vendas',
           descricao: `Venda - Pedido ${pedido.cliente}`,
           valor: pedido.valor_total,
           data: pedido.data,
-          referencia: `pedido:${novoPedido.id}:venda:1`,
+          referencia: vendaRef,
           user_id: user.id,
+        });
+        await auditLog('pedido', novoPedido.id, 'venda_created', {
+          valor: pedido.valor_total,
+          referencia: vendaRef,
         });
       }
 
@@ -228,6 +253,7 @@ export function usePedidos() {
         .eq('id', id);
 
       if (error) throw error;
+      await auditLog('pedido', id, 'archived', { reason: reason || null });
       await fetchPedidos();
       toast({ title: 'Pedido arquivado!' });
     } catch (error: any) {
@@ -243,6 +269,7 @@ export function usePedidos() {
         .eq('id', id);
 
       if (error) throw error;
+      await auditLog('pedido', id, 'unarchived', {});
       await fetchPedidos();
       toast({ title: 'Pedido desarquivado!' });
     } catch (error: any) {
