@@ -4,13 +4,7 @@ import { useAuditLog, AuditLogEntry, getActionLabel } from '@/hooks/useAuditLog'
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const STATUS_LABELS: Record<string, string> = {
-  pendente: 'Pendente',
-  'em-producao': 'Em Produção',
-  pronto: 'Pronto',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
-};
+import { getPedidoStatusLabel } from '@/domain/pedidos';
 
 function formatMeta(entry: AuditLogEntry): string | null {
   const m = entry.metadata;
@@ -18,7 +12,7 @@ function formatMeta(entry: AuditLogEntry): string | null {
 
   switch (entry.action) {
     case 'status_changed':
-      return `${STATUS_LABELS[m.from] || m.from} → ${STATUS_LABELS[m.to] || m.to}`;
+      return `${getPedidoStatusLabel(m.from)} → ${getPedidoStatusLabel(m.to)}`;
     case 'archived':
       return m.reason ? `Motivo: ${m.reason}` : null;
     case 'venda_created':

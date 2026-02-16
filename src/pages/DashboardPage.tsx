@@ -11,6 +11,7 @@ import {
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
 import { usePedidos } from '@/hooks/usePedidos';
+import { shouldGenerateRevenue } from '@/domain/pedidos';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useTransacoes } from '@/hooks/useTransacoes';
 import {
@@ -125,7 +126,7 @@ export function DashboardPage() {
     return acc + (p.itens?.reduce((itemAcc, item) => itemAcc + item.quantidade, 0) || 0);
   }, 0);
 
-  const pedidosEntregues = filteredPedidos.filter(p => p.status === 'entregue').length;
+  const pedidosEntregues = filteredPedidos.filter(p => shouldGenerateRevenue(p.status)).length;
 
   // Agregar sabores mais vendidos a partir dos itens de pedido (período filtrado)
   const saboresMaisVendidos = useMemo(() => {

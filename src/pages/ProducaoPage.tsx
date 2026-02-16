@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from 'lucide-react';
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
+import {
+  PRODUCAO_STATUSES,
+  getProducaoStatusLabel,
+  getProducaoStatusBadgeClass,
+  isProducaoConcluida,
+} from '@/domain/producao';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,11 +57,7 @@ export function ProducaoPage() {
   const [cancelItem, setCancelItem] = useState<ProducaoDiaria | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  const statusLabels: Record<string, { label: string; class: string }> = {
-    'planejado': { label: 'Planejado', class: 'bg-muted text-muted-foreground' },
-    'em-andamento': { label: 'Em Andamento', class: 'bg-info/20 text-info' },
-    'concluido': { label: 'Concluído', class: 'bg-success/20 text-success' },
-  };
+  // Status labels/classes now come from domain helpers
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const activeProducao = producao.filter(p => !p.deleted_at);
@@ -83,7 +85,7 @@ export function ProducaoPage() {
 
   const openEdit = (item: ProducaoDiaria) => {
     // Guardrail: if concluido, show confirmation first
-    if (item.status === 'concluido') {
+    if (isProducaoConcluida(item.status)) {
       setEditConfirmItem(item);
     } else {
       setEditItem(item);
@@ -245,9 +247,9 @@ export function ProducaoPage() {
               <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="planejado">Planejado</SelectItem>
-                  <SelectItem value="em-andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
+                {PRODUCAO_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{getProducaoStatusLabel(s)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -328,13 +330,13 @@ export function ProducaoPage() {
                               value={item.status}
                               onValueChange={(value: ProducaoDiaria['status']) => updateProducaoStatus(item.id, value)}
                             >
-                              <SelectTrigger className={cn("w-full sm:w-[160px] text-sm font-medium border-0", statusLabels[item.status]?.class)}>
+                              <SelectTrigger className={cn("w-full sm:w-[160px] text-sm font-medium border-0", getProducaoStatusBadgeClass(item.status))}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="planejado">Planejado</SelectItem>
-                                <SelectItem value="em-andamento">Em Andamento</SelectItem>
-                                <SelectItem value="concluido">Concluído</SelectItem>
+                                {PRODUCAO_STATUSES.map(s => (
+                                  <SelectItem key={s} value={s}>{getProducaoStatusLabel(s)}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </>

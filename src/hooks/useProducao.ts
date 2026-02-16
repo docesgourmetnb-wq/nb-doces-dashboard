@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { type ProducaoStatus } from '@/domain/producao';
 
 export interface ProducaoDiaria {
   id: string;
@@ -10,7 +11,7 @@ export interface ProducaoDiaria {
   brigadeiro_nome: string;
   quantidade: number;
   custo_total: number;
-  status: 'planejado' | 'em-andamento' | 'concluido';
+  status: ProducaoStatus;
   deleted_at?: string | null;
   deleted_reason?: string | null;
 }

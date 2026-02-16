@@ -11,6 +11,13 @@ import { Button } from '@/components/ui/button';
 import { NovoPedidoForm } from '@/components/NovoPedidoForm';
 import { PaginationControls } from '@/components/PaginationControls';
 import {
+  PEDIDO_STATUSES,
+  getPedidoStatusLabel,
+  getPedidoStatusBadgeClass,
+  isPedidoTerminal,
+  PAGAMENTO_LABELS,
+} from '@/domain/pedidos';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -45,24 +52,11 @@ export function VendasPage() {
   const [archiveConfirmPedido, setArchiveConfirmPedido] = useState<Pedido | null>(null);
   const [showArchiveReasonModal, setShowArchiveReasonModal] = useState<Pedido | null>(null);
 
-  const statusLabels: Record<string, { label: string; class: string }> = {
-    'pendente': { label: 'Pendente', class: 'bg-muted text-muted-foreground' },
-    'em-producao': { label: 'Em Produção', class: 'bg-info/20 text-info' },
-    'pronto': { label: 'Pronto', class: 'bg-warning/20 text-warning' },
-    'entregue': { label: 'Entregue', class: 'bg-success/20 text-success' },
-    'cancelado': { label: 'Cancelado', class: 'bg-destructive/20 text-destructive' },
-  };
-
-  const pagamentoLabels: Record<string, string> = {
-    'pix': 'PIX',
-    'cartao': 'Cartão',
-    'dinheiro': 'Dinheiro',
-    'transferencia': 'Transferência',
-  };
+  // Status labels/classes now come from domain helpers
 
   const handleArchiveClick = (pedido: Pedido) => {
     // Guardrail: if pedido is not terminal, show extra confirmation
-    if (pedido.status !== 'entregue' && pedido.status !== 'cancelado') {
+    if (!isPedidoTerminal(pedido.status)) {
       setArchiveConfirmPedido(pedido);
     } else {
       setShowArchiveReasonModal(pedido);
@@ -130,11 +124,9 @@ export function VendasPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="pendente">Pendente</SelectItem>
-            <SelectItem value="em-producao">Em Produção</SelectItem>
-            <SelectItem value="pronto">Pronto</SelectItem>
-            <SelectItem value="entregue">Entregue</SelectItem>
-            <SelectItem value="cancelado">Cancelado</SelectItem>
+            {PEDIDO_STATUSES.map(s => (
+              <SelectItem key={s} value={s}>{getPedidoStatusLabel(s)}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2">
@@ -160,7 +152,7 @@ export function VendasPage() {
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             O pedido de <strong>{archiveConfirmPedido && getClienteDisplayName(archiveConfirmPedido)}</strong> está com status{' '}
-            <strong>{archiveConfirmPedido && (statusLabels[archiveConfirmPedido.status]?.label || archiveConfirmPedido.status)}</strong>.
+            <strong>{archiveConfirmPedido && getPedidoStatusLabel(archiveConfirmPedido.status)}</strong>.
             Tem certeza que deseja arquivá-lo?
           </p>
           <DialogFooter>
@@ -245,7 +237,7 @@ export function VendasPage() {
                         R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-4">
-                        <span className="text-sm">{pagamentoLabels[pedido.forma_pagamento]}</span>
+                        <span className="text-sm">{PAGAMENTO_LABELS[pedido.forma_pagamento]}</span>
                       </td>
                       <td className="p-4">
                         <Select
@@ -254,16 +246,14 @@ export function VendasPage() {
                         >
                           <SelectTrigger className={cn(
                             "h-8 text-xs font-medium border-0",
-                            statusLabels[pedido.status]?.class
+                            getPedidoStatusBadgeClass(pedido.status)
                           )}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pendente">Pendente</SelectItem>
-                            <SelectItem value="em-producao">Em Produção</SelectItem>
-                            <SelectItem value="pronto">Pronto</SelectItem>
-                            <SelectItem value="entregue">Entregue</SelectItem>
-                            <SelectItem value="cancelado">Cancelado</SelectItem>
+                            {PEDIDO_STATUSES.map(s => (
+                              <SelectItem key={s} value={s}>{getPedidoStatusLabel(s)}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </td>

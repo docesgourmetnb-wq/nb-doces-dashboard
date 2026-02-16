@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { shouldGenerateRevenue, type PedidoStatus } from '@/domain/pedidos';
 import { format } from 'date-fns';
 
 export interface ItemPedido {
@@ -22,7 +23,7 @@ export interface Pedido {
   tipo_pedido: 'encomenda' | 'pronta-entrega' | 'evento';
   valor_total: number;
   forma_pagamento: 'pix' | 'cartao' | 'dinheiro' | 'transferencia';
-  status: 'pendente' | 'em-producao' | 'pronto' | 'entregue' | 'cancelado';
+  status: PedidoStatus;
   observacoes?: string | null;
   itens?: ItemPedido[];
   archived_at?: string | null;
@@ -121,8 +122,8 @@ export function usePedidos() {
       const vendaCount = refs.filter(r => r.includes(':venda:')).length;
       const estornoCount = refs.filter(r => r.includes(':estorno:')).length;
 
-      // Entering "entregue" → create venda
-      if (status === 'entregue' && pedido.status !== 'entregue') {
+      // Entering revenue-generating status → create venda
+      if (shouldGenerateRevenue(status) && !shouldGenerateRevenue(pedido.status)) {
         const cycle = 1 + estornoCount;
         const vendaRef = `pedido:${id}:venda:${cycle}`;
         const alreadyExists = refs.includes(vendaRef);
@@ -144,8 +145,8 @@ export function usePedidos() {
         }
       }
 
-      // Leaving "entregue" → create estorno
-      if (pedido.status === 'entregue' && status !== 'entregue') {
+      // Leaving revenue-generating status → create estorno
+      if (shouldGenerateRevenue(pedido.status) && !shouldGenerateRevenue(status)) {
         const cycle = Math.max(vendaCount, 1);
         const estornoRef = `pedido:${id}:estorno:${cycle}`;
         const alreadyExists = refs.includes(estornoRef);
@@ -215,8 +216,8 @@ export function usePedidos() {
         if (itensError) throw itensError;
       }
 
-      // Se o pedido for "entregue", criar transação de entrada automaticamente (ciclo 1)
-      if (pedido.status === 'entregue' && pedido.valor_total > 0) {
+      // Se o pedido gerar receita, criar transação de entrada automaticamente (ciclo 1)
+      if (shouldGenerateRevenue(pedido.status) && pedido.valor_total > 0) {
         const vendaRef = `pedido:${novoPedido.id}:venda:1`;
         await supabase.from('transacoes').insert({
           tipo: 'entrada',
