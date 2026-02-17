@@ -252,6 +252,8 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          archived_at: string | null
+          archived_reason: string | null
           cliente: string
           cliente_id: string | null
           created_at: string
@@ -266,6 +268,8 @@ export type Database = {
           valor_total: number
         }
         Insert: {
+          archived_at?: string | null
+          archived_reason?: string | null
           cliente: string
           cliente_id?: string | null
           created_at?: string
@@ -280,6 +284,8 @@ export type Database = {
           valor_total?: number
         }
         Update: {
+          archived_at?: string | null
+          archived_reason?: string | null
           cliente?: string
           cliente_id?: string | null
           created_at?: string
