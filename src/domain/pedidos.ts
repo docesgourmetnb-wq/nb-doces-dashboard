@@ -2,11 +2,11 @@ export const PEDIDO_STATUSES = ['pendente', 'em-producao', 'pronto', 'entregue',
 export type PedidoStatus = (typeof PEDIDO_STATUSES)[number];
 
 const STATUS_CONFIG: Record<PedidoStatus, { label: string; badgeClass: string }> = {
-  'pendente':     { label: 'Pendente',     badgeClass: 'bg-muted text-muted-foreground' },
-  'em-producao':  { label: 'Em Produção',  badgeClass: 'bg-info/20 text-info' },
-  'pronto':       { label: 'Pronto',       badgeClass: 'bg-warning/20 text-warning' },
-  'entregue':     { label: 'Entregue',     badgeClass: 'bg-success/20 text-success' },
-  'cancelado':    { label: 'Cancelado',    badgeClass: 'bg-destructive/20 text-destructive' },
+  'pendente':     { label: 'Pendente',     badgeClass: 'bg-muted text-muted-foreground border border-border' },
+  'em-producao':  { label: 'Em Produção',  badgeClass: 'bg-info/15 text-info border border-info/25' },
+  'pronto':       { label: 'Pronto',       badgeClass: 'bg-warning/15 text-warning border border-warning/25' },
+  'entregue':     { label: 'Entregue',     badgeClass: 'bg-success/15 text-success border border-success/25' },
+  'cancelado':    { label: 'Cancelado',    badgeClass: 'bg-destructive/15 text-destructive border border-destructive/25' },
 };
 
 export function getPedidoStatusLabel(status: string): string {

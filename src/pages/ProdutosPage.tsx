@@ -230,9 +230,14 @@ export function ProdutosPage() {
 
       {/* Products Grid */}
       {filteredBrigadeiros.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhum produto cadastrado ainda.</p>
-          <p className="text-sm">Clique em "Novo Brigadeiro" para adicionar.</p>
+        <div className="text-center py-16">
+          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Search className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum produto encontrado</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            {search ? 'Tente ajustar a busca.' : 'Clique em "Novo Brigadeiro" para adicionar seu primeiro produto.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -28,6 +28,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { getPedidoStatusLabel, getPedidoStatusBadgeClass } from '@/domain/pedidos';
 
 export function ClientesPage() {
   const { clientes, loading, addCliente, updateCliente, deleteCliente } = useClientes();
@@ -61,13 +62,7 @@ export function ClientesPage() {
     return { totalPedidos, totalGasto };
   };
 
-  const statusLabels: Record<string, { label: string; class: string }> = {
-    'pendente': { label: 'Pendente', class: 'bg-muted text-muted-foreground' },
-    'em-producao': { label: 'Em Produção', class: 'bg-info/20 text-info' },
-    'pronto': { label: 'Pronto', class: 'bg-warning/20 text-warning' },
-    'entregue': { label: 'Entregue', class: 'bg-success/20 text-success' },
-    'cancelado': { label: 'Cancelado', class: 'bg-destructive/20 text-destructive' },
-  };
+  // Status labels/classes now come from domain helpers
 
   const resetForm = () => {
     setNome('');
@@ -233,10 +228,14 @@ export function ClientesPage() {
 
       {/* Clients Grid */}
       {filteredClientes.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <User className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Nenhum cliente encontrado.</p>
-          <p className="text-sm mt-1">Cadastre seu primeiro cliente clicando no botão acima.</p>
+        <div className="text-center py-16">
+          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <User className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum cliente encontrado</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            {search ? 'Tente ajustar a busca.' : 'Cadastre seu primeiro cliente para começar.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -392,10 +391,10 @@ export function ClientesPage() {
                               {format(new Date(pedido.data), "dd/MM/yyyy", { locale: ptBR })}
                             </div>
                             <span className={cn(
-                              "text-xs px-2 py-1 rounded-full font-medium",
-                              statusLabels[pedido.status]?.class
+                              "text-xs px-2.5 py-1 rounded-full font-medium",
+                              getPedidoStatusBadgeClass(pedido.status)
                             )}>
-                              {statusLabels[pedido.status]?.label}
+                              {getPedidoStatusLabel(pedido.status)}
                             </span>
                           </div>
                           {pedido.itens && pedido.itens.length > 0 && (

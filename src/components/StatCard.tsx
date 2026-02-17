@@ -33,27 +33,27 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 
 
   return (
     <div className={cn(
-      "rounded-xl p-6 card-hover shadow-sm",
+      "rounded-xl p-5 card-hover shadow-sm min-h-[120px] flex flex-col justify-center",
       variants[variant]
     )}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
           <p className={cn(
-            "text-sm font-medium mb-1",
-            variant === 'primary' ? 'text-white/80' : 'text-muted-foreground'
+            "text-xs font-medium uppercase tracking-wide mb-1.5",
+            variant === 'primary' ? 'text-white/70' : 'text-muted-foreground'
           )}>
             {title}
           </p>
           <p className={cn(
-            "text-3xl font-display font-semibold",
-            variant === 'primary' ? 'text-white' : ''
+            "text-2xl font-display font-bold leading-tight truncate",
+            variant === 'primary' ? 'text-white' : 'text-foreground'
           )}>
             {value}
           </p>
           {subtitle && (
             <p className={cn(
-              "text-xs mt-1",
-              variant === 'primary' ? 'text-white/60' : 'text-muted-foreground'
+              "text-[11px] mt-1",
+              variant === 'primary' ? 'text-white/50' : 'text-muted-foreground/70'
             )}>
               {subtitle}
             </p>
@@ -68,10 +68,10 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 
           )}
         </div>
         <div className={cn(
-          "p-3 rounded-lg",
+          "p-2.5 rounded-lg shrink-0",
           iconVariants[variant]
         )}>
-          <Icon size={24} />
+          <Icon size={20} />
         </div>
       </div>
     </div>

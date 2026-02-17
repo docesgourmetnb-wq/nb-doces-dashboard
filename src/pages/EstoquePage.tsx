@@ -221,9 +221,12 @@ export function EstoquePage() {
 
       {/* Inventory List */}
       {insumos.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhum insumo cadastrado.</p>
-          <p className="text-sm">Clique em "Novo Insumo" para adicionar.</p>
+        <div className="text-center py-16">
+          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Package className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum insumo cadastrado</h3>
+          <p className="text-muted-foreground text-sm mb-4">Clique em "Novo Insumo" para adicionar seu primeiro item.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
