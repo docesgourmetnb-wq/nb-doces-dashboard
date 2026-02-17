@@ -245,7 +245,7 @@ export function VendasPage() {
                           onValueChange={(value: Pedido['status']) => handleStatusChange(pedido.id, value)}
                         >
                           <SelectTrigger className={cn(
-                            "h-8 text-xs font-medium border-0",
+                            "h-8 text-xs font-medium rounded-full px-3",
                             getPedidoStatusBadgeClass(pedido.status)
                           )}>
                             <SelectValue />

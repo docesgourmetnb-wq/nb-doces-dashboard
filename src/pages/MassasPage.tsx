@@ -11,7 +11,7 @@ export function MassasPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-bold text-foreground">
+        <h1 className="font-display text-3xl font-semibold text-foreground">
           Massas Congeladas
         </h1>
         <p className="text-muted-foreground mt-1">

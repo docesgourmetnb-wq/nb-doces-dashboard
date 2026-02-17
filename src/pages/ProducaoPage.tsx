@@ -330,7 +330,7 @@ export function ProducaoPage() {
                               value={item.status}
                               onValueChange={(value: ProducaoDiaria['status']) => updateProducaoStatus(item.id, value)}
                             >
-                              <SelectTrigger className={cn("w-full sm:w-[160px] text-sm font-medium border-0", getProducaoStatusBadgeClass(item.status))}>
+                              <SelectTrigger className={cn("w-full sm:w-[160px] text-xs font-medium rounded-full px-3", getProducaoStatusBadgeClass(item.status))}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
