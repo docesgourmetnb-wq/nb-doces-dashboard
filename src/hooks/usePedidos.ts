@@ -44,7 +44,10 @@ export function usePedidos() {
   const { log: auditLog } = useAuditLog();
 
   const fetchPedidos = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       let query = supabase
