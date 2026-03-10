@@ -21,7 +21,10 @@ export function useInsumos() {
   const { toast } = useToast();
 
   const fetchInsumos = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase

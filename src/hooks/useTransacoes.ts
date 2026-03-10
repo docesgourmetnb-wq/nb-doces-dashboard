@@ -20,7 +20,10 @@ export function useTransacoes() {
   const { toast } = useToast();
 
   const fetchTransacoes = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase

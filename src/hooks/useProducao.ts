@@ -24,7 +24,10 @@ export function useProducao() {
   const { toast } = useToast();
 
   const fetchProducao = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       let query = supabase

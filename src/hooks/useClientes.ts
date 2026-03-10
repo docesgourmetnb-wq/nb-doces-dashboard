@@ -18,7 +18,10 @@ export function useClientes() {
   const { toast } = useToast();
 
   const fetchClientes = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase

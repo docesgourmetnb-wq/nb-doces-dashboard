@@ -22,7 +22,10 @@ export function useRecipientes() {
   const { user } = useAuth();
 
   const fetchRecipientes = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     const { data, error } = await supabase
