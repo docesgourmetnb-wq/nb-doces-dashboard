@@ -27,7 +27,6 @@ const menuItems = [
   { id: 'clientes', label: 'Clientes', icon: Users },
   { id: 'vendas', label: 'Vendas', icon: ShoppingCart },
   { id: 'producao', label: 'Produção', icon: Factory },
-  { id: 'massas', label: 'Massas', icon: Snowflake },
   { id: 'estoque', label: 'Estoque', icon: Warehouse },
   { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
 ];
