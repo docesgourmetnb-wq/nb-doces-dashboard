@@ -215,7 +215,7 @@ export function DashboardPage() {
       {/* Stats Grid */}
       <div>
         <h2 className="text-lg font-medium text-muted-foreground mb-3">{mesLabel} de {selectedYear}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <StatCard title="Faturamento" value={formatBRL(vendasPeriodo)} subtitle="Total de entradas" icon={DollarSign} variant="primary" />
           <StatCard title="Pedidos" value={filteredPedidos.length} subtitle="Pedidos no período" icon={ShoppingBag} variant="default" />
           <StatCard title="Entregues" value={pedidosEntreguesCount} subtitle="Pedidos entregues" icon={CheckCircle2} variant="success" />

@@ -143,9 +143,9 @@ export default function AuthPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-4 gradient-chocolate rounded-2xl shadow-chocolate mb-4">
-              <Cookie className="w-10 h-10 text-primary-foreground" />
-            </div>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl shadow-chocolate mb-4">
+            <span className="font-display font-extrabold text-[40px] text-primary-foreground tracking-tighter">NB</span>
+          </div>
             <h1 className="font-display text-3xl font-bold text-foreground">NB Doces Gourmet</h1>
           </div>
 
@@ -177,9 +177,9 @@ export default function AuthPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-4 gradient-chocolate rounded-2xl shadow-chocolate mb-4">
-              <Cookie className="w-10 h-10 text-primary-foreground" />
-            </div>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl shadow-chocolate mb-4">
+            <span className="font-display font-extrabold text-[40px] text-primary-foreground tracking-tighter">NB</span>
+          </div>
             <h1 className="font-display text-3xl font-bold text-foreground">NB Doces Gourmet</h1>
             <p className="text-muted-foreground mt-2">Recuperar Senha</p>
           </div>

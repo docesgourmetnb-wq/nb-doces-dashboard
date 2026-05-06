@@ -46,14 +46,14 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 
           </p>
           <p className={cn(
             "text-2xl font-display font-bold leading-tight truncate",
-            variant === 'primary' ? 'text-white' : 'text-foreground'
+            "text-foreground"
           )}>
             {value}
           </p>
           {subtitle && (
             <p className={cn(
               "text-[11px] mt-1",
-              variant === 'primary' ? 'text-white/50' : 'text-muted-foreground/70'
+              "text-muted-foreground/70"
             )}>
               {subtitle}
             </p>

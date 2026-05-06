@@ -69,8 +69,8 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
           {/* Logo */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent rounded-lg shadow-md">
-                <Cookie className="w-6 h-6 text-accent-foreground" />
+              <div className="flex items-center justify-center w-10 h-10 bg-primary/20 rounded-lg shadow-sm border border-primary/30">
+                <span className="font-display font-medium text-xl text-primary tracking-tighter">NB</span>
               </div>
               <div>
                 <h1 className="font-display text-xl font-semibold">NB Doces</h1>
