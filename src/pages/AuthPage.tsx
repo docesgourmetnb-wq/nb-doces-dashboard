@@ -143,10 +143,9 @@ export default function AuthPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl shadow-chocolate mb-4 overflow-hidden border-2 border-primary/20">
-            <img src="/logo.png" alt="NB Doces" className="w-full h-full object-cover" />
-          </div>
-            <h1 className="font-display text-3xl font-bold text-foreground">NB Doces Gourmet</h1>
+            <div className="inline-flex items-center justify-center w-32 h-32 rounded-3xl shadow-chocolate mb-4 overflow-hidden border-2 border-primary/20">
+              <img src="/logo.png" alt="NB Doces Gourmet" className="w-full h-full object-cover" />
+            </div>
           </div>
 
           <div className="bg-card border border-border rounded-2xl p-8 shadow-lg text-center">
@@ -177,10 +176,9 @@ export default function AuthPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl shadow-chocolate mb-4 overflow-hidden border-2 border-primary/20">
-            <img src="/logo.png" alt="NB Doces" className="w-full h-full object-cover" />
-          </div>
-            <h1 className="font-display text-3xl font-bold text-foreground">NB Doces Gourmet</h1>
+            <div className="inline-flex items-center justify-center w-32 h-32 rounded-3xl shadow-chocolate mb-4 overflow-hidden border-2 border-primary/20">
+              <img src="/logo.png" alt="NB Doces Gourmet" className="w-full h-full object-cover" />
+            </div>
             <p className="text-muted-foreground mt-2">Recuperar Senha</p>
           </div>
 
@@ -242,10 +240,9 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl shadow-chocolate mb-4 overflow-hidden border-2 border-primary/20">
+          <div className="inline-flex items-center justify-center w-32 h-32 rounded-3xl shadow-chocolate mb-4 overflow-hidden border-2 border-primary/20">
             <img src="/logo.png" alt="NB Doces" className="w-full h-full object-cover" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">NB Doces Gourmet</h1>
           <p className="text-muted-foreground mt-2">Sistema de Gestão</p>
         </div>
 

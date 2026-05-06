@@ -67,15 +67,9 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-lg shadow-sm overflow-hidden border border-white/10">
-                <img src="/logo.png" alt="NB Doces" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <h1 className="font-display text-xl font-semibold">NB Doces</h1>
-                <p className="text-xs text-white/70">Gourmet</p>
-              </div>
+          <div className="p-6 border-b border-white/10 flex justify-center">
+            <div className="w-24 h-24 rounded-xl shadow-lg overflow-hidden border border-white/10">
+              <img src="/logo.png" alt="NB Doces Gourmet" className="w-full h-full object-cover" />
             </div>
           </div>
 
