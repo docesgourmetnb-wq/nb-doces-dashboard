@@ -93,10 +93,10 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left",
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left outline-none",
                     isActive 
-                      ? "bg-accent text-accent-foreground shadow-md" 
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                      ? "bg-white/10 text-white border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" 
+                      : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent"
                   )}
                 >
                   <Icon size={20} />

@@ -17,30 +17,30 @@ interface StatCardProps {
 export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 'default' }: StatCardProps) {
   const variants = {
     default: 'bg-card border border-border',
-    primary: 'gradient-chocolate text-primary-foreground',
-    accent: 'bg-accent text-accent-foreground',
-    success: 'bg-success/10 border border-success/20',
-    warning: 'bg-warning/10 border border-warning/20',
+    primary: 'bg-card border border-border shadow-sm',
+    accent: 'bg-card border border-border',
+    success: 'bg-card border border-border',
+    warning: 'bg-card border border-border',
   };
 
   const iconVariants = {
-    default: 'bg-secondary text-secondary-foreground',
-    primary: 'bg-white/20 text-white',
-    accent: 'bg-white/30 text-accent-foreground',
-    success: 'bg-success/20 text-success',
-    warning: 'bg-warning/20 text-warning',
+    default: 'bg-muted/30 text-muted-foreground',
+    primary: 'bg-primary/10 text-primary',
+    accent: 'bg-accent/10 text-accent',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
   };
 
   return (
     <div className={cn(
-      "rounded-xl p-5 card-hover shadow-sm min-h-[120px] flex flex-col justify-center",
+      "rounded-xl p-5 card-hover min-h-[120px] flex flex-col justify-center",
       variants[variant]
     )}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className={cn(
-            "text-xs font-medium uppercase tracking-wide mb-1.5",
-            variant === 'primary' ? 'text-white/70' : 'text-muted-foreground'
+            "text-xs font-semibold uppercase tracking-wider mb-2",
+            "text-muted-foreground"
           )}>
             {title}
           </p>
