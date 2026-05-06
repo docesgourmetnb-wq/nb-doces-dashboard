@@ -11,8 +11,7 @@ export interface EstoqueProduto {
   user_id: string;
   created_at: string;
   updated_at: string;
-  // Joined data
-  brigadeiro?: Brigadeiro;
+  brigadeiro?: Partial<Brigadeiro>;
 }
 
 export function useEstoqueProdutos() {
@@ -30,21 +29,26 @@ export function useEstoqueProdutos() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('estoque_produtos')
-        .select(`
-          *,
-          brigadeiro:brigadeiros(*)
-        `);
+        .from('insumos')
+        .select('*')
+        .eq('unidade', 'SYS_PROD');
 
       if (error) throw error;
       
-      const sortedData = (data || []).sort((a: any, b: any) => {
-        const nomeA = a.brigadeiro?.nome || '';
-        const nomeB = b.brigadeiro?.nome || '';
-        return nomeA.localeCompare(nomeB);
-      });
+      const produtosFormatados = (data || []).map((m: any) => {
+        const [, brigId, brigNome] = m.nome.match(/\[PRODUTO\] (.*?)::(.*)/) || ['', '', 'Produto Desconhecido'];
+        return {
+          id: m.id,
+          brigadeiro_id: brigId,
+          quantidade_un: m.quantidade_atual || 0,
+          user_id: m.user_id,
+          created_at: m.created_at,
+          updated_at: m.updated_at,
+          brigadeiro: { id: brigId, nome: brigNome }
+        } as EstoqueProduto;
+      }).sort((a, b) => (a.brigadeiro?.nome || '').localeCompare(b.brigadeiro?.nome || ''));
 
-      setProdutos(sortedData as EstoqueProduto[]);
+      setProdutos(produtosFormatados);
     } catch (error: any) {
       console.error('Error fetching produtos:', error);
       toast({
@@ -61,20 +65,36 @@ export function useEstoqueProdutos() {
     fetchProdutos();
   }, [fetchProdutos]);
 
-  const addProduto = async (brigadeiro_id: string, quantidade_un: number) => {
+  const addProduto = async (brigadeiro_id: string, quantidade_un: number, brigadeiro_nome: string) => {
     if (!user) return null;
 
     try {
       const { data, error } = await supabase
-        .from('estoque_produtos')
-        .insert([{ brigadeiro_id, quantidade_un, user_id: user.id }])
-        .select(`*, brigadeiro:brigadeiros(*)`)
+        .from('insumos')
+        .insert([{ 
+           nome: `[PRODUTO] ${brigadeiro_id}::${brigadeiro_nome}`, 
+           unidade: 'SYS_PROD',
+           quantidade_atual: quantidade_un,
+           quantidade_minima: 0,
+           consumo_medio: 0,
+           preco_unitario: 0,
+           user_id: user.id 
+        }])
+        .select()
         .single();
 
       if (error) throw error;
       
-      const novoProduto = data as EstoqueProduto;
-      // We refetch to maintain sort order, or just update state and sort
+      const novoProduto = {
+        id: data.id,
+        brigadeiro_id: brigadeiro_id,
+        quantidade_un: data.quantidade_atual || 0,
+        user_id: data.user_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        brigadeiro: { id: brigadeiro_id, nome: brigadeiro_nome }
+      } as EstoqueProduto;
+
       setProdutos(prev => {
           const newState = [...prev, novoProduto];
           return newState.sort((a, b) => (a.brigadeiro?.nome || '').localeCompare(b.brigadeiro?.nome || ''));
@@ -111,8 +131,8 @@ export function useEstoqueProdutos() {
 
     try {
       const { error } = await supabase
-        .from('estoque_produtos')
-        .update({ quantidade_un: novaQuantidade, updated_at: new Date().toISOString() })
+        .from('insumos')
+        .update({ quantidade_atual: novaQuantidade, updated_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
@@ -136,7 +156,7 @@ export function useEstoqueProdutos() {
   const deleteProduto = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('estoque_produtos')
+        .from('insumos')
         .delete()
         .eq('id', id);
 

@@ -30,6 +30,7 @@ export function useInsumos() {
       const { data, error } = await supabase
         .from('insumos')
         .select('*')
+        .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
         .order('nome');
 
       if (error) throw error;

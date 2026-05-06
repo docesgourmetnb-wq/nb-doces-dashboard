@@ -316,7 +316,8 @@ function ProdutosTab() {
 
   const handleRegister = async () => {
     if (!brigadeiroId) return;
-    await addProduto(brigadeiroId, 0);
+    const brig = availableBrigadeiros.find(b => b.id === brigadeiroId) || brigadeiros.find(b => b.id === brigadeiroId);
+    await addProduto(brigadeiroId, 0, brig?.nome || 'Produto Sem Nome');
     setBrigadeiroId('');
     setIsRegisterOpen(false);
   };

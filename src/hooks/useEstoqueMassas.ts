@@ -26,13 +26,24 @@ export function useEstoqueMassas() {
     
     setLoading(true);
     try {
+      // Using insumos as a generic inventory table to bypass DB migration requirements
       const { data, error } = await supabase
-        .from('estoque_massas')
+        .from('insumos')
         .select('*')
-        .order('sabor', { ascending: true });
+        .eq('unidade', 'SYS_MASSA');
 
       if (error) throw error;
-      setMassas((data || []) as EstoqueMassa[]);
+      
+      const massasFormatadas = (data || []).map((m: any) => ({
+        id: m.id,
+        sabor: m.nome.replace('[MASSA] ', ''),
+        quantidade_g: m.quantidade_atual || 0,
+        user_id: m.user_id,
+        created_at: m.created_at,
+        updated_at: m.updated_at
+      })).sort((a, b) => a.sabor.localeCompare(b.sabor));
+
+      setMassas(massasFormatadas);
     } catch (error: any) {
       console.error('Error fetching massas:', error);
       toast({
@@ -54,14 +65,30 @@ export function useEstoqueMassas() {
 
     try {
       const { data, error } = await supabase
-        .from('estoque_massas')
-        .insert([{ sabor, quantidade_g, user_id: user.id }])
+        .from('insumos')
+        .insert([{ 
+           nome: `[MASSA] ${sabor}`, 
+           unidade: 'SYS_MASSA',
+           quantidade_atual: quantidade_g, 
+           quantidade_minima: 0,
+           consumo_medio: 0,
+           preco_unitario: 0,
+           user_id: user.id 
+        }])
         .select()
         .single();
 
       if (error) throw error;
       
-      const novaMassa = data as EstoqueMassa;
+      const novaMassa = {
+        id: data.id,
+        sabor: data.nome.replace('[MASSA] ', ''),
+        quantidade_g: data.quantidade_atual || 0,
+        user_id: data.user_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      } as EstoqueMassa;
+
       setMassas(prev => [...prev, novaMassa].sort((a, b) => a.sabor.localeCompare(b.sabor)));
       toast({
         title: 'Massa adicionada',
@@ -94,8 +121,8 @@ export function useEstoqueMassas() {
 
     try {
       const { error } = await supabase
-        .from('estoque_massas')
-        .update({ quantidade_g: novaQuantidade, updated_at: new Date().toISOString() })
+        .from('insumos')
+        .update({ quantidade_atual: novaQuantidade, updated_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
@@ -119,7 +146,7 @@ export function useEstoqueMassas() {
   const deleteMassa = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('estoque_massas')
+        .from('insumos')
         .delete()
         .eq('id', id);
 
