@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { type ProducaoStatus } from '@/domain/producao';
+import { buildProductionIdempotencyKey, executeProductionOrder } from '@/services/productionExecutionService';
 
 export interface ProducaoDiaria {
   id: string;
@@ -58,10 +59,37 @@ export function useProducao() {
     fetchProducao();
   }, [fetchProducao]);
 
-  const addProducao = async (item: Omit<ProducaoDiaria, 'id'>) => {
+  const addProducao = async (
+    item: Omit<ProducaoDiaria, 'id'>,
+    integration?: {
+      enabled: boolean;
+      recipeVersionId?: string;
+      outputItemId?: string;
+      notes?: string;
+    }
+  ) => {
     if (!user) return;
     
     try {
+      if (integration?.enabled) {
+        if (!integration.recipeVersionId || !integration.outputItemId) {
+          throw new Error('Para integração de estoque, informe recipeVersionId e outputItemId.');
+        }
+
+        await executeProductionOrder({
+          recipeVersionId: integration.recipeVersionId,
+          outputItemId: integration.outputItemId,
+          plannedOutputQty: item.quantidade,
+          actualOutputQty: item.quantidade,
+          notes: integration.notes ?? `Produção ${item.brigadeiro_nome} (${item.data})`,
+          idempotencyKey: buildProductionIdempotencyKey({
+            recipeVersionId: integration.recipeVersionId,
+            outputItemId: integration.outputItemId,
+            plannedOutputQty: item.quantidade,
+          }),
+        });
+      }
+
       const { data, error } = await supabase
         .from('producao_diaria')
         .insert({
@@ -78,11 +106,11 @@ export function useProducao() {
 
       if (error) throw error;
       await fetchProducao();
-      toast({ title: 'Produção planejada!' });
+      toast({ title: integration?.enabled ? 'Produção registrada e estoque movimentado!' : 'Produção planejada!' });
       return data as ProducaoDiaria;
     } catch (error: any) {
       toast({
-        title: 'Erro ao planejar produção',
+        title: integration?.enabled ? 'Erro ao registrar produção integrada' : 'Erro ao planejar produção',
         description: error.message,
         variant: 'destructive',
       });

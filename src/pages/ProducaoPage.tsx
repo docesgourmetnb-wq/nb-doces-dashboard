@@ -44,6 +44,9 @@ export function ProducaoPage() {
     data: format(new Date(), 'yyyy-MM-dd'),
     brigadeiro_id: '',
     quantidade: '',
+    integrar_estoque: false,
+    recipe_version_id: '',
+    output_item_id: '',
   });
 
   // Edit state
@@ -76,11 +79,23 @@ export function ProducaoPage() {
       brigadeiro_nome: brigadeiro.nome,
       quantidade,
       custo_total: 0,
-      status: 'planejado',
+      status: formData.integrar_estoque ? 'concluido' : 'planejado',
+    }, {
+      enabled: formData.integrar_estoque,
+      recipeVersionId: formData.recipe_version_id || undefined,
+      outputItemId: formData.output_item_id || undefined,
+      notes: `Integração automática - ${brigadeiro.nome}`,
     });
     setSaving(false);
     setIsDialogOpen(false);
-    setFormData({ data: format(new Date(), 'yyyy-MM-dd'), brigadeiro_id: '', quantidade: '' });
+    setFormData({
+      data: format(new Date(), 'yyyy-MM-dd'),
+      brigadeiro_id: '',
+      quantidade: '',
+      integrar_estoque: false,
+      recipe_version_id: '',
+      output_item_id: '',
+    });
   };
 
   const openEdit = (item: ProducaoDiaria) => {
@@ -176,6 +191,33 @@ export function ProducaoPage() {
                 <Label>Quantidade</Label>
                 <Input type="number" min="1" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} placeholder="Ex: 50" />
               </div>
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="integrar-estoque"
+                    checked={formData.integrar_estoque}
+                    onCheckedChange={(v) => setFormData({ ...formData, integrar_estoque: !!v })}
+                  />
+                  <Label htmlFor="integrar-estoque" className="cursor-pointer">Consumir estoque automaticamente</Label>
+                </div>
+                {formData.integrar_estoque && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Informe os IDs da receita ativa e item de saída para executar a RPC de produção integrada.
+                    </p>
+                    <Input
+                      value={formData.recipe_version_id}
+                      onChange={(e) => setFormData({ ...formData, recipe_version_id: e.target.value })}
+                      placeholder="recipe_version_id (UUID)"
+                    />
+                    <Input
+                      value={formData.output_item_id}
+                      onChange={(e) => setFormData({ ...formData, output_item_id: e.target.value })}
+                      placeholder="output_item_id (UUID)"
+                    />
+                  </div>
+                )}
+              </div>
               {formData.brigadeiro_id && formData.quantidade && (
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm font-medium">
@@ -183,9 +225,19 @@ export function ProducaoPage() {
                   </p>
                 </div>
               )}
-              <Button onClick={handleAddProducao} className="w-full" disabled={saving || !formData.brigadeiro_id || !formData.quantidade || parseInt(formData.quantidade) <= 0}>
+              <Button
+                onClick={handleAddProducao}
+                className="w-full"
+                disabled={
+                  saving ||
+                  !formData.brigadeiro_id ||
+                  !formData.quantidade ||
+                  parseInt(formData.quantidade) <= 0 ||
+                  (formData.integrar_estoque && (!formData.recipe_version_id || !formData.output_item_id))
+                }
+              >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Adicionar à Produção
+                {formData.integrar_estoque ? 'Executar Produção Integrada' : 'Adicionar à Produção'}
               </Button>
             </div>
           </DialogContent>

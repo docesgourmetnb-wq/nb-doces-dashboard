@@ -7,6 +7,7 @@ import { VendasPage } from '@/pages/VendasPage';
 import { ProducaoPage } from '@/pages/ProducaoPage';
 import { EstoquePage } from '@/pages/EstoquePage';
 import { FinanceiroPage } from '@/pages/FinanceiroPage';
+import { ReceitasPage } from '@/pages/ReceitasPage';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -23,6 +24,8 @@ const Index = () => {
         return <VendasPage />;
       case 'producao':
         return <ProducaoPage />;
+      case 'receitas':
+        return <ReceitasPage />;
       case 'estoque':
         return <EstoquePage />;
       case 'financeiro':

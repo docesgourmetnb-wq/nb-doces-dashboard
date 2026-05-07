@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, AlertTriangle, Package, Loader2, ArrowRight, ArrowLeft, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Plus, AlertTriangle, Package, Loader2, ArrowRight, ArrowLeft, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
 import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
@@ -202,7 +202,7 @@ function InsumosTab() {
 }
 
 function MassasTab() {
-  const { massas, loading, addMassa, updateQuantidade } = useEstoqueMassas();
+  const { massas, loading, addMassa, updateQuantidade, deleteMassa } = useEstoqueMassas();
   const [sabor, setSabor] = useState('');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [actionMassa, setActionMassa] = useState<EstoqueMassa | null>(null);
@@ -227,6 +227,12 @@ function MassasTab() {
     await updateQuantidade(actionMassa.id, delta);
     setActionMassa(null);
     setActionValue('');
+  };
+
+  const handleDelete = async (massa: EstoqueMassa) => {
+    const confirmDelete = window.confirm(`Remover o sabor "${massa.sabor}" do estoque de massas base?`);
+    if (!confirmDelete) return;
+    await deleteMassa(massa.id);
   };
 
   const totalGeral = massas.reduce((acc, m) => acc + m.quantidade_g, 0);
@@ -261,7 +267,18 @@ function MassasTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {massas.map(massa => (
           <div key={massa.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
-             <h3 className="font-display font-semibold text-lg mb-4">{massa.sabor}</h3>
+             <div className="flex items-start justify-between gap-2 mb-4">
+               <h3 className="font-display font-semibold text-lg">{massa.sabor}</h3>
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                 onClick={() => handleDelete(massa)}
+                 aria-label={`Excluir massa ${massa.sabor}`}
+               >
+                 <Trash2 className="w-4 h-4" />
+               </Button>
+             </div>
              <div className="flex items-end justify-between mb-6">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Disponível</p>
@@ -304,7 +321,7 @@ function MassasTab() {
 }
 
 function ProdutosTab() {
-  const { produtos, loading, addProduto, updateQuantidade } = useEstoqueProdutos();
+  const { produtos, loading, addProduto, updateQuantidade, deleteProduto } = useEstoqueProdutos();
   const { brigadeiros } = useBrigadeiros();
   const [brigadeiroId, setBrigadeiroId] = useState('');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -331,6 +348,13 @@ function ProdutosTab() {
     await updateQuantidade(actionProduto.id, delta);
     setActionProduto(null);
     setActionValue('');
+  };
+
+  const handleDelete = async (produto: EstoqueProduto) => {
+    const nomeProduto = produto.brigadeiro?.nome || 'este produto';
+    const confirmDelete = window.confirm(`Remover "${nomeProduto}" do estoque de produtos finais?`);
+    if (!confirmDelete) return;
+    await deleteProduto(produto.id);
   };
 
   // Filtrar quais brigadeiros ainda nao tem estoque cadastrado
@@ -373,7 +397,18 @@ function ProdutosTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {produtos.map(produto => (
           <div key={produto.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
-             <h3 className="font-display font-semibold text-lg mb-4">{produto.brigadeiro?.nome || 'Carregando...'}</h3>
+             <div className="flex items-start justify-between gap-2 mb-4">
+               <h3 className="font-display font-semibold text-lg">{produto.brigadeiro?.nome || 'Carregando...'}</h3>
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                 onClick={() => handleDelete(produto)}
+                 aria-label={`Excluir produto ${produto.brigadeiro?.nome || ''}`}
+               >
+                 <Trash2 className="w-4 h-4" />
+               </Button>
+             </div>
              <div className="flex items-end justify-between mb-6">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Disponível</p>
