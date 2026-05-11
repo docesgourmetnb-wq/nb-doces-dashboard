@@ -154,10 +154,16 @@ export function ReceitasPage() {
 
   const selectedRecipe = useMemo(() => recipes.find((r) => r.id === selectedRecipeId), [recipes, selectedRecipeId]);
 
-  /** Apenas insumos entram na receita (consumo de matéria-prima). */
+  /** Insumos disponíveis vêm direto do Estoque (tabela `insumos`). */
   const insumosStock = useMemo(
-    () => stockItems.filter((s) => s.tipo === 'insumo'),
-    [stockItems]
+    () =>
+      insumosEstoque.map((i) => ({
+        id: i.id,
+        nome: i.nome,
+        unidade_base: i.unidade,
+        tipo: 'insumo' as const,
+      })),
+    [insumosEstoque]
   );
 
   const addRecipe = async () => {
