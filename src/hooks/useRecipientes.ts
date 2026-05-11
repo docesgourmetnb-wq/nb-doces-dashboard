@@ -34,7 +34,7 @@ export function useRecipientes() {
       .order('codigo', { ascending: true });
 
     if (error) {
-      console.error('Error fetching recipientes:', error);
+      if (import.meta.env.DEV) console.error('Error fetching recipientes:', error);
       toast({
         title: 'Erro ao carregar recipientes',
         description: error.message,
@@ -60,7 +60,7 @@ export function useRecipientes() {
       .single();
 
     if (error) {
-      console.error('Error adding recipiente:', error);
+      if (import.meta.env.DEV) console.error('Error adding recipiente:', error);
       toast({
         title: 'Erro ao adicionar recipiente',
         description: error.message,
@@ -84,7 +84,7 @@ export function useRecipientes() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating recipiente:', error);
+      if (import.meta.env.DEV) console.error('Error updating recipiente:', error);
       toast({
         title: 'Erro ao atualizar recipiente',
         description: error.message,
@@ -110,7 +110,7 @@ export function useRecipientes() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting recipiente:', error);
+      if (import.meta.env.DEV) console.error('Error deleting recipiente:', error);
       toast({
         title: 'Erro ao excluir recipiente',
         description: error.message,
@@ -138,7 +138,7 @@ export function useRecipientes() {
       .upload(filePath, file);
 
     if (uploadError) {
-      console.error('Error uploading photo:', uploadError);
+      if (import.meta.env.DEV) console.error('Error uploading photo:', uploadError);
       toast({
         title: 'Erro ao enviar foto',
         description: uploadError.message,
@@ -152,7 +152,7 @@ export function useRecipientes() {
       .createSignedUrl(filePath, 86400); // 24 hours expiry
 
     if (signedUrlError) {
-      console.error('Error creating signed URL:', signedUrlError);
+      if (import.meta.env.DEV) console.error('Error creating signed URL:', signedUrlError);
       toast({
         title: 'Erro ao gerar URL da foto',
         description: signedUrlError.message,
