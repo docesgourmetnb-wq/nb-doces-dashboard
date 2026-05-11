@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+
+const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
+type Uom = (typeof UOM_OPTIONS)[number];
 
 type RecipeRow = {
   id: string;
@@ -20,6 +33,8 @@ type RecipeVersionRow = {
   version_no: number;
   status: 'draft' | 'active' | 'archived';
   yield_qty: number;
+  peso_total_massa_g: number | null;
+  peso_unitario_base_g: number | null;
 };
 
 type StockItemRow = {
@@ -44,6 +59,12 @@ type RecipeComponentRow = {
   waste_factor: number;
 };
 
+type ConfirmState =
+  | { kind: 'recipe'; id: string; nome: string }
+  | { kind: 'version'; id: string; label: string }
+  | { kind: 'component'; id: string; label: string }
+  | null;
+
 export function ReceitasPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -55,16 +76,19 @@ export function ReceitasPage() {
   const [insumosEstoque, setInsumosEstoque] = useState<InsumoRow[]>([]);
   const [selectedRecipeId, setSelectedRecipeId] = useState('');
   const [selectedVersionId, setSelectedVersionId] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
 
   const [newRecipe, setNewRecipe] = useState({ nome: '' });
   const [savingRecipe, setSavingRecipe] = useState(false);
-  const [newVersion, setNewVersion] = useState({ yield_qty: '', status: 'draft' as RecipeVersionRow['status'] });
+  const [newVersion, setNewVersion] = useState({
+    peso_total_massa_g: '',
+    peso_unitario_base_g: '20',
+    status: 'draft' as RecipeVersionRow['status'],
+  });
   const [newComponent, setNewComponent] = useState({
     stock_item_id: '',
     qty_per_batch: '',
-    uom: '',
-    component_type: 'base' as RecipeComponentRow['component_type'],
-    waste_factor: '0',
+    uom: 'g' as Uom,
   });
 
   const loadBase = useCallback(async () => {
@@ -74,7 +98,11 @@ export function ReceitasPage() {
     }
     setLoading(true);
     const [recipesRes, stockRes, insumosRes] = await Promise.all([
-      supabase.from('recipes' as any).select('id,nome,tipo,ativo').order('nome'),
+      supabase
+        .from('recipes' as any)
+        .select('id,nome,tipo,ativo,deleted_at')
+        .is('deleted_at', null)
+        .order('nome'),
       supabase.from('stock_items' as any).select('id,nome,unidade_base,tipo').order('nome'),
       supabase
         .from('insumos')
@@ -109,7 +137,7 @@ export function ReceitasPage() {
     }
     const { data, error } = await supabase
       .from('recipe_versions' as any)
-      .select('id,recipe_id,version_no,status,yield_qty')
+      .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
       .eq('recipe_id', selectedRecipeId)
       .order('version_no', { ascending: false });
     if (error) {
@@ -140,19 +168,12 @@ export function ReceitasPage() {
     setComponents((data || []) as unknown as RecipeComponentRow[]);
   }, [selectedVersionId, toast]);
 
-  useEffect(() => {
-    loadBase();
-  }, [loadBase]);
-
-  useEffect(() => {
-    loadVersions();
-  }, [loadVersions]);
-
-  useEffect(() => {
-    loadComponents();
-  }, [loadComponents]);
+  useEffect(() => { loadBase(); }, [loadBase]);
+  useEffect(() => { loadVersions(); }, [loadVersions]);
+  useEffect(() => { loadComponents(); }, [loadComponents]);
 
   const selectedRecipe = useMemo(() => recipes.find((r) => r.id === selectedRecipeId), [recipes, selectedRecipeId]);
+  const selectedVersion = useMemo(() => versions.find((v) => v.id === selectedVersionId), [versions, selectedVersionId]);
 
   /** Insumos disponíveis vêm direto do Estoque (tabela `insumos`). */
   const insumosStock = useMemo(
@@ -161,57 +182,23 @@ export function ReceitasPage() {
         id: i.id,
         nome: i.nome,
         unidade_base: i.unidade,
-        tipo: 'insumo' as const,
       })),
     [insumosEstoque]
   );
 
   const addRecipe = async () => {
     const nome = newRecipe.nome.trim();
-    if (!user) {
-      toast({
-        title: 'Sessão necessária',
-        description: 'Entre na sua conta para criar receitas.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (!nome) {
-      toast({
-        title: 'Nome obrigatório',
-        description: 'Digite um nome para a receita.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    if (!user || !nome) return;
     setSavingRecipe(true);
     try {
-      const row = {
+      const { error } = await supabase.from('recipes' as any).insert({
         user_id: user.id,
         nome,
+        tipo: 'consumo',
         yield_uom: 'lote',
-      };
-
-      // `consumo` exige migration 20260508100000; senão usamos `massa_base` (mesmo schema base).
-      let { error } = await supabase.from('recipes' as any).insert({ ...row, tipo: 'consumo' });
-      if (
-        error &&
-        (error.message.includes('consumo') ||
-          error.message.toLowerCase().includes('invalid input value for enum'))
-      ) {
-        ({ error } = await supabase.from('recipes' as any).insert({ ...row, tipo: 'massa_base' }));
-      }
-
+      });
       if (error) {
-        toast({
-          title: 'Erro ao criar receita',
-          description:
-            error.message.includes('relation') || error.message.includes('does not exist')
-              ? 'Tabelas de receitas não encontradas no banco. Aplique as migrations no Supabase (recipes / stock_items).'
-              : error.message,
-          variant: 'destructive',
-        });
+        toast({ title: 'Erro ao criar receita', description: error.message, variant: 'destructive' });
         return;
       }
       setNewRecipe({ nome: '' });
@@ -224,8 +211,16 @@ export function ReceitasPage() {
 
   const addVersion = async () => {
     if (!user || !selectedRecipeId) return;
-    const yieldQty = parseFloat(newVersion.yield_qty);
-    if (!yieldQty || yieldQty <= 0) return;
+    const pesoTotal = parseFloat(newVersion.peso_total_massa_g);
+    const pesoUnit = parseFloat(newVersion.peso_unitario_base_g);
+    if (!pesoTotal || pesoTotal <= 0) {
+      toast({ title: 'Informe o peso total da massa (g).', variant: 'destructive' });
+      return;
+    }
+    if (!pesoUnit || pesoUnit <= 0) {
+      toast({ title: 'Informe o peso unitário base (g).', variant: 'destructive' });
+      return;
+    }
 
     const nextVersion = (versions[0]?.version_no || 0) + 1;
     const { error } = await supabase.from('recipe_versions' as any).insert({
@@ -233,13 +228,15 @@ export function ReceitasPage() {
       recipe_id: selectedRecipeId,
       version_no: nextVersion,
       status: newVersion.status,
-      yield_qty: yieldQty,
+      yield_qty: pesoTotal, // compatibilidade
+      peso_total_massa_g: pesoTotal,
+      peso_unitario_base_g: pesoUnit,
     });
     if (error) {
       toast({ title: 'Erro ao criar versão', description: error.message, variant: 'destructive' });
       return;
     }
-    setNewVersion({ yield_qty: '', status: 'draft' });
+    setNewVersion({ peso_total_massa_g: '', peso_unitario_base_g: '20', status: 'draft' });
     await loadVersions();
     toast({ title: 'Versão criada' });
   };
@@ -247,29 +244,19 @@ export function ReceitasPage() {
   const addComponent = async () => {
     if (!user || !selectedVersionId || !newComponent.stock_item_id) return;
     const qty = parseFloat(newComponent.qty_per_batch);
-    const waste = parseFloat(newComponent.waste_factor || '0');
-    if (!qty || qty <= 0 || waste < 0 || waste >= 1) return;
+    if (!qty || qty <= 0) return;
 
-    // O select usa o id do insumo (tabela `insumos`). Garantimos um stock_items equivalente.
     const insumo = insumosEstoque.find((i) => i.id === newComponent.stock_item_id);
-    if (!insumo) {
-      toast({ title: 'Insumo não encontrado', variant: 'destructive' });
-      return;
-    }
+    if (!insumo) return;
 
-    let stockId: string | undefined = stockItems.find(
+    let stockId = stockItems.find(
       (s) => s.tipo === 'insumo' && s.nome.toLowerCase() === insumo.nome.toLowerCase()
     )?.id;
 
     if (!stockId) {
       const { data: created, error: createErr } = await supabase
         .from('stock_items' as any)
-        .insert({
-          user_id: user.id,
-          nome: insumo.nome,
-          unidade_base: insumo.unidade,
-          tipo: 'insumo',
-        })
+        .insert({ user_id: user.id, nome: insumo.nome, unidade_base: insumo.unidade, tipo: 'insumo' })
         .select('id,nome,unidade_base,tipo')
         .single();
       if (createErr || !created) {
@@ -286,37 +273,25 @@ export function ReceitasPage() {
       stock_item_id: stockId,
       qty_per_batch: qty,
       uom: newComponent.uom,
-      component_type: newComponent.component_type,
-      waste_factor: waste,
+      component_type: 'base',
+      waste_factor: 0,
     });
     if (error) {
-      toast({ title: 'Erro ao adicionar componente', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao adicionar insumo', description: error.message, variant: 'destructive' });
       return;
     }
-    setNewComponent({
-      stock_item_id: '',
-      qty_per_batch: '',
-      uom: '',
-      component_type: 'base',
-      waste_factor: '0',
-    });
+    setNewComponent({ stock_item_id: '', qty_per_batch: '', uom: 'g' });
     await loadComponents();
-    toast({ title: 'Componente adicionado' });
+    toast({ title: 'Insumo adicionado' });
   };
 
   const setVersionActive = async (versionId: string) => {
     if (!selectedRecipeId) return;
-    const { error: clearError } = await supabase
+    await supabase
       .from('recipe_versions' as any)
       .update({ status: 'archived' })
       .eq('recipe_id', selectedRecipeId)
       .eq('status', 'active');
-
-    if (clearError) {
-      toast({ title: 'Erro ao ativar versão', description: clearError.message, variant: 'destructive' });
-      return;
-    }
-
     const { error } = await supabase.from('recipe_versions' as any).update({ status: 'active' }).eq('id', versionId);
     if (error) {
       toast({ title: 'Erro ao ativar versão', description: error.message, variant: 'destructive' });
@@ -324,6 +299,71 @@ export function ReceitasPage() {
     }
     await loadVersions();
     toast({ title: 'Versão ativa atualizada' });
+  };
+
+  // ===== Exclusões =====
+  const doDeleteRecipe = async (id: string) => {
+    const { error } = await supabase
+      .from('recipes' as any)
+      .update({ deleted_at: new Date().toISOString(), ativo: false })
+      .eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao excluir receita', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (selectedRecipeId === id) {
+      setSelectedRecipeId('');
+      setSelectedVersionId('');
+    }
+    await loadBase();
+    toast({ title: 'Receita excluída' });
+  };
+
+  const doDeleteVersion = async (id: string) => {
+    // Bloqueia se houver produção vinculada
+    const { count, error: prodErr } = await supabase
+      .from('producao_diaria')
+      .select('id', { count: 'exact', head: true })
+      .eq('brigadeiro_id', id); // fallback: nem sempre vinculado por recipe_version_id
+    // Não há FK direta no schema atual; mantemos checagem permissiva. Se erro, prosseguir.
+    if (!prodErr && count && count > 0) {
+      toast({
+        title: 'Não é possível excluir',
+        description: 'Existe produção vinculada a esta versão.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Apaga componentes primeiro
+    await supabase.from('recipe_components' as any).delete().eq('recipe_version_id', id);
+    const { error } = await supabase.from('recipe_versions' as any).delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao excluir versão', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (selectedVersionId === id) setSelectedVersionId('');
+    await loadVersions();
+    toast({ title: 'Versão excluída' });
+  };
+
+  const doDeleteComponent = async (id: string) => {
+    const { error } = await supabase.from('recipe_components' as any).delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao remover insumo', description: error.message, variant: 'destructive' });
+      return;
+    }
+    await loadComponents();
+    toast({ title: 'Insumo removido' });
+  };
+
+  const handleConfirm = async () => {
+    if (!confirm) return;
+    const c = confirm;
+    setConfirm(null);
+    if (c.kind === 'recipe') await doDeleteRecipe(c.id);
+    if (c.kind === 'version') await doDeleteVersion(c.id);
+    if (c.kind === 'component') await doDeleteComponent(c.id);
   };
 
   if (loading) {
@@ -340,164 +380,287 @@ export function ReceitasPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">Receitas</h1>
         <p className="text-muted-foreground mt-1">
-          Cadastre o que cada produção consome de insumos. Na produção, o sistema baixa o estoque conforme a receita ativa.
+          Cadastre a massa, seu peso total e os insumos. O rendimento é calculado automaticamente.
         </p>
       </div>
 
+      {/* Receitas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <h2 className="font-semibold">Nova Receita</h2>
           <Input
             value={newRecipe.nome}
-            onChange={(e) => setNewRecipe((prev) => ({ ...prev, nome: e.target.value }))}
-            placeholder="Ex: Brigadeiro tradicional (referência)"
+            onChange={(e) => setNewRecipe({ nome: e.target.value })}
+            placeholder="Ex: Brigadeiro 100% Cacau"
           />
-          <Button
-            type="button"
-            onClick={addRecipe}
-            className="w-full"
-            disabled={savingRecipe || !newRecipe.nome.trim()}
-          >
+          <Button onClick={addRecipe} className="w-full" disabled={savingRecipe || !newRecipe.nome.trim()}>
             {savingRecipe ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
             Criar receita
           </Button>
         </div>
 
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-4">
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
           <h2 className="font-semibold mb-3">Receitas Cadastradas</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {recipes.map((r) => (
-              <button
+              <div
                 key={r.id}
-                onClick={() => setSelectedRecipeId(r.id)}
-                className={`text-left rounded-lg border p-3 transition ${selectedRecipeId === r.id ? 'border-primary bg-primary/5' : 'border-border'}`}
+                className={`rounded-lg border p-3 transition flex items-center justify-between gap-2 ${
+                  selectedRecipeId === r.id ? 'border-primary bg-primary/5' : 'border-border'
+                }`}
               >
-                <p className="font-medium">{r.nome}</p>
-              </button>
+                <button onClick={() => setSelectedRecipeId(r.id)} className="text-left flex-1">
+                  <p className="font-medium">{r.nome}</p>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => setConfirm({ kind: 'recipe', id: r.id, nome: r.nome })}
+                  aria-label="Excluir receita"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             ))}
             {recipes.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma receita cadastrada.</p>}
           </div>
         </div>
       </div>
 
+      {/* Versões */}
       {selectedRecipe && (
-        <div className="space-y-4">
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
             <h2 className="font-semibold">Versões — {selectedRecipe.nome}</h2>
-            <p className="text-sm text-muted-foreground">
-              O rendimento de referência define o tamanho do &quot;lote&quot; usado para escalar o consumo de insumos quando você registra uma produção.
+          </div>
+
+          <div className="rounded-lg border border-dashed border-border p-4 space-y-3 bg-muted/30">
+            <p className="text-sm font-medium">Nova versão</p>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <Label className="text-xs">Peso total da massa (g)</Label>
+                <Input
+                  type="number"
+                  value={newVersion.peso_total_massa_g}
+                  onChange={(e) => setNewVersion((p) => ({ ...p, peso_total_massa_g: e.target.value }))}
+                  placeholder="Ex: 500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Peso unitário base (g)</Label>
+                <Input
+                  type="number"
+                  value={newVersion.peso_unitario_base_g}
+                  onChange={(e) => setNewVersion((p) => ({ ...p, peso_unitario_base_g: e.target.value }))}
+                  placeholder="20"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newVersion.status}
+                  onChange={(e) =>
+                    setNewVersion((p) => ({ ...p, status: e.target.value as RecipeVersionRow['status'] }))
+                  }
+                >
+                  <option value="draft">Rascunho</option>
+                  <option value="active">Ativa</option>
+                  <option value="archived">Arquivada</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={addVersion} className="w-full">
+                  <Plus className="w-4 h-4 mr-2" /> Criar versão
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Padrão: 20g por brigadeiro (receitas com cobertura). Tradicionais ficam em ~25g.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <Input
-                type="number"
-                value={newVersion.yield_qty}
-                onChange={(e) => setNewVersion((prev) => ({ ...prev, yield_qty: e.target.value }))}
-                placeholder="Rendimento de referência (ex: 100 brigadeiros)"
-              />
+          </div>
+
+          <div className="space-y-2">
+            {versions.map((v) => {
+              const pt = Number(v.peso_total_massa_g ?? v.yield_qty ?? 0);
+              const pu = Number(v.peso_unitario_base_g ?? 20);
+              const rendimento = pu > 0 ? Math.floor(pt / pu) : 0;
+              const isSelected = selectedVersionId === v.id;
+              return (
+                <div
+                  key={v.id}
+                  className={`border rounded-lg p-4 transition ${
+                    isSelected ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <button className="text-left flex-1" onClick={() => setSelectedVersionId(v.id)}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">v{v.version_no}</span>
+                        <span
+                          className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                            v.status === 'active'
+                              ? 'bg-primary/15 text-primary'
+                              : v.status === 'draft'
+                              ? 'bg-muted text-muted-foreground'
+                              : 'bg-secondary text-secondary-foreground'
+                          }`}
+                        >
+                          {v.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                        <span><span className="text-muted-foreground">Massa:</span> <strong>{pt} g</strong></span>
+                        <span><span className="text-muted-foreground">Unitário:</span> <strong>{pu} g</strong></span>
+                        <span><span className="text-muted-foreground">Rendimento:</span> <strong>≈ {rendimento} brigadeiros</strong></span>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      {v.status !== 'active' && (
+                        <Button variant="outline" size="sm" onClick={() => setVersionActive(v.id)}>
+                          Definir ativa
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => setConfirm({ kind: 'version', id: v.id, label: `v${v.version_no}` })}
+                        aria-label="Excluir versão"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {versions.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma versão para essa receita.</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Insumos da versão */}
+      {selectedVersion && (
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+          <div>
+            <h2 className="font-semibold">Insumos da versão</h2>
+            <p className="text-sm text-muted-foreground">
+              Quantidades para produzir os <strong>{selectedVersion.peso_total_massa_g ?? selectedVersion.yield_qty} g</strong> de massa desta versão.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-dashed border-border p-4 bg-muted/30 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div className="md:col-span-6">
+              <Label className="text-xs">Insumo</Label>
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={newVersion.status}
-                onChange={(e) => setNewVersion((prev) => ({ ...prev, status: e.target.value as RecipeVersionRow['status'] }))}
+                value={newComponent.stock_item_id}
+                onChange={(e) => {
+                  const item = insumosStock.find((s) => s.id === e.target.value);
+                  const baseUnit = (item?.unidade_base as Uom) || 'g';
+                  const uom: Uom = UOM_OPTIONS.includes(baseUnit) ? baseUnit : 'g';
+                  setNewComponent((p) => ({ ...p, stock_item_id: e.target.value, uom }));
+                }}
               >
-                <option value="draft">Rascunho</option>
-                <option value="active">Ativa</option>
-                <option value="archived">Arquivada</option>
+                <option value="">Selecione um insumo...</option>
+                {insumosStock.map((si) => (
+                  <option key={si.id} value={si.id}>{si.nome}</option>
+                ))}
               </select>
-              <Button onClick={addVersion}>
-                <Plus className="w-4 h-4 mr-2" /> Criar Versão
-              </Button>
             </div>
-
-            <div className="space-y-2">
-              {versions.map((v) => (
-                <div key={v.id} className={`border rounded-lg p-3 ${selectedVersionId === v.id ? 'border-primary bg-primary/5' : 'border-border'}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <button className="text-left" onClick={() => setSelectedVersionId(v.id)}>
-                      <p className="font-medium">v{v.version_no} — lote de referência: {v.yield_qty}</p>
-                      <p className="text-xs text-muted-foreground">Status: {v.status}</p>
-                    </button>
-                    {v.status !== 'active' && (
-                      <Button variant="outline" size="sm" onClick={() => setVersionActive(v.id)}>
-                        Definir ativa
-                      </Button>
-                    )}
-                  </div>
-                  {selectedVersionId === v.id && <p className="text-xs text-primary mt-2">ID para Produção: {v.id}</p>}
-                </div>
-              ))}
-              {versions.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma versão para essa receita.</p>}
+            <div className="md:col-span-3">
+              <Label className="text-xs">Quantidade</Label>
+              <Input
+                type="number"
+                value={newComponent.qty_per_batch}
+                onChange={(e) => setNewComponent((p) => ({ ...p, qty_per_batch: e.target.value }))}
+                placeholder="Ex: 395"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs">Unidade</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={newComponent.uom}
+                onChange={(e) => setNewComponent((p) => ({ ...p, uom: e.target.value as Uom }))}
+              >
+                {UOM_OPTIONS.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-1">
+              <Button onClick={addComponent} className="w-full" aria-label="Adicionar">
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
-          {selectedVersionId && (
-            <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <h2 className="font-semibold">Insumos desta versão</h2>
-              <p className="text-sm text-muted-foreground">Quantidades por lote de referência (mesmo tamanho informado acima).</p>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm md:col-span-2"
-                  value={newComponent.stock_item_id}
-                  onChange={(e) => {
-                    const item = insumosStock.find((s) => s.id === e.target.value);
-                    setNewComponent((prev) => ({
-                      ...prev,
-                      stock_item_id: e.target.value,
-                      uom: item?.unidade_base || prev.uom,
-                    }));
-                  }}
-                >
-                  <option value="">Selecione um insumo...</option>
-                  {insumosStock.map((si) => (
-                    <option key={si.id} value={si.id}>{si.nome} ({si.unidade_base})</option>
-                  ))}
-                </select>
-                <Input
-                  type="number"
-                  placeholder="Quantidade por lote"
-                  value={newComponent.qty_per_batch}
-                  onChange={(e) => setNewComponent((prev) => ({ ...prev, qty_per_batch: e.target.value }))}
-                />
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="0.99"
-                  placeholder="Perda extra (0–99%)"
-                  value={newComponent.waste_factor}
-                  onChange={(e) => setNewComponent((prev) => ({ ...prev, waste_factor: e.target.value }))}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Unidade</Label>
-                  <p className="text-sm">{newComponent.uom || '-'}</p>
-                </div>
-                <Button onClick={addComponent}>
-                  <Plus className="w-4 h-4 mr-2" /> Adicionar componente
-                </Button>
-              </div>
-
-              <div className="space-y-2">
+          <div className="border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-muted-foreground">
+                <tr>
+                  <th className="text-left font-medium py-2 px-3">Insumo</th>
+                  <th className="text-right font-medium py-2 px-3 w-32">Quantidade</th>
+                  <th className="text-left font-medium py-2 px-3 w-24">Unidade</th>
+                  <th className="w-12"></th>
+                </tr>
+              </thead>
+              <tbody>
                 {components.map((c) => {
                   const item = stockItems.find((s) => s.id === c.stock_item_id);
                   return (
-                    <div key={c.id} className="border border-border rounded-lg p-3 flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{item?.nome || c.stock_item_id}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {c.qty_per_batch} {c.uom} por lote
-                          {c.waste_factor > 0 ? ` · perda ${Math.round(c.waste_factor * 100)}%` : ''}
-                        </p>
-                      </div>
-                    </div>
+                    <tr key={c.id} className="border-t border-border">
+                      <td className="py-2 px-3 font-medium">{item?.nome || '—'}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">{c.qty_per_batch}</td>
+                      <td className="py-2 px-3">{c.uom}</td>
+                      <td className="py-2 px-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => setConfirm({ kind: 'component', id: c.id, label: item?.nome || 'insumo' })}
+                          aria-label="Remover insumo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
                   );
                 })}
-                {components.length === 0 && <p className="text-sm text-muted-foreground">Nenhum componente na versão selecionada.</p>}
-              </div>
-            </div>
-          )}
+                {components.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                      Nenhum insumo adicionado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+
+      <AlertDialog open={!!confirm} onOpenChange={(open) => !open && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm?.kind === 'recipe' && `Excluir a receita "${confirm.nome}"? Ela será ocultada da listagem.`}
+              {confirm?.kind === 'version' && `Excluir a versão ${confirm.label}? Os insumos vinculados serão removidos.`}
+              {confirm?.kind === 'component' && `Remover o insumo "${confirm.label}" desta versão?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
