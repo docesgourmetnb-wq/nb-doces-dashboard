@@ -29,6 +29,12 @@ type StockItemRow = {
   tipo: 'insumo' | 'massa_base' | 'produto_final';
 };
 
+type InsumoRow = {
+  id: string;
+  nome: string;
+  unidade: string;
+};
+
 type RecipeComponentRow = {
   id: string;
   stock_item_id: string;
