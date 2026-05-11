@@ -73,20 +73,30 @@ export function ReceitasPage() {
       return;
     }
     setLoading(true);
-    const [recipesRes, stockRes] = await Promise.all([
+    const [recipesRes, stockRes, insumosRes] = await Promise.all([
       supabase.from('recipes' as any).select('id,nome,tipo,ativo').order('nome'),
       supabase.from('stock_items' as any).select('id,nome,unidade_base,tipo').order('nome'),
+      supabase
+        .from('insumos')
+        .select('id,nome,unidade')
+        .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
+        .order('nome'),
     ]);
 
-    if (recipesRes.error || stockRes.error) {
+    if (recipesRes.error || stockRes.error || insumosRes.error) {
       toast({
         title: 'Erro ao carregar receitas',
-        description: recipesRes.error?.message || stockRes.error?.message || 'Falha desconhecida.',
+        description:
+          recipesRes.error?.message ||
+          stockRes.error?.message ||
+          insumosRes.error?.message ||
+          'Falha desconhecida.',
         variant: 'destructive',
       });
     } else {
       setRecipes((recipesRes.data || []) as unknown as RecipeRow[]);
       setStockItems((stockRes.data || []) as unknown as StockItemRow[]);
+      setInsumosEstoque((insumosRes.data || []) as unknown as InsumoRow[]);
     }
     setLoading(false);
   }, [toast, user]);
