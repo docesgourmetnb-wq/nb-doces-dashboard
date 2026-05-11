@@ -450,6 +450,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          peso_total_massa_g: number | null
+          peso_unitario_base_g: number
           recipe_id: string
           status: string
           updated_at: string
@@ -460,6 +462,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          peso_total_massa_g?: number | null
+          peso_unitario_base_g?: number
           recipe_id: string
           status?: string
           updated_at?: string
@@ -470,6 +474,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          peso_total_massa_g?: number | null
+          peso_unitario_base_g?: number
           recipe_id?: string
           status?: string
           updated_at?: string
@@ -491,6 +497,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          deleted_at: string | null
           id: string
           nome: string
           tipo: string
@@ -501,6 +508,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          deleted_at?: string | null
           id?: string
           nome: string
           tipo?: string
@@ -511,6 +519,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          deleted_at?: string | null
           id?: string
           nome?: string
           tipo?: string
