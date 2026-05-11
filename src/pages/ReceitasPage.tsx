@@ -250,10 +250,40 @@ export function ReceitasPage() {
     const waste = parseFloat(newComponent.waste_factor || '0');
     if (!qty || qty <= 0 || waste < 0 || waste >= 1) return;
 
+    // O select usa o id do insumo (tabela `insumos`). Garantimos um stock_items equivalente.
+    const insumo = insumosEstoque.find((i) => i.id === newComponent.stock_item_id);
+    if (!insumo) {
+      toast({ title: 'Insumo não encontrado', variant: 'destructive' });
+      return;
+    }
+
+    let stockId: string | undefined = stockItems.find(
+      (s) => s.tipo === 'insumo' && s.nome.toLowerCase() === insumo.nome.toLowerCase()
+    )?.id;
+
+    if (!stockId) {
+      const { data: created, error: createErr } = await supabase
+        .from('stock_items' as any)
+        .insert({
+          user_id: user.id,
+          nome: insumo.nome,
+          unidade_base: insumo.unidade,
+          tipo: 'insumo',
+        })
+        .select('id,nome,unidade_base,tipo')
+        .single();
+      if (createErr || !created) {
+        toast({ title: 'Erro ao vincular insumo', description: createErr?.message, variant: 'destructive' });
+        return;
+      }
+      stockId = (created as any).id;
+      setStockItems((prev) => [...prev, created as unknown as StockItemRow]);
+    }
+
     const { error } = await supabase.from('recipe_components' as any).insert({
       user_id: user.id,
       recipe_version_id: selectedVersionId,
-      stock_item_id: newComponent.stock_item_id,
+      stock_item_id: stockId,
       qty_per_batch: qty,
       uom: newComponent.uom,
       component_type: newComponent.component_type,
