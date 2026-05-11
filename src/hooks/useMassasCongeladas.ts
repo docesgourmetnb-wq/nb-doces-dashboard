@@ -45,7 +45,7 @@ export function useMassasCongeladas() {
       .order('data_producao', { ascending: true });
 
     if (error) {
-      console.error('Error fetching massas:', error);
+      if (import.meta.env.DEV) console.error('Error fetching massas:', error);
       toast({
         title: 'Erro ao carregar massas',
         description: error.message,
@@ -87,7 +87,7 @@ export function useMassasCongeladas() {
       .single();
 
     if (error) {
-      console.error('Error adding massa:', error);
+      if (import.meta.env.DEV) console.error('Error adding massa:', error);
       toast({
         title: 'Erro ao adicionar massa',
         description: error.message,
@@ -116,7 +116,7 @@ export function useMassasCongeladas() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating massa:', error);
+      if (import.meta.env.DEV) console.error('Error updating massa:', error);
       toast({
         title: 'Erro ao atualizar massa',
         description: error.message,
@@ -141,7 +141,7 @@ export function useMassasCongeladas() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting massa:', error);
+      if (import.meta.env.DEV) console.error('Error deleting massa:', error);
       toast({
         title: 'Erro ao excluir massa',
         description: error.message,
@@ -169,7 +169,7 @@ export function useMassasCongeladas() {
       .upload(filePath, file);
 
     if (uploadError) {
-      console.error('Error uploading photo:', uploadError);
+      if (import.meta.env.DEV) console.error('Error uploading photo:', uploadError);
       toast({
         title: 'Erro ao enviar foto',
         description: uploadError.message,
@@ -183,7 +183,7 @@ export function useMassasCongeladas() {
       .createSignedUrl(filePath, 86400); // 24 hours expiry
 
     if (signedUrlError) {
-      console.error('Error creating signed URL:', signedUrlError);
+      if (import.meta.env.DEV) console.error('Error creating signed URL:', signedUrlError);
       toast({
         title: 'Erro ao gerar URL da foto',
         description: signedUrlError.message,
