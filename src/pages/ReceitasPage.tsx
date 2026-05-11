@@ -52,6 +52,7 @@ export function ReceitasPage() {
   const [versions, setVersions] = useState<RecipeVersionRow[]>([]);
   const [components, setComponents] = useState<RecipeComponentRow[]>([]);
   const [stockItems, setStockItems] = useState<StockItemRow[]>([]);
+  const [insumosEstoque, setInsumosEstoque] = useState<InsumoRow[]>([]);
   const [selectedRecipeId, setSelectedRecipeId] = useState('');
   const [selectedVersionId, setSelectedVersionId] = useState('');
 
