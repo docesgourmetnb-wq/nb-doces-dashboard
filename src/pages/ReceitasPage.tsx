@@ -78,8 +78,8 @@ export function ReceitasPage() {
         variant: 'destructive',
       });
     } else {
-      setRecipes((recipesRes.data || []) as RecipeRow[]);
-      setStockItems((stockRes.data || []) as StockItemRow[]);
+      setRecipes((recipesRes.data || []) as unknown as RecipeRow[]);
+      setStockItems((stockRes.data || []) as unknown as StockItemRow[]);
     }
     setLoading(false);
   }, [toast, user]);
@@ -99,7 +99,7 @@ export function ReceitasPage() {
       toast({ title: 'Erro ao carregar versões', description: error.message, variant: 'destructive' });
       return;
     }
-    const list = (data || []) as RecipeVersionRow[];
+    const list = (data || []) as unknown as RecipeVersionRow[];
     setVersions(list);
     if (!list.find((v) => v.id === selectedVersionId)) {
       setSelectedVersionId(list[0]?.id || '');
@@ -120,7 +120,7 @@ export function ReceitasPage() {
       toast({ title: 'Erro ao carregar componentes', description: error.message, variant: 'destructive' });
       return;
     }
-    setComponents((data || []) as RecipeComponentRow[]);
+    setComponents((data || []) as unknown as RecipeComponentRow[]);
   }, [selectedVersionId, toast]);
 
   useEffect(() => {

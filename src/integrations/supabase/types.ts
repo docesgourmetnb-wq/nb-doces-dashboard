@@ -389,6 +389,137 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_components: {
+        Row: {
+          component_type: string
+          created_at: string
+          id: string
+          qty_per_batch: number
+          recipe_version_id: string
+          sort_order: number
+          stock_item_id: string
+          uom: string
+          updated_at: string
+          user_id: string
+          waste_factor: number
+        }
+        Insert: {
+          component_type?: string
+          created_at?: string
+          id?: string
+          qty_per_batch?: number
+          recipe_version_id: string
+          sort_order?: number
+          stock_item_id: string
+          uom?: string
+          updated_at?: string
+          user_id: string
+          waste_factor?: number
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          id?: string
+          qty_per_batch?: number
+          recipe_version_id?: string
+          sort_order?: number
+          stock_item_id?: string
+          uom?: string
+          updated_at?: string
+          user_id?: string
+          waste_factor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_components_recipe_version_id_fkey"
+            columns: ["recipe_version_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_components_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_versions: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          version_no: number
+          yield_qty: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          version_no?: number
+          yield_qty?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version_no?: number
+          yield_qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_versions_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+          user_id: string
+          yield_uom: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: string
+          updated_at?: string
+          user_id: string
+          yield_uom?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          yield_uom?: string
+        }
+        Relationships: []
+      }
       recipientes: {
         Row: {
           capacidade_aproximada: number | null
@@ -426,6 +557,39 @@ export type Database = {
           peso_vazio?: number
           status?: string
           tipo_recipiente?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_items: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          unidade_base: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: string
+          unidade_base?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          unidade_base?: string
           updated_at?: string
           user_id?: string
         }

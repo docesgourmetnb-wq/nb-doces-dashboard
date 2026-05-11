@@ -22,7 +22,7 @@ export interface ExecuteProductionResult {
  * in a single ACID transaction.
  */
 export async function executeProductionOrder(payload: ExecuteProductionPayload): Promise<ExecuteProductionResult> {
-  const { data, error } = await supabase.rpc('execute_production_order', {
+  const { data, error } = await (supabase.rpc as any)('execute_production_order', {
     p_recipe_version_id: payload.recipeVersionId,
     p_output_item_id: payload.outputItemId,
     p_planned_output_qty: payload.plannedOutputQty,
@@ -35,7 +35,7 @@ export async function executeProductionOrder(payload: ExecuteProductionPayload):
     throw error;
   }
 
-  const result = Array.isArray(data) ? data[0] : data;
+  const result = Array.isArray(data) ? data[0] : (data ?? null);
   if (!result?.production_order_id) {
     throw new Error('Falha ao executar produção: resposta inválida da RPC.');
   }
