@@ -29,6 +29,12 @@ type StockItemRow = {
   tipo: 'insumo' | 'massa_base' | 'produto_final';
 };
 
+type InsumoRow = {
+  id: string;
+  nome: string;
+  unidade: string;
+};
+
 type RecipeComponentRow = {
   id: string;
   stock_item_id: string;
@@ -46,6 +52,7 @@ export function ReceitasPage() {
   const [versions, setVersions] = useState<RecipeVersionRow[]>([]);
   const [components, setComponents] = useState<RecipeComponentRow[]>([]);
   const [stockItems, setStockItems] = useState<StockItemRow[]>([]);
+  const [insumosEstoque, setInsumosEstoque] = useState<InsumoRow[]>([]);
   const [selectedRecipeId, setSelectedRecipeId] = useState('');
   const [selectedVersionId, setSelectedVersionId] = useState('');
 
@@ -66,20 +73,30 @@ export function ReceitasPage() {
       return;
     }
     setLoading(true);
-    const [recipesRes, stockRes] = await Promise.all([
+    const [recipesRes, stockRes, insumosRes] = await Promise.all([
       supabase.from('recipes' as any).select('id,nome,tipo,ativo').order('nome'),
       supabase.from('stock_items' as any).select('id,nome,unidade_base,tipo').order('nome'),
+      supabase
+        .from('insumos')
+        .select('id,nome,unidade')
+        .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
+        .order('nome'),
     ]);
 
-    if (recipesRes.error || stockRes.error) {
+    if (recipesRes.error || stockRes.error || insumosRes.error) {
       toast({
         title: 'Erro ao carregar receitas',
-        description: recipesRes.error?.message || stockRes.error?.message || 'Falha desconhecida.',
+        description:
+          recipesRes.error?.message ||
+          stockRes.error?.message ||
+          insumosRes.error?.message ||
+          'Falha desconhecida.',
         variant: 'destructive',
       });
     } else {
       setRecipes((recipesRes.data || []) as unknown as RecipeRow[]);
       setStockItems((stockRes.data || []) as unknown as StockItemRow[]);
+      setInsumosEstoque((insumosRes.data || []) as unknown as InsumoRow[]);
     }
     setLoading(false);
   }, [toast, user]);
@@ -137,10 +154,16 @@ export function ReceitasPage() {
 
   const selectedRecipe = useMemo(() => recipes.find((r) => r.id === selectedRecipeId), [recipes, selectedRecipeId]);
 
-  /** Apenas insumos entram na receita (consumo de matéria-prima). */
+  /** Insumos disponíveis vêm direto do Estoque (tabela `insumos`). */
   const insumosStock = useMemo(
-    () => stockItems.filter((s) => s.tipo === 'insumo'),
-    [stockItems]
+    () =>
+      insumosEstoque.map((i) => ({
+        id: i.id,
+        nome: i.nome,
+        unidade_base: i.unidade,
+        tipo: 'insumo' as const,
+      })),
+    [insumosEstoque]
   );
 
   const addRecipe = async () => {
@@ -227,10 +250,40 @@ export function ReceitasPage() {
     const waste = parseFloat(newComponent.waste_factor || '0');
     if (!qty || qty <= 0 || waste < 0 || waste >= 1) return;
 
+    // O select usa o id do insumo (tabela `insumos`). Garantimos um stock_items equivalente.
+    const insumo = insumosEstoque.find((i) => i.id === newComponent.stock_item_id);
+    if (!insumo) {
+      toast({ title: 'Insumo não encontrado', variant: 'destructive' });
+      return;
+    }
+
+    let stockId: string | undefined = stockItems.find(
+      (s) => s.tipo === 'insumo' && s.nome.toLowerCase() === insumo.nome.toLowerCase()
+    )?.id;
+
+    if (!stockId) {
+      const { data: created, error: createErr } = await supabase
+        .from('stock_items' as any)
+        .insert({
+          user_id: user.id,
+          nome: insumo.nome,
+          unidade_base: insumo.unidade,
+          tipo: 'insumo',
+        })
+        .select('id,nome,unidade_base,tipo')
+        .single();
+      if (createErr || !created) {
+        toast({ title: 'Erro ao vincular insumo', description: createErr?.message, variant: 'destructive' });
+        return;
+      }
+      stockId = (created as any).id;
+      setStockItems((prev) => [...prev, created as unknown as StockItemRow]);
+    }
+
     const { error } = await supabase.from('recipe_components' as any).insert({
       user_id: user.id,
       recipe_version_id: selectedVersionId,
-      stock_item_id: newComponent.stock_item_id,
+      stock_item_id: stockId,
       qty_per_batch: qty,
       uom: newComponent.uom,
       component_type: newComponent.component_type,
