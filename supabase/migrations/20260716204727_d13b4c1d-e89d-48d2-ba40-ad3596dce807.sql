@@ -1,1 +1,3 @@
-UPDATE auth.users SET encrypted_password = crypt('Coracao1607', gen_salt('bf')), updated_at = now() WHERE email = 'docesgourmetnb@gmail.com';
+-- Security note:
+-- Password resets must never be committed as database migrations.
+-- Use Supabase Auth password recovery or the Supabase dashboard instead.
