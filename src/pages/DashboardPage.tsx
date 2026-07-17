@@ -124,13 +124,13 @@ export function DashboardPage() {
         </div>
         <div className="flex gap-2">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectTrigger className="w-[140px]" aria-label="Selecionar mês do dashboard"><SelectValue placeholder="Mês" /></SelectTrigger>
             <SelectContent>
               {MESES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[100px]"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectTrigger className="w-[100px]" aria-label="Selecionar ano do dashboard"><SelectValue placeholder="Ano" /></SelectTrigger>
             <SelectContent>
               {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
