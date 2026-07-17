@@ -17,8 +17,8 @@ function isDevAutoLoginAllowed() {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('id-preview--');
 }
 
-function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeoutValue: T) {
-  return new Promise<T>((resolve) => {
+function withTimeout<T, TTimeout>(promise: PromiseLike<T>, timeoutMs: number, timeoutValue: TTimeout) {
+  return new Promise<T | TTimeout>((resolve) => {
     const timeoutId = window.setTimeout(() => resolve(timeoutValue), timeoutMs);
 
     Promise.resolve(promise)
@@ -48,15 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data } = await withTimeout(
+      const profileResult = await withTimeout(
         supabase
           .from('profiles')
           .select('user_id,email,nome,role,active,permissions')
           .eq('user_id', currentUser.id)
-          .maybeSingle(),
+          .maybeSingle() as PromiseLike<{ data: unknown | null }>,
         5000,
-        { data: null, error: null },
+        { data: null },
       );
+      const data = profileResult.data;
 
       if (!mounted) return;
 
@@ -92,26 +93,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const sessionResult = await withTimeout(
         supabase.auth.getSession(),
         5000,
-        { data: { session: null }, error: null },
+        null,
       );
 
-      let nextSession = sessionResult.data.session;
+      let nextSession = sessionResult?.data.session ?? null;
 
       if (!nextSession && devAutoLoginEnabled && isDevAutoLoginAllowed() && devAutoEmail && devAutoPassword) {
-        const { data, error } = await withTimeout(
+        const loginResult = await withTimeout(
           supabase.auth.signInWithPassword({
             email: devAutoEmail,
             password: devAutoPassword,
           }),
           8000,
-          { data: { user: null, session: null }, error: new Error('Tempo excedido no login automático.') },
+          null,
         );
 
-        if (error && import.meta.env.DEV) {
-          console.warn('[dev auto-login] failed:', error.message);
+        if (loginResult?.error && import.meta.env.DEV) {
+          console.warn('[dev auto-login] failed:', loginResult.error.message);
         }
 
-        nextSession = data.session;
+        nextSession = loginResult?.data.session ?? null;
       }
 
       if (!mounted) return;
