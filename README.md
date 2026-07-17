@@ -1,73 +1,97 @@
-# Welcome to your Lovable project
+# NB Doces Dashboard
 
-## Project info
+Dashboard web para gestão da NB Doces Gourmet, com módulos de vendas, clientes, produtos, produção, estoque, receitas e financeiro.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack
 
-## How can I edit this code?
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- Supabase
 
-There are several ways of editing your application.
+## Requisitos
 
-**Use Lovable**
+- Node.js 26 ou superior
+- npm
+- Projeto Supabase configurado
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Configuração local
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+1. Instale as dependências:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+npm ci
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Crie o arquivo `.env` a partir do exemplo:
 
-# Step 3: Install the necessary dependencies.
-npm i
+```sh
+cp .env.example .env
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Preencha as variáveis obrigatórias:
+
+```sh
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
+
+Opcionalmente, configure:
+
+```sh
+VITE_SUPABASE_PROJECT_ID=
+VITE_ENABLE_SIGNUP=false
+```
+
+4. Inicie o ambiente de desenvolvimento:
+
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm test
+```
 
-**Use GitHub Codespaces**
+Executa os testes automatizados de domínio com o runner nativo do Node.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+npm run typecheck
+```
 
-## What technologies are used for this project?
+Executa a checagem TypeScript em modo estrito.
 
-This project is built with:
+```sh
+npm run lint
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Executa o ESLint.
 
-## How can I deploy this project?
+```sh
+npm run build
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Gera o build de produção.
 
-## Can I connect a custom domain to my Lovable project?
+## Validação antes de abrir PR
 
-Yes, you can!
+Rode a sequência abaixo antes de enviar alterações:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sh
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+O repositório também possui CI no GitHub Actions para validar essa sequência em PRs e pushes para `main`.
+
+## Supabase
+
+As migrations ficam em `supabase/migrations`.
+
+O client Supabase exige `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`; se alguma delas não estiver definida, a aplicação falha explicitamente na inicialização para evitar comportamento ambíguo.
