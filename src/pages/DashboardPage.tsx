@@ -10,13 +10,11 @@ import {
   Target,
   BarChart3,
   Users,
+  Loader2,
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
-import { usePedidos, getClienteDisplayName } from '@/hooks/usePedidos';
-import { shouldGenerateRevenue } from '@/domain/pedidos';
-import { useBrigadeiros } from '@/hooks/useBrigadeiros';
-import { useTransacoes } from '@/hooks/useTransacoes';
+import { useDashboardSummary } from '@/hooks/useDashboardSummary';
 import {
   BarChart,
   Bar,
@@ -44,7 +42,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { parseISO } from 'date-fns';
 
 const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F', '#E67E22', '#8E44AD', '#2ECC71'];
 
@@ -66,15 +63,12 @@ const MESES = [
 const formatBRL = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
 export function DashboardPage() {
-  const { pedidos } = usePedidos();
-  const { brigadeiros } = useBrigadeiros();
-  const { transacoes } = useTransacoes();
-
   const currentYear = new Date().getFullYear();
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
 
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
+  const { summary, loading } = useDashboardSummary(Number(selectedYear), Number(selectedMonth));
 
   const availableYears = useMemo(() => {
     const years: number[] = [];
@@ -82,79 +76,8 @@ export function DashboardPage() {
     return years;
   }, [currentYear]);
 
-  // --- Period helpers ---
-  const inPeriod = (dateStr: string) => {
-    const d = parseISO(dateStr);
-    return String(d.getFullYear()) === selectedYear && String(d.getMonth() + 1).padStart(2, '0') === selectedMonth;
-  };
-
-  const filteredTransacoes = useMemo(() => transacoes.filter(t => inPeriod(t.data)), [transacoes, selectedYear, selectedMonth]);
-  const filteredPedidos = useMemo(() => pedidos.filter(p => inPeriod(p.data)), [pedidos, selectedYear, selectedMonth]);
-
-  // --- Basic stats ---
-  const vendasPeriodo = filteredTransacoes.filter(t => t.tipo === 'entrada').reduce((a, t) => a + t.valor, 0);
-  const despesasPeriodo = filteredTransacoes.filter(t => t.tipo === 'saida').reduce((a, t) => a + t.valor, 0);
-  const lucroPeriodo = vendasPeriodo - despesasPeriodo;
-
-  const vendasAnoSelecionado = useMemo(() =>
-    transacoes.filter(t => t.tipo === 'entrada' && parseISO(t.data).getFullYear() === Number(selectedYear)).reduce((a, t) => a + t.valor, 0),
-    [transacoes, selectedYear]);
-
-  const vendasTotalHistorico = useMemo(() =>
-    transacoes.filter(t => t.tipo === 'entrada').reduce((a, t) => a + t.valor, 0),
-    [transacoes]);
-
-  const totalBrigadeiros = filteredPedidos.reduce((acc, p) =>
-    acc + (p.itens?.reduce((s, i) => s + i.quantidade, 0) || 0), 0);
-
-  // --- Delivered orders ---
-  const pedidosEntregues = useMemo(() => filteredPedidos.filter(p => shouldGenerateRevenue(p.status)), [filteredPedidos]);
-  const pedidosEntreguesCount = pedidosEntregues.length;
-
-  // --- Ticket Médio ---
-  const receitaEntregues = pedidosEntregues.reduce((a, p) => a + p.valor_total, 0);
-  const ticketMedio = pedidosEntreguesCount > 0 ? receitaEntregues / pedidosEntreguesCount : 0;
-
-  // --- Taxa de Conversão ---
-  const taxaConversao = filteredPedidos.length > 0 ? (pedidosEntreguesCount / filteredPedidos.length) * 100 : 0;
-
-  // --- Top Clientes (from delivered orders) ---
-  const topClientes = useMemo(() => {
-    const map: Record<string, { nome: string; pedidos: number; valor: number }> = {};
-    pedidosEntregues.forEach(p => {
-      const key = p.cliente_id || p.cliente;
-      if (!map[key]) map[key] = { nome: getClienteDisplayName(p), pedidos: 0, valor: 0 };
-      map[key].pedidos += 1;
-      map[key].valor += p.valor_total;
-    });
-    return Object.values(map).sort((a, b) => b.valor - a.valor).slice(0, 5);
-  }, [pedidosEntregues]);
-
-  // --- Top Produtos (quantity + revenue from delivered orders) ---
-  const topProdutos = useMemo(() => {
-    const map: Record<string, { nome: string; quantidade: number; receita: number }> = {};
-    pedidosEntregues.forEach(p => {
-      p.itens?.forEach(item => {
-        const key = item.brigadeiro_id || item.brigadeiro_nome;
-        if (!map[key]) map[key] = { nome: item.brigadeiro_nome, quantidade: 0, receita: 0 };
-        map[key].quantidade += item.quantidade;
-        map[key].receita += item.quantidade * item.preco_unitario;
-      });
-    });
-    return Object.values(map).sort((a, b) => b.receita - a.receita);
-  }, [pedidosEntregues]);
-
-  // --- Sabores chart (all orders, quantity-based, like before) ---
   const saboresMaisVendidos = useMemo(() => {
-    const countMap: Record<string, { nome: string; quantidade: number }> = {};
-    filteredPedidos.forEach(p => {
-      p.itens?.forEach(item => {
-        const key = item.brigadeiro_id || item.brigadeiro_nome;
-        if (!countMap[key]) countMap[key] = { nome: item.brigadeiro_nome, quantidade: 0 };
-        countMap[key].quantidade += item.quantidade;
-      });
-    });
-    const sorted = Object.values(countMap).sort((a, b) => b.quantidade - a.quantidade);
+    const sorted = summary.saboresMaisVendidos;
     const TOP_N = 8;
     let result: { nome: string; quantidade: number; cor: string }[];
     if (sorted.length <= TOP_N) {
@@ -166,9 +89,17 @@ export function DashboardPage() {
       result.push({ nome: 'Outros', quantidade: outrosQtd, cor: '#95A5A6' });
     }
     return result;
-  }, [filteredPedidos]);
+  }, [summary.saboresMaisVendidos]);
 
   const mesLabel = MESES.find(m => m.value === selectedMonth)?.label || '';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -200,14 +131,14 @@ export function DashboardPage() {
           <div className="p-3 rounded-lg bg-primary/10"><Calendar className="h-6 w-6 text-primary" /></div>
           <div>
             <p className="text-sm text-muted-foreground">Faturamento {selectedYear}</p>
-            <p className="text-2xl font-semibold text-foreground">{formatBRL(vendasAnoSelecionado)}</p>
+            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasAno)}</p>
           </div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
           <div className="p-3 rounded-lg bg-accent/50"><History className="h-6 w-6 text-accent-foreground" /></div>
           <div>
             <p className="text-sm text-muted-foreground">Faturamento Total (Histórico)</p>
-            <p className="text-2xl font-semibold text-foreground">{formatBRL(vendasTotalHistorico)}</p>
+            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasTotal)}</p>
           </div>
         </div>
       </div>
@@ -216,13 +147,13 @@ export function DashboardPage() {
       <div>
         <h2 className="text-lg font-medium text-muted-foreground mb-3">{mesLabel} de {selectedYear}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <StatCard title="Faturamento" value={formatBRL(vendasPeriodo)} subtitle="Total de entradas" icon={DollarSign} variant="primary" />
-          <StatCard title="Pedidos" value={filteredPedidos.length} subtitle="Pedidos no período" icon={ShoppingBag} variant="default" />
-          <StatCard title="Entregues" value={pedidosEntreguesCount} subtitle="Pedidos entregues" icon={CheckCircle2} variant="success" />
-          <StatCard title="Ticket Médio" value={formatBRL(ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
-          <StatCard title="Conversão" value={`${taxaConversao.toFixed(0)}%`} subtitle="Entregues / criados" icon={Target} variant={taxaConversao >= 70 ? 'success' : 'warning'} />
-          <StatCard title="Despesas" value={formatBRL(despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
-          <StatCard title="Lucro" value={formatBRL(lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
+          <StatCard title="Faturamento" value={formatBRL(summary.vendasPeriodo)} subtitle="Total de entradas" icon={DollarSign} variant="primary" />
+          <StatCard title="Pedidos" value={summary.pedidosPeriodo} subtitle="Pedidos no período" icon={ShoppingBag} variant="default" />
+          <StatCard title="Entregues" value={summary.pedidosEntregues} subtitle="Pedidos entregues" icon={CheckCircle2} variant="success" />
+          <StatCard title="Ticket Médio" value={formatBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
+          <StatCard title="Conversão" value={`${summary.taxaConversao.toFixed(0)}%`} subtitle="Entregues / criados" icon={Target} variant={summary.taxaConversao >= 70 ? 'success' : 'warning'} />
+          <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
+          <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
         </div>
       </div>
 
@@ -234,9 +165,9 @@ export function DashboardPage() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { categoria: 'Entradas', valor: vendasPeriodo },
-                { categoria: 'Saídas', valor: despesasPeriodo },
-                { categoria: 'Lucro', valor: lucroPeriodo },
+                { categoria: 'Entradas', valor: summary.vendasPeriodo },
+                { categoria: 'Saídas', valor: summary.despesasPeriodo },
+                { categoria: 'Lucro', valor: summary.lucroPeriodo },
               ]}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="categoria" stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -294,7 +225,7 @@ export function DashboardPage() {
           <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <Cookie className="h-5 w-5 text-primary" /> Top Produtos (Entregues)
           </h3>
-          {topProdutos.length > 0 ? (
+          {summary.topProdutos.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -304,7 +235,7 @@ export function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topProdutos.slice(0, 10).map((p, i) => (
+                {summary.topProdutos.map((p, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell className="text-right tabular-nums">{p.quantidade}</TableCell>
@@ -323,7 +254,7 @@ export function DashboardPage() {
           <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" /> Top Clientes (Entregues)
           </h3>
-          {topClientes.length > 0 ? (
+          {summary.topClientes.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -333,7 +264,7 @@ export function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topClientes.map((c, i) => (
+                {summary.topClientes.map((c, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell className="text-right tabular-nums">{c.pedidos}</TableCell>
