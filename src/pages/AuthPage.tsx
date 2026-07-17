@@ -224,10 +224,12 @@ export default function AuthPage() {
                     }}
                     placeholder="seu@email.com"
                     className="pl-10"
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? 'forgot-email-error' : undefined}
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
+                  <p id="forgot-email-error" className="text-sm text-destructive">{errors.email}</p>
                 )}
               </div>
 
@@ -303,10 +305,12 @@ export default function AuthPage() {
                   }}
                   placeholder="seu@email.com"
                   className="pl-10"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'auth-email-error' : undefined}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+                <p id="auth-email-error" className="text-sm text-destructive">{errors.email}</p>
               )}
             </div>
 
@@ -335,10 +339,12 @@ export default function AuthPage() {
                   }}
                   placeholder="••••••••"
                   className="pl-10"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'auth-password-error' : undefined}
                 />
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
+                <p id="auth-password-error" className="text-sm text-destructive">{errors.password}</p>
               )}
             </div>
 
