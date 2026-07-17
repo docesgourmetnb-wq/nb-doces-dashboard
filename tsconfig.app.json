@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
+    "allowUnreachableCode": false,
     "allowImportingTsExtensions": true,
+    "allowUnusedLabels": false,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": [
@@ -16,6 +18,8 @@
     "noImplicitAny": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
