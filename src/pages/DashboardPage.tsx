@@ -93,6 +93,18 @@ export function DashboardPage() {
   }, [summary.saboresMaisVendidos]);
 
   const mesLabel = MESES.find(m => m.value === selectedMonth)?.label || '';
+  const resumoFinanceiroData = [
+    { categoria: 'Entradas', valor: summary.vendasPeriodo },
+    { categoria: 'Saídas', valor: summary.despesasPeriodo },
+    { categoria: 'Lucro', valor: summary.lucroPeriodo },
+  ];
+  const resumoFinanceiroDescricao = resumoFinanceiroData
+    .map(item => `${item.categoria}: ${formatBRL(item.valor)}`)
+    .join('; ');
+  const totalSaboresVendidos = saboresMaisVendidos.reduce((s, i) => s + i.quantidade, 0);
+  const saboresMaisVendidosDescricao = saboresMaisVendidos
+    .map(item => `${item.nome}: ${item.quantidade} unidades`)
+    .join('; ');
 
   if (loading) {
     return (
@@ -163,13 +175,10 @@ export function DashboardPage() {
         {/* Financial Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
           <h3 className="font-display font-semibold text-lg mb-4">Resumo Financeiro - {mesLabel}/{selectedYear}</h3>
-          <div className="h-[300px]">
+          <p className="sr-only">{resumoFinanceiroDescricao}</p>
+          <div className="h-[300px]" aria-hidden="true">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[
-                { categoria: 'Entradas', valor: summary.vendasPeriodo },
-                { categoria: 'Saídas', valor: summary.despesasPeriodo },
-                { categoria: 'Lucro', valor: summary.lucroPeriodo },
-              ]}>
+              <BarChart data={resumoFinanceiroData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="categoria" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$${v.toLocaleString('pt-BR')}`} />
@@ -185,7 +194,8 @@ export function DashboardPage() {
           <h3 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h3>
           {saboresMaisVendidos.length > 0 ? (
             <div className="flex flex-col lg:flex-row gap-4">
-              <div className="h-[280px] flex-1 min-w-0">
+              <p className="sr-only">Total vendido no período: {totalSaboresVendidos} unidades. {saboresMaisVendidosDescricao}</p>
+              <div className="h-[280px] flex-1 min-w-0" aria-hidden="true">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={saboresMaisVendidos} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="quantidade" nameKey="nome">
@@ -196,19 +206,16 @@ export function DashboardPage() {
                 </ResponsiveContainer>
               </div>
               <div className="flex flex-col gap-2 justify-center min-w-[180px]">
-                {(() => {
-                  const total = saboresMaisVendidos.reduce((s, i) => s + i.quantidade, 0);
-                  return saboresMaisVendidos.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.cor }} />
-                      <span className="truncate flex-1">{item.nome}</span>
-                      <span className="font-medium tabular-nums">{item.quantidade}</span>
-                      <span className="text-muted-foreground tabular-nums w-12 text-right">
-                        {total > 0 ? ((item.quantidade / total) * 100).toFixed(0) : 0}%
-                      </span>
-                    </div>
-                  ));
-                })()}
+                {saboresMaisVendidos.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.cor }} />
+                    <span className="truncate flex-1">{item.nome}</span>
+                    <span className="font-medium tabular-nums">{item.quantidade}</span>
+                    <span className="text-muted-foreground tabular-nums w-12 text-right">
+                      {totalSaboresVendidos > 0 ? ((item.quantidade / totalSaboresVendidos) * 100).toFixed(0) : 0}%
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (

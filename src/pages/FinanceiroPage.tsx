@@ -105,6 +105,9 @@ export function FinanceiroPage() {
     { categoria: 'Entradas', valor: totalEntradas },
     { categoria: 'Saídas', valor: totalSaidas },
   ];
+  const chartDescription = chartData
+    .map(item => `${item.categoria}: R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+    .join('; ');
 
   if (loading || loadingSummary) {
     return (
@@ -260,7 +263,8 @@ export function FinanceiroPage() {
       {/* Chart */}
       <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
         <h3 className="font-display font-semibold text-lg mb-4">Fluxo Financeiro</h3>
-        <div className="h-[300px]">
+        <p className="sr-only">{chartDescription}</p>
+        <div className="h-[300px]" aria-hidden="true">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
