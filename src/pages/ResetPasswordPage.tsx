@@ -136,10 +136,12 @@ export default function ResetPasswordPage() {
                   }}
                   placeholder="••••••••"
                   className="pl-10"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'reset-password-error' : undefined}
                 />
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
+                <p id="reset-password-error" className="text-sm text-destructive">{errors.password}</p>
               )}
             </div>
 
@@ -157,10 +159,12 @@ export default function ResetPasswordPage() {
                   }}
                   placeholder="••••••••"
                   className="pl-10"
+                  aria-invalid={!!errors.confirmPassword}
+                  aria-describedby={errors.confirmPassword ? 'reset-confirm-password-error' : undefined}
                 />
               </div>
               {errors.confirmPassword && (
-                <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                <p id="reset-confirm-password-error" className="text-sm text-destructive">{errors.confirmPassword}</p>
               )}
             </div>
 
