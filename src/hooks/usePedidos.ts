@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -32,6 +32,7 @@ export interface Pedido {
 }
 
 type PedidoRow = Tables<'pedidos'>;
+type PedidoUpdate = TablesUpdate<'pedidos'>;
 type ClienteRow = Pick<Tables<'clientes'>, 'nome'>;
 type ItemPedidoRow = Tables<'itens_pedido'>;
 type PedidoWithRelations = PedidoRow & {
@@ -126,10 +127,10 @@ export function usePedidos() {
 
       setPedidos(pedidos.map(p => p.id === id ? { ...p, ...(updatedPedido || {}), status } : p));
       toast({ title: 'Status atualizado!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar status',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -161,10 +162,10 @@ export function usePedidos() {
       await fetchPedidos();
       toast({ title: 'Pedido criado com sucesso!' });
       return novoPedido as Pedido;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao criar pedido',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -172,33 +173,43 @@ export function usePedidos() {
 
   const archivePedido = async (id: string, reason?: string) => {
     try {
+      const updates: PedidoUpdate = {
+        archived_at: new Date().toISOString(),
+        archived_reason: reason || null,
+      };
+
       const { error } = await supabase
         .from('pedidos')
-        .update({ archived_at: new Date().toISOString(), archived_reason: reason || null } as any)
+        .update(updates)
         .eq('id', id);
 
       if (error) throw error;
       await auditLog('pedido', id, 'archived', { reason: reason || null });
       await fetchPedidos();
       toast({ title: 'Pedido arquivado!' });
-    } catch (error: any) {
-      toast({ title: 'Erro ao arquivar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao arquivar', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
   const unarchivePedido = async (id: string) => {
     try {
+      const updates: PedidoUpdate = {
+        archived_at: null,
+        archived_reason: null,
+      };
+
       const { error } = await supabase
         .from('pedidos')
-        .update({ archived_at: null, archived_reason: null } as any)
+        .update(updates)
         .eq('id', id);
 
       if (error) throw error;
       await auditLog('pedido', id, 'unarchived', {});
       await fetchPedidos();
       toast({ title: 'Pedido desarquivado!' });
-    } catch (error: any) {
-      toast({ title: 'Erro ao desarquivar', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao desarquivar', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
