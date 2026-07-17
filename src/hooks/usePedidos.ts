@@ -115,24 +115,25 @@ function getErrorMessage(error: unknown) {
 }
 
 export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
+  const p = pedido as unknown as Record<string, unknown>;
   return {
     id: pedido.id,
     cliente: pedido.cliente,
     cliente_id: pedido.cliente_id,
     cliente_nome: pedido.clientes?.nome || null,
     data: pedido.data,
-    data_entrega: pedido.data_entrega,
+    data_entrega: (p['data_entrega'] as string) ?? pedido.data,
     tipo_pedido: pedido.tipo_pedido as Pedido['tipo_pedido'],
-    tipo_entrega: pedido.tipo_entrega as EntregaTipo,
-    endereco_entrega: pedido.endereco_entrega,
-    canal_venda: pedido.canal_venda as CanalVenda,
+    tipo_entrega: ((p['tipo_entrega'] as EntregaTipo) ?? 'retirada') as EntregaTipo,
+    endereco_entrega: (p['endereco_entrega'] as string | null) ?? null,
+    canal_venda: ((p['canal_venda'] as CanalVenda) ?? 'whatsapp') as CanalVenda,
     valor_total: pedido.valor_total,
-    valor_pago: pedido.valor_pago,
-    saldo_restante: pedido.saldo_restante,
+    valor_pago: (p['valor_pago'] as number) ?? 0,
+    saldo_restante: (p['saldo_restante'] as number) ?? pedido.valor_total,
     forma_pagamento: pedido.forma_pagamento as Pedido['forma_pagamento'],
-    status: (pedido.status_operacional || pedido.status) as Pedido['status'],
-    status_operacional: (pedido.status_operacional || pedido.status) as Pedido['status'],
-    status_financeiro: pedido.status_financeiro as PedidoFinanceiroStatus,
+    status: ((p['status_operacional'] as string) || pedido.status) as Pedido['status'],
+    status_operacional: ((p['status_operacional'] as string) || pedido.status) as Pedido['status'],
+    status_financeiro: ((p['status_financeiro'] as PedidoFinanceiroStatus) ?? 'nao_pago') as PedidoFinanceiroStatus,
     observacoes: pedido.observacoes,
     itens: pedido.itens_pedido || [],
     archived_at: pedido.archived_at,
@@ -275,7 +276,7 @@ export function usePedidos() {
 
       await fetchPedidos();
       toast({ title: 'Pedido criado com sucesso!' });
-      return novoPedido as Pedido;
+      return novoPedido as unknown as Pedido;
     } catch (error: unknown) {
       toast({
         title: 'Erro ao criar pedido',

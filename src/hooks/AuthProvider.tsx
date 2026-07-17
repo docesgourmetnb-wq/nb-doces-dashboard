@@ -4,6 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { AuthContext, AuthProfile } from '@/hooks/useAuth';
 
 const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
+const devAutoLoginEnabled =
+  import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
+const devAutoEmail = import.meta.env.VITE_DEV_AUTH_EMAIL;
+const devAutoPassword = import.meta.env.VITE_DEV_AUTH_PASSWORD;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session && devAutoLoginEnabled && devAutoEmail && devAutoPassword) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: devAutoEmail,
+          password: devAutoPassword,
+        });
+        if (error) {
+          if (import.meta.env.DEV) console.warn('[dev auto-login] failed:', error.message);
+        } else {
+          session = data.session;
+        }
+      }
       setSession(session);
       setUser(session?.user ?? null);
       await loadProfile(session?.user ?? null);
