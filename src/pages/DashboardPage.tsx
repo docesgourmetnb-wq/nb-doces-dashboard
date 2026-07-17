@@ -61,6 +61,7 @@ const MESES = [
 ];
 
 const formatBRL = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+const chartColor = (index: number) => COLORS[index % COLORS.length] || '#95A5A6';
 
 export function DashboardPage() {
   const currentYear = new Date().getFullYear();
@@ -81,11 +82,11 @@ export function DashboardPage() {
     const TOP_N = 8;
     let result: { nome: string; quantidade: number; cor: string }[];
     if (sorted.length <= TOP_N) {
-      result = sorted.map((item, i) => ({ ...item, cor: COLORS[i % COLORS.length] }));
+      result = sorted.map((item, i) => ({ ...item, cor: chartColor(i) }));
     } else {
       const top = sorted.slice(0, TOP_N);
       const outrosQtd = sorted.slice(TOP_N).reduce((s, i) => s + i.quantidade, 0);
-      result = top.map((item, i) => ({ ...item, cor: COLORS[i % COLORS.length] }));
+      result = top.map((item, i) => ({ ...item, cor: chartColor(i) }));
       result.push({ nome: 'Outros', quantidade: outrosQtd, cor: '#95A5A6' });
     }
     return result;

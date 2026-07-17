@@ -30,13 +30,13 @@ export default function AuthPage() {
     
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
-      newErrors.email = emailResult.error.errors[0].message;
+      newErrors.email = emailResult.error.errors[0]?.message || 'Email inválido';
     }
     
     if (!skipPassword) {
       const passwordResult = passwordSchema.safeParse(password);
       if (!passwordResult.success) {
-        newErrors.password = passwordResult.error.errors[0].message;
+        newErrors.password = passwordResult.error.errors[0]?.message || 'Senha inválida';
       }
     }
     
