@@ -14,6 +14,10 @@ export interface Brigadeiro {
   ativo: boolean;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
 export function useBrigadeiros() {
   const [brigadeiros, setBrigadeiros] = useState<Brigadeiro[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,10 +38,10 @@ export function useBrigadeiros() {
 
       if (error) throw error;
       setBrigadeiros((data || []) as Brigadeiro[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar produtos',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -72,10 +76,10 @@ export function useBrigadeiros() {
       setBrigadeiros([newBrigadeiro, ...brigadeiros]);
       toast({ title: 'Produto adicionado com sucesso!' });
       return newBrigadeiro;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao adicionar produto',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -95,10 +99,10 @@ export function useBrigadeiros() {
       setBrigadeiros(brigadeiros.map(b => b.id === id ? updatedBrigadeiro : b));
       toast({ title: 'Produto atualizado!' });
       return updatedBrigadeiro;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar produto',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -114,10 +118,10 @@ export function useBrigadeiros() {
       if (error) throw error;
       setBrigadeiros(brigadeiros.filter(b => b.id !== id));
       toast({ title: 'Produto removido!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao remover produto',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
