@@ -3,6 +3,7 @@
     "allowUnreachableCode": false,
     "allowImportingTsExtensions": true,
     "allowUnusedLabels": false,
+    "alwaysStrict": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": [
@@ -18,6 +19,7 @@
     "noImplicitAny": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
+    "noImplicitThis": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
