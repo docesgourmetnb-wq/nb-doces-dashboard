@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Brigadeiro } from './useBrigadeiros';
+
+type InsumoRow = Tables<'insumos'>;
 
 export interface EstoqueProduto {
   id: string;
@@ -12,6 +15,28 @@ export interface EstoqueProduto {
   created_at: string;
   updated_at: string;
   brigadeiro?: Partial<Brigadeiro>;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
+function toEstoqueProduto(insumo: InsumoRow, fallbackNome = 'Produto Desconhecido'): EstoqueProduto {
+  const [, brigadeiroId, brigadeiroNome] = insumo.nome.match(/\[PRODUTO\] (.*?)::(.*)/) || ['', '', fallbackNome];
+
+  return {
+    id: insumo.id,
+    brigadeiro_id: brigadeiroId,
+    quantidade_un: insumo.quantidade_atual || 0,
+    user_id: insumo.user_id,
+    created_at: insumo.created_at,
+    updated_at: insumo.updated_at,
+    brigadeiro: { id: brigadeiroId, nome: brigadeiroNome },
+  };
+}
+
+function sortByBrigadeiroName(a: EstoqueProduto, b: EstoqueProduto) {
+  return (a.brigadeiro?.nome || '').localeCompare(b.brigadeiro?.nome || '');
 }
 
 export function useEstoqueProdutos() {
@@ -35,25 +60,16 @@ export function useEstoqueProdutos() {
 
       if (error) throw error;
       
-      const produtosFormatados = (data || []).map((m: any) => {
-        const [, brigId, brigNome] = m.nome.match(/\[PRODUTO\] (.*?)::(.*)/) || ['', '', 'Produto Desconhecido'];
-        return {
-          id: m.id,
-          brigadeiro_id: brigId,
-          quantidade_un: m.quantidade_atual || 0,
-          user_id: m.user_id,
-          created_at: m.created_at,
-          updated_at: m.updated_at,
-          brigadeiro: { id: brigId, nome: brigNome }
-        } as EstoqueProduto;
-      }).sort((a, b) => (a.brigadeiro?.nome || '').localeCompare(b.brigadeiro?.nome || ''));
+      const produtosFormatados = (data || [])
+        .map(toEstoqueProduto)
+        .sort(sortByBrigadeiroName);
 
       setProdutos(produtosFormatados);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching produtos:', error);
       toast({
         title: 'Erro ao carregar estoque final',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -85,19 +101,11 @@ export function useEstoqueProdutos() {
 
       if (error) throw error;
       
-      const novoProduto = {
-        id: data.id,
-        brigadeiro_id: brigadeiro_id,
-        quantidade_un: data.quantidade_atual || 0,
-        user_id: data.user_id,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        brigadeiro: { id: brigadeiro_id, nome: brigadeiro_nome }
-      } as EstoqueProduto;
+      const novoProduto = toEstoqueProduto(data, brigadeiro_nome);
 
       setProdutos(prev => {
           const newState = [...prev, novoProduto];
-          return newState.sort((a, b) => (a.brigadeiro?.nome || '').localeCompare(b.brigadeiro?.nome || ''));
+          return newState.sort(sortByBrigadeiroName);
       });
 
       toast({
@@ -105,10 +113,10 @@ export function useEstoqueProdutos() {
         description: 'Produto cadastrado no estoque.',
       });
       return novoProduto;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao cadastrar produto',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       return null;
@@ -143,10 +151,10 @@ export function useEstoqueProdutos() {
         description: `Saldo de unidades atualizado com sucesso.`,
       });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar unidades',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       return false;
@@ -168,10 +176,10 @@ export function useEstoqueProdutos() {
         description: 'Produto removido do estoque.',
       });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       return false;
