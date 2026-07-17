@@ -14,6 +14,10 @@ export interface Insumo {
   ultima_compra?: string | null;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
 export function useInsumos() {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,10 +39,10 @@ export function useInsumos() {
 
       if (error) throw error;
       setInsumos((data || []) as Insumo[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar estoque',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -74,10 +78,10 @@ export function useInsumos() {
       setInsumos([...insumos, newInsumo]);
       toast({ title: 'Insumo adicionado!' });
       return newInsumo;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao adicionar insumo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -97,10 +101,10 @@ export function useInsumos() {
       setInsumos(insumos.map(i => i.id === id ? updatedInsumo : i));
       toast({ title: 'Insumo atualizado!' });
       return updatedInsumo;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar insumo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -116,10 +120,10 @@ export function useInsumos() {
       if (error) throw error;
       setInsumos(insumos.filter(i => i.id !== id));
       toast({ title: 'Insumo removido!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao remover insumo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
