@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
     
     const passwordResult = passwordSchema.safeParse(password);
     if (!passwordResult.success) {
-      newErrors.password = passwordResult.error.errors[0].message;
+      newErrors.password = passwordResult.error.errors[0]?.message || 'Senha inválida';
     }
     
     if (password !== confirmPassword) {
