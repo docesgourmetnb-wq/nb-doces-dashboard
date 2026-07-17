@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from 'lucide-react';
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
 import {
@@ -8,6 +8,7 @@ import {
   isProducaoConcluida,
 } from '@/domain/producao';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,12 +33,36 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+interface RecipeOption {
+  id: string;
+  recipeName: string;
+  recipeType: string;
+  versionNo: number;
+  yieldQty: number;
+}
+
+interface OutputItemOption {
+  id: string;
+  nome: string;
+  tipo: string;
+  unidadeBase: string;
+}
+
+const typeLabel: Record<string, string> = {
+  consumo: 'Consumo',
+  massa_base: 'Massa base',
+  produto_final: 'Produto final',
+};
+
 export function ProducaoPage() {
   const {
     producao, loading, showDeleted, setShowDeleted,
     addProducao, updateProducaoStatus, updateProducao, cancelProducao,
   } = useProducao();
   const { brigadeiros } = useBrigadeiros();
+  const [recipeOptions, setRecipeOptions] = useState<RecipeOption[]>([]);
+  const [outputItemOptions, setOutputItemOptions] = useState<OutputItemOption[]>([]);
+  const [loadingIntegrationOptions, setLoadingIntegrationOptions] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,6 +95,75 @@ export function ProducaoPage() {
   const quantidadeProducaoValida = Number.isInteger(quantidadeProducao) && quantidadeProducao > 0;
   const quantidadeEdicao = Number(editData.quantidade);
   const quantidadeEdicaoValida = Number.isInteger(quantidadeEdicao) && quantidadeEdicao > 0;
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchIntegrationOptions() {
+      setLoadingIntegrationOptions(true);
+
+      const [versionsResult, stockItemsResult] = await Promise.all([
+        supabase
+          .from('recipe_versions')
+          .select('id,version_no,yield_qty,recipes(nome,tipo)')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('stock_items')
+          .select('id,nome,tipo,unidade_base')
+          .in('tipo', ['massa_base', 'produto_final'])
+          .eq('ativo', true)
+          .order('nome', { ascending: true }),
+      ]);
+
+      if (!mounted) return;
+
+      if (!versionsResult.error) {
+        setRecipeOptions(((versionsResult.data || []) as unknown[]).map((row) => {
+          const item = row as {
+            id: string;
+            version_no: number;
+            yield_qty: number | string;
+            recipes?: { nome?: string; tipo?: string } | null;
+          };
+
+          return {
+            id: item.id,
+            recipeName: item.recipes?.nome || 'Receita sem nome',
+            recipeType: item.recipes?.tipo || 'receita',
+            versionNo: item.version_no,
+            yieldQty: Number(item.yield_qty || 0),
+          };
+        }));
+      }
+
+      if (!stockItemsResult.error) {
+        setOutputItemOptions(((stockItemsResult.data || []) as unknown[]).map((row) => {
+          const item = row as {
+            id: string;
+            nome: string;
+            tipo: string;
+            unidade_base: string;
+          };
+
+          return {
+            id: item.id,
+            nome: item.nome,
+            tipo: item.tipo,
+            unidadeBase: item.unidade_base,
+          };
+        }));
+      }
+
+      setLoadingIntegrationOptions(false);
+    }
+
+    fetchIntegrationOptions();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleAddProducao = async () => {
     const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiro_id);
@@ -205,25 +299,74 @@ export function ProducaoPage() {
                   <Checkbox
                     id="integrar-estoque"
                     checked={formData.integrar_estoque}
-                    onCheckedChange={(v) => setFormData({ ...formData, integrar_estoque: !!v })}
+                    onCheckedChange={(v) => {
+                      const checked = v === true;
+                      setFormData({
+                        ...formData,
+                        integrar_estoque: checked,
+                        recipe_version_id: checked ? formData.recipe_version_id : '',
+                        output_item_id: checked ? formData.output_item_id : '',
+                      });
+                    }}
                   />
                   <Label htmlFor="integrar-estoque" className="cursor-pointer">Consumir estoque automaticamente</Label>
                 </div>
                 {formData.integrar_estoque && (
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Informe os IDs da receita ativa e item de saída para executar a RPC de produção integrada.
-                    </p>
-                    <Input
-                      value={formData.recipe_version_id}
-                      onChange={(e) => setFormData({ ...formData, recipe_version_id: e.target.value })}
-                      placeholder="recipe_version_id (UUID)"
-                    />
-                    <Input
-                      value={formData.output_item_id}
-                      onChange={(e) => setFormData({ ...formData, output_item_id: e.target.value })}
-                      placeholder="output_item_id (UUID)"
-                    />
+                    {loadingIntegrationOptions ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Carregando receitas e itens de estoque...
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Selecione a receita ativa e o item que receberá a saída da produção.
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Receita ativa</Label>
+                      <Select
+                        value={formData.recipe_version_id}
+                        onValueChange={(value) => setFormData({ ...formData, recipe_version_id: value })}
+                        disabled={loadingIntegrationOptions || recipeOptions.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a receita" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {recipeOptions.map((recipe) => (
+                            <SelectItem key={recipe.id} value={recipe.id}>
+                              {recipe.recipeName} v{recipe.versionNo} - {typeLabel[recipe.recipeType] || recipe.recipeType} ({recipe.yieldQty}g)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!loadingIntegrationOptions && recipeOptions.length === 0 && (
+                        <p className="text-xs text-destructive">Nenhuma receita ativa cadastrada.</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Item de saída</Label>
+                      <Select
+                        value={formData.output_item_id}
+                        onValueChange={(value) => setFormData({ ...formData, output_item_id: value })}
+                        disabled={loadingIntegrationOptions || outputItemOptions.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o item produzido" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {outputItemOptions.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.nome} ({typeLabel[item.tipo] || item.tipo}, {item.unidadeBase})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!loadingIntegrationOptions && outputItemOptions.length === 0 && (
+                        <p className="text-xs text-destructive">Nenhum item de saída cadastrado no estoque integrado.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
