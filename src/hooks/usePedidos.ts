@@ -166,7 +166,7 @@ export function usePedidos() {
 
       if (error) throw error;
 
-      setPedidos(pedidos.map(p => p.id === id ? { ...p, ...(updatedPedido || {}), status } : p));
+      setPedidos(pedidos.map(p => p.id === id ? { ...p, status } : p));
       toast({ title: 'Status atualizado!' });
     } catch (error: unknown) {
       toast({

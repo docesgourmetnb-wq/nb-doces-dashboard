@@ -61,7 +61,7 @@ export function useEstoqueProdutos() {
       if (error) throw error;
       
       const produtosFormatados = (data || [])
-        .map(toEstoqueProduto)
+        .map((item) => toEstoqueProduto(item))
         .sort(sortByBrigadeiroName);
 
       setProdutos(produtosFormatados);
