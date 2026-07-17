@@ -14,6 +14,25 @@ export interface ExecuteProductionResult {
   movement_count: number;
 }
 
+interface ExecuteProductionRpcParams {
+  p_recipe_version_id: string;
+  p_output_item_id: string;
+  p_planned_output_qty: number;
+  p_actual_output_qty: number | null;
+  p_notes: string | null;
+  p_idempotency_key: string | null;
+}
+
+interface ExecuteProductionRpc {
+  (
+    fn: 'execute_production_order',
+    params: ExecuteProductionRpcParams,
+  ): Promise<{
+    data: ExecuteProductionResult[] | ExecuteProductionResult | null;
+    error: Error | null;
+  }>;
+}
+
 /**
  * Runs the transaction-safe database routine that:
  * - snapshots recipe components
@@ -22,7 +41,8 @@ export interface ExecuteProductionResult {
  * in a single ACID transaction.
  */
 export async function executeProductionOrder(payload: ExecuteProductionPayload): Promise<ExecuteProductionResult> {
-  const { data, error } = await (supabase.rpc as any)('execute_production_order', {
+  const executeRpc = supabase.rpc as unknown as ExecuteProductionRpc;
+  const { data, error } = await executeRpc('execute_production_order', {
     p_recipe_version_id: payload.recipeVersionId,
     p_output_item_id: payload.outputItemId,
     p_planned_output_qty: payload.plannedOutputQty,
