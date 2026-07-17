@@ -156,8 +156,9 @@ export function ProdutosPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome</Label>
+                <Label htmlFor="produto-nome">Nome</Label>
                 <Input
+                  id="produto-nome"
                   value={formData.nome}
                   onChange={(e) => {
                     setFormData({ ...formData, nome: e.target.value });
@@ -168,12 +169,12 @@ export function ProdutosPage() {
                 {formErrors.nome && <p className="text-xs text-destructive">{formErrors.nome}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="produto-tipo">Tipo</Label>
                 <Select
                   value={formData.tipo}
                   onValueChange={(value: Brigadeiro['tipo']) => setFormData({ ...formData, tipo: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="produto-tipo">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -185,8 +186,9 @@ export function ProdutosPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Preço de Venda (R$)</Label>
+                  <Label htmlFor="produto-preco-venda">Preço de Venda (R$)</Label>
                   <Input
+                    id="produto-preco-venda"
                     type="number"
                     step="0.01"
                     min="0"
@@ -200,8 +202,9 @@ export function ProdutosPage() {
                   {formErrors.preco_venda && <p className="text-xs text-destructive">{formErrors.preco_venda}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Custo Unitário (R$)</Label>
+                  <Label htmlFor="produto-custo-unitario">Custo Unitário (R$)</Label>
                   <Input
+                    id="produto-custo-unitario"
                     type="number"
                     step="0.01"
                     min="0"
@@ -223,8 +226,9 @@ export function ProdutosPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Descrição (opcional)</Label>
+                <Label htmlFor="produto-descricao">Descrição (opcional)</Label>
                 <Input
+                  id="produto-descricao"
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                   placeholder="Breve descrição do produto"
@@ -241,8 +245,10 @@ export function ProdutosPage() {
 
       {/* Search */}
       <div className="relative max-w-md">
+        <Label htmlFor="produto-busca" className="sr-only">Buscar brigadeiros</Label>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         <Input
+          id="produto-busca"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar brigadeiros..."
@@ -279,12 +285,14 @@ export function ProdutosPage() {
                   <button
                     onClick={() => handleOpenDialog(brigadeiro)}
                     className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    aria-label={`Editar ${brigadeiro.nome}`}
                   >
                     <Pencil size={16} className="text-muted-foreground" />
                   </button>
                   <button
                     onClick={() => handleDelete(brigadeiro.id)}
                     className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                    aria-label={`Excluir ${brigadeiro.nome}`}
                   >
                     <Trash2 size={16} className="text-destructive" />
                   </button>
