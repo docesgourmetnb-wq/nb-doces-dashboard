@@ -100,7 +100,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
         forma_pagamento: formaPagamento,
         status: 'pendente',
         observacoes: observacoes.trim() || null,
-      } as any, itens);
+      }, itens);
       
       // Reset form
       resetForm();

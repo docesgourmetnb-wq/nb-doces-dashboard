@@ -31,6 +31,8 @@ export interface Pedido {
   archived_reason?: string | null;
 }
 
+export type PedidoInput = Omit<Pedido, 'id'>;
+
 type PedidoRow = Tables<'pedidos'>;
 type PedidoUpdate = TablesUpdate<'pedidos'>;
 type ClienteRow = Pick<Tables<'clientes'>, 'nome'>;
@@ -39,6 +41,44 @@ type PedidoWithRelations = PedidoRow & {
   clientes?: ClienteRow | null;
   itens_pedido?: ItemPedidoRow[] | null;
 };
+
+interface UpdatePedidoStatusRpc {
+  (
+    fn: 'update_pedido_status',
+    params: {
+      p_pedido_id: string;
+      p_status: PedidoStatus;
+    },
+  ): Promise<{
+    data: Partial<PedidoRow> | null;
+    error: Error | null;
+  }>;
+}
+
+interface CreatePedidoWithItemsRpc {
+  (
+    fn: 'create_pedido_with_items',
+    params: {
+      p_cliente: string;
+      p_cliente_id: string | null;
+      p_data: string;
+      p_tipo_pedido: Pedido['tipo_pedido'];
+      p_valor_total: number;
+      p_forma_pagamento: Pedido['forma_pagamento'];
+      p_status: PedidoStatus;
+      p_observacoes: string | null;
+      p_itens: Array<{
+        brigadeiro_id?: string | null;
+        brigadeiro_nome: string;
+        quantidade: number;
+        preco_unitario: number;
+      }>;
+    },
+  ): Promise<{
+    data: PedidoRow | null;
+    error: Error | null;
+  }>;
+}
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -118,7 +158,8 @@ export function usePedidos() {
       const pedido = pedidos.find(p => p.id === id);
       if (!pedido || pedido.status === status) return; // idempotency guard
 
-      const { data: updatedPedido, error } = await (supabase.rpc as any)('update_pedido_status', {
+      const updateStatusRpc = supabase.rpc as unknown as UpdatePedidoStatusRpc;
+      const { data: updatedPedido, error } = await updateStatusRpc('update_pedido_status', {
         p_pedido_id: id,
         p_status: status,
       });
@@ -136,13 +177,14 @@ export function usePedidos() {
     }
   };
 
-  const addPedido = async (pedido: Omit<Pedido, 'id'>, itens: ItemPedido[]) => {
+  const addPedido = async (pedido: PedidoInput, itens: ItemPedido[]) => {
     if (!user) return;
     
     try {
-      const { data: novoPedido, error } = await (supabase.rpc as any)('create_pedido_with_items', {
+      const createPedidoRpc = supabase.rpc as unknown as CreatePedidoWithItemsRpc;
+      const { data: novoPedido, error } = await createPedidoRpc('create_pedido_with_items', {
         p_cliente: pedido.cliente,
-        p_cliente_id: (pedido as any).cliente_id || null,
+        p_cliente_id: pedido.cliente_id || null,
         p_data: pedido.data,
         p_tipo_pedido: pedido.tipo_pedido,
         p_valor_total: pedido.valor_total,
