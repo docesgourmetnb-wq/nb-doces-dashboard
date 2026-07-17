@@ -4,6 +4,7 @@
     "allowImportingTsExtensions": true,
     "allowUnusedLabels": false,
     "alwaysStrict": true,
+    "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": [
@@ -33,6 +34,7 @@
     "skipLibCheck": true,
     "strict": false,
     "strictBindCallApply": true,
+    "strictBuiltinIteratorReturn": true,
     "strictFunctionTypes": true,
     "target": "ES2020",
     "useUnknownInCatchVariables": true,
