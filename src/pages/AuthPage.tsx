@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracteres');
+const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -103,6 +104,15 @@ export default function AuthPage() {
           navigate('/');
         }
       } else {
+        if (!signupEnabled) {
+          toast({
+            title: 'Cadastro desativado',
+            description: 'Solicite acesso ao administrador.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
         const { error } = await signUp(email, password, nome);
         if (error) {
           if (error.message.includes('User already registered')) {
@@ -132,6 +142,8 @@ export default function AuthPage() {
   };
 
   const switchMode = (newMode: 'login' | 'signup' | 'forgot') => {
+    if (newMode === 'signup' && !signupEnabled) return;
+
     setMode(newMode);
     setErrors({});
     setResetEmailSent(false);
@@ -330,16 +342,20 @@ export default function AuthPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {mode === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
-              <span className="font-medium text-primary underline-offset-4 hover:underline">
-                {mode === 'login' ? 'Criar conta' : 'Fazer login'}
-              </span>
-            </button>
+            {mode === 'login' && !signupEnabled ? (
+              <p className="text-sm text-muted-foreground">Cadastro somente por convite do administrador.</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {mode === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
+                <span className="font-medium text-primary underline-offset-4 hover:underline">
+                  {mode === 'login' ? 'Criar conta' : 'Fazer login'}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

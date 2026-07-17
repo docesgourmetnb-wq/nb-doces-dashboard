@@ -186,56 +186,24 @@ export function usePedidos() {
     if (!user) return;
     
     try {
-      const { data: novoPedido, error: pedidoError } = await supabase
-        .from('pedidos')
-        .insert({
-          cliente: pedido.cliente,
-          cliente_id: (pedido as any).cliente_id || null,
-          data: pedido.data,
-          tipo_pedido: pedido.tipo_pedido,
-          valor_total: pedido.valor_total,
-          forma_pagamento: pedido.forma_pagamento,
-          status: pedido.status,
-          observacoes: pedido.observacoes,
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (pedidoError) throw pedidoError;
-
-      // Insert items
-      if (itens.length > 0) {
-        const { error: itensError } = await supabase
-          .from('itens_pedido')
-          .insert(itens.map(item => ({
+      const { data: novoPedido, error } = await (supabase.rpc as any)('create_pedido_with_items', {
+        p_cliente: pedido.cliente,
+        p_cliente_id: (pedido as any).cliente_id || null,
+        p_data: pedido.data,
+        p_tipo_pedido: pedido.tipo_pedido,
+        p_valor_total: pedido.valor_total,
+        p_forma_pagamento: pedido.forma_pagamento,
+        p_status: pedido.status,
+        p_observacoes: pedido.observacoes || null,
+        p_itens: itens.map(item => ({
             brigadeiro_id: item.brigadeiro_id,
             brigadeiro_nome: item.brigadeiro_nome,
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
-            pedido_id: novoPedido.id,
-          })));
+          })),
+      });
 
-        if (itensError) throw itensError;
-      }
-
-      // Se o pedido gerar receita, criar transação de entrada automaticamente (ciclo 1)
-      if (shouldGenerateRevenue(pedido.status) && pedido.valor_total > 0) {
-        const vendaRef = `pedido:${novoPedido.id}:venda:1`;
-        await supabase.from('transacoes').insert({
-          tipo: 'entrada',
-          categoria: 'Vendas',
-          descricao: `Venda - Pedido ${pedido.cliente}`,
-          valor: pedido.valor_total,
-          data: pedido.data,
-          referencia: vendaRef,
-          user_id: user.id,
-        });
-        await auditLog('pedido', novoPedido.id, 'venda_created', {
-          valor: pedido.valor_total,
-          referencia: vendaRef,
-        });
-      }
+      if (error) throw error;
 
       await fetchPedidos();
       toast({ title: 'Pedido criado com sucesso!' });
