@@ -133,12 +133,12 @@ export function FinanceiroPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="transacao-tipo">Tipo</Label>
                 <Select
                   value={formData.tipo}
                   onValueChange={(value: Transacao['tipo']) => setFormData({ ...formData, tipo: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="transacao-tipo">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -148,8 +148,9 @@ export function FinanceiroPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label htmlFor="transacao-categoria">Categoria</Label>
                 <Input
+                  id="transacao-categoria"
                   value={formData.categoria}
                   onChange={(e) => {
                     setFormData({ ...formData, categoria: e.target.value });
@@ -160,8 +161,9 @@ export function FinanceiroPage() {
                 {formErrors.categoria && <p className="text-xs text-destructive">{formErrors.categoria}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Descrição</Label>
+                <Label htmlFor="transacao-descricao">Descrição</Label>
                 <Input
+                  id="transacao-descricao"
                   value={formData.descricao}
                   onChange={(e) => {
                     setFormData({ ...formData, descricao: e.target.value });
@@ -173,8 +175,9 @@ export function FinanceiroPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Valor (R$)</Label>
+                  <Label htmlFor="transacao-valor">Valor (R$)</Label>
                   <Input
+                    id="transacao-valor"
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -187,8 +190,9 @@ export function FinanceiroPage() {
                   {formErrors.valor && <p className="text-xs text-destructive">{formErrors.valor}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Data</Label>
+                  <Label htmlFor="transacao-data">Data</Label>
                   <Input
+                    id="transacao-data"
                     type="date"
                     value={formData.data}
                     onChange={(e) => {

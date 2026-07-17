@@ -144,7 +144,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
           {/* Client Selection */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label>Cliente *</Label>
+              <Label htmlFor={modoCliente === 'existente' ? 'pedido-cliente' : 'pedido-cliente-novo'}>Cliente *</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -159,7 +159,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
             
             {modoCliente === 'existente' ? (
               <Select value={clienteId} onValueChange={setClienteId}>
-                <SelectTrigger>
+                <SelectTrigger id="pedido-cliente">
                   <SelectValue placeholder="Selecione um cliente cadastrado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,6 +181,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
               </Select>
             ) : (
               <Input
+                id="pedido-cliente-novo"
                 value={clienteNovo}
                 onChange={(e) => setClienteNovo(e.target.value)}
                 placeholder="Nome do novo cliente"
@@ -190,10 +191,11 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
 
           {/* Order Date */}
           <div className="space-y-2">
-            <Label>Data do Pedido</Label>
+            <Label htmlFor="pedido-data">Data do Pedido</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
+                  id="pedido-data"
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
@@ -219,9 +221,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
 
           {/* Order Type */}
           <div className="space-y-2">
-            <Label>Tipo de Pedido</Label>
+            <Label htmlFor="pedido-tipo">Tipo de Pedido</Label>
             <Select value={tipoPedido} onValueChange={(v: Pedido['tipo_pedido']) => setTipoPedido(v)}>
-              <SelectTrigger>
+              <SelectTrigger id="pedido-tipo">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -234,10 +236,10 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
 
           {/* Add Items */}
           <div className="space-y-4">
-            <Label>Adicionar Itens *</Label>
+            <Label htmlFor="pedido-produto">Adicionar Itens *</Label>
             <div className="flex flex-col sm:flex-row gap-3">
               <Select value={selectedBrigadeiro} onValueChange={setSelectedBrigadeiro}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger id="pedido-produto" className="flex-1">
                   <SelectValue placeholder="Selecione um produto" />
                 </SelectTrigger>
                 <SelectContent>
@@ -249,6 +251,8 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 </SelectContent>
               </Select>
               <Input
+                id="pedido-quantidade"
+                aria-label="Quantidade do produto"
                 type="number"
                 min={1}
                 value={quantidade}
@@ -256,7 +260,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 className="w-24"
                 placeholder="Qtd"
               />
-              <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!selectedBrigadeiro}>
+              <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!selectedBrigadeiro} aria-label="Adicionar item ao pedido">
                 <Plus size={18} />
               </Button>
             </div>
@@ -280,6 +284,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                         type="button"
                         onClick={() => handleRemoveItem(index)}
                         className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                        aria-label={`Remover ${item.brigadeiro_nome} do pedido`}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -298,9 +303,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
 
           {/* Payment */}
           <div className="space-y-2">
-            <Label>Forma de Pagamento</Label>
+            <Label htmlFor="pedido-forma-pagamento">Forma de Pagamento</Label>
             <Select value={formaPagamento} onValueChange={(v: Pedido['forma_pagamento']) => setFormaPagamento(v)}>
-              <SelectTrigger>
+              <SelectTrigger id="pedido-forma-pagamento">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
