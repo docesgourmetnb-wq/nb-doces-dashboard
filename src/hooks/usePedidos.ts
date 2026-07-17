@@ -276,7 +276,7 @@ export function usePedidos() {
 
       await fetchPedidos();
       toast({ title: 'Pedido criado com sucesso!' });
-      return novoPedido as Pedido;
+      return novoPedido as unknown as Pedido;
     } catch (error: unknown) {
       toast({
         title: 'Erro ao criar pedido',
