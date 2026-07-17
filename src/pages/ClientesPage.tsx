@@ -144,18 +144,18 @@ export function ClientesPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
+                <Label htmlFor="cliente-nome">Nome *</Label>
                 <Input
-                  id="nome"
+                  id="cliente-nome"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Nome do cliente"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="cliente-email">E-mail</Label>
                 <Input
-                  id="email"
+                  id="cliente-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -163,9 +163,9 @@ export function ClientesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
+                <Label htmlFor="cliente-telefone">Telefone</Label>
                 <Input
-                  id="telefone"
+                  id="cliente-telefone"
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
                   placeholder="(11) 99999-9999"
@@ -173,11 +173,13 @@ export function ClientesPage() {
               </div>
               {editingCliente && (
                 <div className="space-y-2">
-                  <Label>Cliente desde</Label>
+                  <Label htmlFor="cliente-desde">Cliente desde</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="cliente-desde"
                         variant="outline"
+                        aria-label="Selecionar data de cadastro do cliente"
                         className={cn(
                           "w-full justify-start text-left font-normal",
                           !clienteDesde && "text-muted-foreground"
@@ -220,8 +222,10 @@ export function ClientesPage() {
 
       {/* Search */}
       <div className="relative max-w-md">
+        <Label htmlFor="cliente-busca" className="sr-only">Buscar clientes</Label>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         <Input
+          id="cliente-busca"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome, email ou telefone..."
@@ -265,18 +269,23 @@ export function ClientesPage() {
                     <button
                       onClick={() => setViewingCliente(cliente)}
                       className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      aria-label={`Ver detalhes de ${cliente.nome}`}
                     >
                       <Eye size={16} className="text-muted-foreground" />
                     </button>
                     <button
                       onClick={() => openEditDialog(cliente)}
                       className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      aria-label={`Editar ${cliente.nome}`}
                     >
                       <Edit2 size={16} className="text-muted-foreground" />
                     </button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <button className="p-2 hover:bg-destructive/10 rounded-lg transition-colors">
+                        <button
+                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                          aria-label={`Remover ${cliente.nome}`}
+                        >
                           <Trash2 size={16} className="text-destructive" />
                         </button>
                       </AlertDialogTrigger>
