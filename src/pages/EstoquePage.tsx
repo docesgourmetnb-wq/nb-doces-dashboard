@@ -19,12 +19,17 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 
+type InsumoFormErrors = Partial<Record<
+  'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'consumo_medio' | 'preco_unitario',
+  string
+>>;
+
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo } = useInsumos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors] = useState<InsumoFormErrors>({});
   const [formData, setFormData] = useState({
     nome: '',
     unidade: '',
@@ -68,7 +73,7 @@ function InsumosTab() {
     const quantidadeMinima = Number(formData.quantidade_minima);
     const consumoMedio = Number(formData.consumo_medio);
     const precoUnitario = Number(formData.preco_unitario);
-    const errors: Record<string, string> = {};
+    const errors: InsumoFormErrors = {};
 
     if (!formData.nome.trim()) errors.nome = 'Informe o nome do insumo';
     if (!formData.unidade.trim()) errors.unidade = 'Informe a unidade';

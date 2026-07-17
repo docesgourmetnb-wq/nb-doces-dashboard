@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
+
 export function ProdutosPage() {
   const { brigadeiros, loading, addBrigadeiro, updateBrigadeiro, deleteBrigadeiro } = useBrigadeiros();
   const [search, setSearch] = useState('');
@@ -67,7 +69,7 @@ export function ProdutosPage() {
     setIsDialogOpen(true);
   };
 
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors] = useState<ProdutoFormErrors>({});
   const precoVendaNumber = Number(formData.preco_venda);
   const custoUnitarioNumber = Number(formData.custo_unitario);
   const canShowMargin =
@@ -77,7 +79,7 @@ export function ProdutosPage() {
     custoUnitarioNumber >= 0;
 
   const handleSave = async () => {
-    const errors: Record<string, string> = {};
+    const errors: ProdutoFormErrors = {};
     const preco_venda = Number(formData.preco_venda);
     const custo_unitario = Number(formData.custo_unitario);
 

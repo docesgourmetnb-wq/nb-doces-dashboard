@@ -35,6 +35,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+type TransacaoFormErrors = Partial<Record<'categoria' | 'descricao' | 'valor' | 'data', string>>;
+
 export function FinanceiroPage() {
   const { summary, loading: loadingSummary, refetch: refetchSummary } = useFinancialSummary();
   // Paginated dataset for list
@@ -48,7 +50,7 @@ export function FinanceiroPage() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors] = useState<TransacaoFormErrors>({});
   const [formData, setFormData] = useState({
     tipo: 'entrada' as Transacao['tipo'],
     categoria: '',
@@ -63,7 +65,7 @@ export function FinanceiroPage() {
 
   const handleAddTransacao = async () => {
     const valor = Number(formData.valor);
-    const errors: Record<string, string> = {};
+    const errors: TransacaoFormErrors = {};
 
     if (!formData.categoria.trim()) errors.categoria = 'Informe uma categoria';
     if (!formData.descricao.trim()) errors.descricao = 'Informe uma descrição';
