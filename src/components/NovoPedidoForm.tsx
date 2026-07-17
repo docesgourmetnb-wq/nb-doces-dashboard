@@ -203,6 +203,8 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                     "w-full justify-start text-left font-normal",
                     !dataPedido && "text-muted-foreground"
                   )}
+                  aria-label={`Selecionar data do pedido: ${format(dataPedido, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
+                  aria-haspopup="dialog"
                 >
                   <Calendar className="mr-2 h-4 w-4" />
                   {format(dataPedido, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
