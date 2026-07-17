@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { type PedidoStatus } from '@/domain/pedidos';
-import { format } from 'date-fns';
 
 export interface ItemPedido {
   id?: string;
@@ -159,7 +158,7 @@ export function usePedidos() {
       if (!pedido || pedido.status === status) return; // idempotency guard
 
       const updateStatusRpc = supabase.rpc as unknown as UpdatePedidoStatusRpc;
-      const { data: updatedPedido, error } = await updateStatusRpc('update_pedido_status', {
+      const { error } = await updateStatusRpc('update_pedido_status', {
         p_pedido_id: id,
         p_status: status,
       });
