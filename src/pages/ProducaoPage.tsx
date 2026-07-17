@@ -278,21 +278,21 @@ export function ProducaoPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Data</Label>
-                <Input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} />
+                <Label htmlFor="producao-data">Data</Label>
+                <Input id="producao-data" type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Sabor</Label>
+                <Label htmlFor="producao-sabor">Sabor</Label>
                 <Select value={formData.brigadeiro_id} onValueChange={(v) => setFormData({ ...formData, brigadeiro_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o sabor" /></SelectTrigger>
+                  <SelectTrigger id="producao-sabor"><SelectValue placeholder="Selecione o sabor" /></SelectTrigger>
                   <SelectContent>
                     {brigadeiros.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Quantidade</Label>
-                <Input type="number" min="1" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} placeholder="Ex: 50" />
+                <Label htmlFor="producao-quantidade">Quantidade</Label>
+                <Input id="producao-quantidade" type="number" min="1" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} placeholder="Ex: 50" />
               </div>
               <div className="rounded-lg border border-border p-3 space-y-3">
                 <div className="flex items-center gap-2">
@@ -324,13 +324,13 @@ export function ProducaoPage() {
                       </p>
                     )}
                     <div className="space-y-2">
-                      <Label>Receita ativa</Label>
+                      <Label htmlFor="producao-receita">Receita ativa</Label>
                       <Select
                         value={formData.recipe_version_id}
                         onValueChange={(value) => setFormData({ ...formData, recipe_version_id: value })}
                         disabled={loadingIntegrationOptions || recipeOptions.length === 0}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="producao-receita">
                           <SelectValue placeholder="Selecione a receita" />
                         </SelectTrigger>
                         <SelectContent>
@@ -346,13 +346,13 @@ export function ProducaoPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Item de saída</Label>
+                      <Label htmlFor="producao-item-saida">Item de saída</Label>
                       <Select
                         value={formData.output_item_id}
                         onValueChange={(value) => setFormData({ ...formData, output_item_id: value })}
                         disabled={loadingIntegrationOptions || outputItemOptions.length === 0}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="producao-item-saida">
                           <SelectValue placeholder="Selecione o item produzido" />
                         </SelectTrigger>
                         <SelectContent>
@@ -438,17 +438,17 @@ export function ProducaoPage() {
           <DialogHeader><DialogTitle className="font-display">Editar Produção</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Data</Label>
-              <Input type="date" value={editData.data} onChange={(e) => setEditData({ ...editData, data: e.target.value })} />
+              <Label htmlFor="producao-edit-data">Data</Label>
+              <Input id="producao-edit-data" type="date" value={editData.data} onChange={(e) => setEditData({ ...editData, data: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Quantidade</Label>
-              <Input type="number" min="1" value={editData.quantidade} onChange={(e) => setEditData({ ...editData, quantidade: e.target.value })} />
+              <Label htmlFor="producao-edit-quantidade">Quantidade</Label>
+              <Input id="producao-edit-quantidade" type="number" min="1" value={editData.quantidade} onChange={(e) => setEditData({ ...editData, quantidade: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label htmlFor="producao-edit-status">Status</Label>
               <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="producao-edit-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                 {PRODUCAO_STATUSES.map(s => (
                     <SelectItem key={s} value={s}>{getProducaoStatusLabel(s)}</SelectItem>
@@ -473,8 +473,8 @@ export function ProducaoPage() {
               Cancelar <strong>{cancelItem?.brigadeiro_nome}</strong> ({cancelItem?.quantidade} un.)?
             </p>
             <div className="space-y-2">
-              <Label>Motivo (opcional)</Label>
-              <Textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Ex: Ingredientes insuficientes" />
+              <Label htmlFor="producao-cancel-reason">Motivo (opcional)</Label>
+              <Textarea id="producao-cancel-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Ex: Ingredientes insuficientes" />
             </div>
             <Button variant="destructive" onClick={handleCancel} className="w-full" disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -523,17 +523,17 @@ export function ProducaoPage() {
                       <div className="flex items-center gap-2">
                         {!isDeleted && (
                           <>
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8" aria-label={`Editar produção de ${item.brigadeiro_nome}`}>
                               <Pencil size={14} />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setCancelItem(item)} className="h-8 w-8 text-destructive hover:text-destructive">
+                            <Button variant="ghost" size="icon" onClick={() => setCancelItem(item)} className="h-8 w-8 text-destructive hover:text-destructive" aria-label={`Cancelar produção de ${item.brigadeiro_nome}`}>
                               <Trash2 size={14} />
                             </Button>
                             <Select
                               value={item.status}
                               onValueChange={(value: ProducaoDiaria['status']) => updateProducaoStatus(item.id, value)}
                             >
-                              <SelectTrigger className={cn("w-full sm:w-[160px] text-xs font-medium rounded-full px-3", getProducaoStatusBadgeClass(item.status))}>
+                              <SelectTrigger aria-label={`Status da produção de ${item.brigadeiro_nome}`} className={cn("w-full sm:w-[160px] text-xs font-medium rounded-full px-3", getProducaoStatusBadgeClass(item.status))}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>

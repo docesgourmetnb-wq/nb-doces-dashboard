@@ -133,16 +133,16 @@ function InsumosTab() {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input value={formData.nome} onChange={(e) => {
+                  <Label htmlFor="insumo-nome">Nome</Label>
+                  <Input id="insumo-nome" value={formData.nome} onChange={(e) => {
                     setFormData({ ...formData, nome: e.target.value });
                     if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
                   }} placeholder="Ex: Leite Condensado" />
                   {formErrors.nome && <p className="text-xs text-destructive">{formErrors.nome}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Unidade</Label>
-                  <Input value={formData.unidade} onChange={(e) => {
+                  <Label htmlFor="insumo-unidade">Unidade</Label>
+                  <Input id="insumo-unidade" value={formData.unidade} onChange={(e) => {
                     setFormData({ ...formData, unidade: e.target.value });
                     if (formErrors.unidade) setFormErrors({ ...formErrors, unidade: '' });
                   }} placeholder="Ex: lata, kg" />
@@ -151,16 +151,16 @@ function InsumosTab() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Quantidade Atual</Label>
-                  <Input type="number" step="0.1" min="0" value={formData.quantidade_atual} onChange={(e) => {
+                  <Label htmlFor="insumo-quantidade-atual">Quantidade Atual</Label>
+                  <Input id="insumo-quantidade-atual" type="number" step="0.1" min="0" value={formData.quantidade_atual} onChange={(e) => {
                     setFormData({ ...formData, quantidade_atual: e.target.value });
                     if (formErrors.quantidade_atual) setFormErrors({ ...formErrors, quantidade_atual: '' });
                   }} />
                   {formErrors.quantidade_atual && <p className="text-xs text-destructive">{formErrors.quantidade_atual}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantidade Mínima</Label>
-                  <Input type="number" step="0.1" min="0" value={formData.quantidade_minima} onChange={(e) => {
+                  <Label htmlFor="insumo-quantidade-minima">Quantidade Mínima</Label>
+                  <Input id="insumo-quantidade-minima" type="number" step="0.1" min="0" value={formData.quantidade_minima} onChange={(e) => {
                     setFormData({ ...formData, quantidade_minima: e.target.value });
                     if (formErrors.quantidade_minima) setFormErrors({ ...formErrors, quantidade_minima: '' });
                   }} />
@@ -169,16 +169,16 @@ function InsumosTab() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Consumo Médio/Sem.</Label>
-                  <Input type="number" step="0.1" min="0" value={formData.consumo_medio} onChange={(e) => {
+                  <Label htmlFor="insumo-consumo-medio">Consumo Médio/Sem.</Label>
+                  <Input id="insumo-consumo-medio" type="number" step="0.1" min="0" value={formData.consumo_medio} onChange={(e) => {
                     setFormData({ ...formData, consumo_medio: e.target.value });
                     if (formErrors.consumo_medio) setFormErrors({ ...formErrors, consumo_medio: '' });
                   }} />
                   {formErrors.consumo_medio && <p className="text-xs text-destructive">{formErrors.consumo_medio}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Preço Unitário (R$)</Label>
-                  <Input type="number" step="0.01" min="0" value={formData.preco_unitario} onChange={(e) => {
+                  <Label htmlFor="insumo-preco-unitario">Preço Unitário (R$)</Label>
+                  <Input id="insumo-preco-unitario" type="number" step="0.01" min="0" value={formData.preco_unitario} onChange={(e) => {
                     setFormData({ ...formData, preco_unitario: e.target.value });
                     if (formErrors.preco_unitario) setFormErrors({ ...formErrors, preco_unitario: '' });
                   }} />
