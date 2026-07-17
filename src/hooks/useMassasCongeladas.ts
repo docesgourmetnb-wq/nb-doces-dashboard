@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Recipiente } from './useRecipientes';
+
+type MassaCongeladaRow = Tables<'massas_congeladas'>;
+type RecipienteRow = Tables<'recipientes'>;
+type MassaCongeladaWithRecipiente = MassaCongeladaRow & {
+  recipiente?: RecipienteRow | null;
+};
 
 export interface MassaCongelada {
   id: string;
@@ -22,6 +29,15 @@ export interface MassaCongelada {
 
 export interface MassaComPesoCalculado extends MassaCongelada {
   peso_massa: number; // Calculated: peso_total - recipiente.peso_vazio
+}
+
+function withPesoMassa(massa: MassaCongeladaWithRecipiente): MassaComPesoCalculado {
+  return {
+    ...massa,
+    status: massa.status as MassaCongelada['status'],
+    recipiente: massa.recipiente as Recipiente | undefined,
+    peso_massa: massa.peso_total - (massa.recipiente?.peso_vazio || 0),
+  };
 }
 
 export function useMassasCongeladas() {
@@ -53,10 +69,7 @@ export function useMassasCongeladas() {
       });
     } else {
       // Calculate peso_massa for each item
-      const massasComPeso = (data || []).map((m: any) => ({
-        ...m,
-        peso_massa: m.peso_total - (m.recipiente?.peso_vazio || 0),
-      }));
+      const massasComPeso = (data || []).map(withPesoMassa);
       setMassas(massasComPeso);
     }
     setLoading(false);
@@ -96,10 +109,7 @@ export function useMassasCongeladas() {
       return null;
     }
 
-    const massaComPeso = {
-      ...data,
-      peso_massa: data.peso_total - (data.recipiente?.peso_vazio || 0),
-    } as MassaComPesoCalculado;
+    const massaComPeso = withPesoMassa(data);
 
     setMassas(prev => [...prev, massaComPeso]);
     toast({
