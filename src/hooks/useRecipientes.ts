@@ -51,7 +51,7 @@ export function useRecipientes() {
   }, [fetchRecipientes]);
 
   const addRecipiente = async (recipiente: Omit<Recipiente, 'id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return;
+    if (!user) return undefined;
 
     const { data, error } = await supabase
       .from('recipientes')

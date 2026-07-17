@@ -54,7 +54,7 @@ export function useBrigadeiros() {
   }, [fetchBrigadeiros]);
 
   const addBrigadeiro = async (brigadeiro: Omit<Brigadeiro, 'id' | 'margem_lucro'>) => {
-    if (!user) return;
+    if (!user) return undefined;
     
     try {
       const { data, error } = await supabase
@@ -82,6 +82,7 @@ export function useBrigadeiros() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 
@@ -105,6 +106,7 @@ export function useBrigadeiros() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 

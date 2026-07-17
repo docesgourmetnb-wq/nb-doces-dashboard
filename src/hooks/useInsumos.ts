@@ -55,7 +55,7 @@ export function useInsumos() {
   }, [fetchInsumos]);
 
   const addInsumo = async (insumo: Omit<Insumo, 'id'>) => {
-    if (!user) return;
+    if (!user) return undefined;
     
     try {
       const { data, error } = await supabase
@@ -84,6 +84,7 @@ export function useInsumos() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 
@@ -107,6 +108,7 @@ export function useInsumos() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 

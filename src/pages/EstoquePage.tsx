@@ -263,7 +263,10 @@ function MassasTab() {
   const handleAction = async () => {
     if (!actionMassa || !actionValue) return;
     const val = Number(actionValue);
-    if (!Number.isFinite(val) || val <= 0) return toast({ title: 'Valor inválido', variant: 'destructive' });
+    if (!Number.isFinite(val) || val <= 0) {
+      toast({ title: 'Valor inválido', variant: 'destructive' });
+      return;
+    }
     
     const delta = actionType === 'add' ? val : -val;
     await updateQuantidade(actionMassa.id, delta);
@@ -384,7 +387,10 @@ function ProdutosTab() {
   const handleAction = async () => {
     if (!actionProduto || !actionValue) return;
     const val = Number(actionValue);
-    if (!Number.isInteger(val) || val <= 0) return toast({ title: 'Valor inválido', variant: 'destructive' });
+    if (!Number.isInteger(val) || val <= 0) {
+      toast({ title: 'Valor inválido', variant: 'destructive' });
+      return;
+    }
     
     const delta = actionType === 'add' ? val : -val;
     await updateQuantidade(actionProduto.id, delta);
