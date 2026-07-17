@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  getProducaoStatusBadgeClass,
+  getProducaoStatusLabel,
+  isProducaoConcluida,
+} from './producao.ts';
+
+test('getProducaoStatusLabel returns labels for known statuses and preserves unknown values', () => {
+  assert.equal(getProducaoStatusLabel('planejado'), 'Planejado');
+  assert.equal(getProducaoStatusLabel('em-andamento'), 'Em Andamento');
+  assert.equal(getProducaoStatusLabel('status-novo'), 'status-novo');
+});
+
+test('getProducaoStatusBadgeClass returns configured classes only for known statuses', () => {
+  assert.match(getProducaoStatusBadgeClass('concluido'), /success/);
+  assert.equal(getProducaoStatusBadgeClass('status-novo'), '');
+});
+
+test('isProducaoConcluida only returns true for concluido', () => {
+  assert.equal(isProducaoConcluida('concluido'), true);
+  assert.equal(isProducaoConcluida('em-andamento'), false);
+  assert.equal(isProducaoConcluida('planejado'), false);
+});
