@@ -258,13 +258,21 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           data: string
+          data_entrega: string
+          tipo_entrega: string
+          endereco_entrega: string | null
+          canal_venda: string
           forma_pagamento: string
           id: string
           observacoes: string | null
+          saldo_restante: number
           status: string
+          status_financeiro: string
+          status_operacional: string
           tipo_pedido: string
           updated_at: string
           user_id: string
+          valor_pago: number
           valor_total: number
         }
         Insert: {
@@ -274,13 +282,21 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data?: string
+          data_entrega?: string
+          tipo_entrega?: string
+          endereco_entrega?: string | null
+          canal_venda?: string
           forma_pagamento?: string
           id?: string
           observacoes?: string | null
+          saldo_restante?: never
           status?: string
+          status_financeiro?: string
+          status_operacional?: string
           tipo_pedido?: string
           updated_at?: string
           user_id: string
+          valor_pago?: number
           valor_total?: number
         }
         Update: {
@@ -290,13 +306,21 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data?: string
+          data_entrega?: string
+          tipo_entrega?: string
+          endereco_entrega?: string | null
+          canal_venda?: string
           forma_pagamento?: string
           id?: string
           observacoes?: string | null
+          saldo_restante?: never
           status?: string
+          status_financeiro?: string
+          status_operacional?: string
           tipo_pedido?: string
           updated_at?: string
           user_id?: string
+          valor_pago?: number
           valor_total?: number
         }
         Relationships: [

@@ -36,7 +36,7 @@ export function usePaginatedPedidos() {
         countQuery = countQuery.is('archived_at', null);
       }
       if (statusFilter !== 'todos') {
-        countQuery = countQuery.eq('status', statusFilter);
+        countQuery = countQuery.eq('status_operacional', statusFilter);
       }
       if (search) {
         countQuery = countQuery.ilike('cliente', `%${search}%`);
@@ -53,14 +53,14 @@ export function usePaginatedPedidos() {
       let dataQuery = supabase
         .from('pedidos')
         .select('*, clientes(nome), itens_pedido(*)')
-        .order('data', { ascending: false })
+        .order('data_entrega', { ascending: false })
         .range(from, to);
 
       if (!showArchived) {
         dataQuery = dataQuery.is('archived_at', null);
       }
       if (statusFilter !== 'todos') {
-        dataQuery = dataQuery.eq('status', statusFilter);
+        dataQuery = dataQuery.eq('status_operacional', statusFilter);
       }
       if (search) {
         dataQuery = dataQuery.ilike('cliente', `%${search}%`);

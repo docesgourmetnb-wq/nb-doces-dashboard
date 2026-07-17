@@ -27,11 +27,18 @@ export interface Pedido {
   id: string;
   cliente: string;
   data: Date;
+  dataEntrega: Date;
   tipoPedido: 'encomenda' | 'pronta-entrega' | 'evento';
+  tipoEntrega: 'retirada' | 'entrega';
+  enderecoEntrega?: string;
+  canalVenda: 'whatsapp' | 'instagram';
   itens: ItemPedido[];
   valorTotal: number;
+  valorPago: number;
+  saldoRestante: number;
   formaPagamento: 'pix' | 'cartao' | 'dinheiro' | 'transferencia';
-  status: 'pendente' | 'em-producao' | 'pronto' | 'entregue' | 'cancelado';
+  status: 'orcamento' | 'confirmado' | 'em-producao' | 'pronto' | 'entregue' | 'cancelado';
+  statusFinanceiro: 'nao_pago' | 'parcial' | 'pago';
   observacoes?: string;
 }
 

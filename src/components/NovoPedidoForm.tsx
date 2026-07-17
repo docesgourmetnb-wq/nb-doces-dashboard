@@ -5,6 +5,15 @@ import { ptBR } from 'date-fns/locale';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido } from '@/hooks/usePedidos';
+import {
+  CANAIS_VENDA,
+  CANAL_VENDA_LABELS,
+  ENTREGA_LABELS,
+  ENTREGA_TIPOS,
+  derivePedidoFinanceiroStatus,
+  type CanalVenda,
+  type EntregaTipo,
+} from '@/domain/pedidos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +52,11 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const [modoCliente, setModoCliente] = useState<'existente' | 'novo'>('existente');
   const [dataPedido, setDataPedido] = useState<Date>(new Date());
   const [tipoPedido, setTipoPedido] = useState<Pedido['tipo_pedido']>('encomenda');
+  const [tipoEntrega, setTipoEntrega] = useState<EntregaTipo>('retirada');
+  const [enderecoEntrega, setEnderecoEntrega] = useState('');
+  const [canalVenda, setCanalVenda] = useState<CanalVenda>('whatsapp');
   const [formaPagamento, setFormaPagamento] = useState<Pedido['forma_pagamento']>('pix');
+  const [valorPago, setValorPago] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [itens, setItens] = useState<ItemPedido[]>([]);
   
@@ -52,10 +65,14 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const [quantidade, setQuantidade] = useState(1);
 
   const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.preco_unitario), 0);
+  const valorPagoNumber = Number(valorPago || 0);
+  const valorPagoValido = Number.isFinite(valorPagoNumber) && valorPagoNumber >= 0 && valorPagoNumber <= valorTotal;
+  const enderecoEntregaValido = tipoEntrega !== 'entrega' || enderecoEntrega.trim().length > 0;
 
   const clienteNome = modoCliente === 'existente' 
     ? clientes.find(c => c.id === clienteId)?.nome || ''
     : clienteNovo.trim();
+  const canSubmit = Boolean(clienteNome) && itens.length > 0 && valorPagoValido && enderecoEntregaValido;
 
   const handleAddItem = () => {
     if (!selectedBrigadeiro || quantidade <= 0) return;
@@ -89,18 +106,29 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (!clienteNome || itens.length === 0) return;
+    if (!canSubmit) return;
     
     setLoading(true);
     try {
+      const dataEntrega = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`;
+      const statusFinanceiro = derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber);
+
       await addPedido({
         cliente: clienteNome,
         cliente_id: modoCliente === 'existente' && clienteId ? clienteId : null,
-        data: `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`,
+        data: dataEntrega,
+        data_entrega: dataEntrega,
         tipo_pedido: tipoPedido,
+        tipo_entrega: tipoEntrega,
+        endereco_entrega: tipoEntrega === 'entrega' ? enderecoEntrega.trim() : null,
+        canal_venda: canalVenda,
         valor_total: valorTotal,
+        valor_pago: valorPagoNumber,
+        saldo_restante: Math.max(valorTotal - valorPagoNumber, 0),
         forma_pagamento: formaPagamento,
-        status: 'pendente',
+        status: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
+        status_operacional: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
+        status_financeiro: statusFinanceiro,
         observacoes: observacoes.trim() || null,
       }, itens);
       
@@ -119,7 +147,11 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     setModoCliente('existente');
     setDataPedido(new Date());
     setTipoPedido('encomenda');
+    setTipoEntrega('retirada');
+    setEnderecoEntrega('');
+    setCanalVenda('whatsapp');
     setFormaPagamento('pix');
+    setValorPago('');
     setObservacoes('');
     setItens([]);
     setSelectedBrigadeiro('');
@@ -191,9 +223,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
             )}
           </div>
 
-          {/* Order Date */}
+          {/* Delivery Date */}
           <div className="space-y-2">
-            <Label htmlFor="pedido-data">Data do Pedido</Label>
+            <Label htmlFor="pedido-data">Data de Entrega/Retirada</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -224,18 +256,66 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
           </div>
 
           {/* Order Type */}
-          <div className="space-y-2">
-            <Label htmlFor="pedido-tipo">Tipo de Pedido</Label>
-            <Select value={tipoPedido} onValueChange={(v: Pedido['tipo_pedido']) => setTipoPedido(v)}>
-              <SelectTrigger id="pedido-tipo">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="encomenda">Encomenda</SelectItem>
-                <SelectItem value="pronta-entrega">Pronta Entrega</SelectItem>
-                <SelectItem value="evento">Evento</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="pedido-tipo">Tipo de Pedido</Label>
+              <Select value={tipoPedido} onValueChange={(v: Pedido['tipo_pedido']) => setTipoPedido(v)}>
+                <SelectTrigger id="pedido-tipo">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="encomenda">Encomenda</SelectItem>
+                  <SelectItem value="pronta-entrega">Pronta Entrega</SelectItem>
+                  <SelectItem value="evento">Evento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pedido-canal-venda">Canal de Venda</Label>
+              <Select value={canalVenda} onValueChange={(v: CanalVenda) => setCanalVenda(v)}>
+                <SelectTrigger id="pedido-canal-venda">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CANAIS_VENDA.map((canal) => (
+                    <SelectItem key={canal} value={canal}>{CANAL_VENDA_LABELS[canal]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Fulfillment */}
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="pedido-tipo-entrega">Atendimento</Label>
+              <Select value={tipoEntrega} onValueChange={(v: EntregaTipo) => setTipoEntrega(v)}>
+                <SelectTrigger id="pedido-tipo-entrega">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENTREGA_TIPOS.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>{ENTREGA_LABELS[tipo]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {tipoEntrega === 'entrega' && (
+              <div className="space-y-2">
+                <Label htmlFor="pedido-endereco-entrega">Endereço de entrega *</Label>
+                <Input
+                  id="pedido-endereco-entrega"
+                  value={enderecoEntrega}
+                  onChange={(e) => setEnderecoEntrega(e.target.value)}
+                  placeholder="Endereço completo para entrega"
+                  aria-invalid={!enderecoEntregaValido}
+                  aria-describedby={!enderecoEntregaValido ? 'pedido-endereco-entrega-error' : undefined}
+                />
+                {!enderecoEntregaValido && (
+                  <p id="pedido-endereco-entrega-error" className="text-xs text-destructive">Informe o endereço para entrega.</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Add Items */}
@@ -306,19 +386,45 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
           </div>
 
           {/* Payment */}
-          <div className="space-y-2">
-            <Label htmlFor="pedido-forma-pagamento">Forma de Pagamento</Label>
-            <Select value={formaPagamento} onValueChange={(v: Pedido['forma_pagamento']) => setFormaPagamento(v)}>
-              <SelectTrigger id="pedido-forma-pagamento">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pix">PIX</SelectItem>
-                <SelectItem value="cartao">Cartão</SelectItem>
-                <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                <SelectItem value="transferencia">Transferência</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="pedido-forma-pagamento">Forma de Pagamento</Label>
+              <Select value={formaPagamento} onValueChange={(v: Pedido['forma_pagamento']) => setFormaPagamento(v)}>
+                <SelectTrigger id="pedido-forma-pagamento">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao">Cartão</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pedido-valor-pago">Valor pago</Label>
+              <Input
+                id="pedido-valor-pago"
+                type="number"
+                min="0"
+                max={valorTotal}
+                step="0.01"
+                value={valorPago}
+                onChange={(e) => setValorPago(e.target.value)}
+                placeholder={valorTotal > 0 ? `Sugestão: R$ ${(valorTotal / 2).toFixed(2)}` : '0.00'}
+                aria-invalid={!valorPagoValido}
+                aria-describedby={!valorPagoValido ? 'pedido-valor-pago-error' : undefined}
+              />
+              {!valorPagoValido && (
+                <p id="pedido-valor-pago-error" className="text-xs text-destructive">Informe um valor entre R$ 0,00 e o total do pedido.</p>
+              )}
+            </div>
+            <div className="sm:col-span-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Saldo restante</span>
+                <span className="font-medium">R$ {Math.max(valorTotal - (valorPagoValido ? valorPagoNumber : 0), 0).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
           {/* Notes */}
@@ -340,7 +446,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
             </Button>
             <Button 
               onClick={handleSubmit} 
-              disabled={loading || !clienteNome || itens.length === 0}
+              disabled={loading || !canSubmit}
             >
               {loading ? (
                 <>
