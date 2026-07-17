@@ -14,7 +14,11 @@ import {
   PEDIDO_STATUSES,
   getPedidoStatusLabel,
   getPedidoStatusBadgeClass,
+  getPedidoFinanceiroStatusBadgeClass,
+  getPedidoFinanceiroStatusLabel,
   isPedidoTerminal,
+  CANAL_VENDA_LABELS,
+  ENTREGA_LABELS,
   PAGAMENTO_LABELS,
 } from '@/domain/pedidos';
 import {
@@ -37,7 +41,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function VendasPage() {
-  const { updatePedidoStatus, archivePedido, unarchivePedido } = usePedidos();
+  const { updatePedidoStatus, updatePedidoPayment, archivePedido, unarchivePedido } = usePedidos();
   const {
     pedidos: filteredPedidos, loading,
     page, setPage, totalPages, totalCount,
@@ -84,6 +88,11 @@ export function VendasPage() {
 
   const handleUnarchive = async (id: string) => {
     await unarchivePedido(id);
+    refetch();
+  };
+
+  const handleRegisterRemainingPayment = async (pedido: Pedido) => {
+    await updatePedidoPayment(pedido.id, pedido.valor_total);
     refetch();
   };
 
@@ -208,7 +217,7 @@ export function VendasPage() {
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-left p-4 font-medium text-sm">Cliente</th>
-                    <th className="text-left p-4 font-medium text-sm">Data</th>
+                    <th className="text-left p-4 font-medium text-sm">Entrega</th>
                     <th className="text-left p-4 font-medium text-sm">Itens</th>
                     <th className="text-left p-4 font-medium text-sm">Total</th>
                     <th className="text-left p-4 font-medium text-sm">Pagamento</th>
@@ -229,7 +238,12 @@ export function VendasPage() {
                         )}
                       </td>
                       <td className="p-4 text-muted-foreground">
-                        {format(new Date(pedido.data), 'dd/MM/yyyy', { locale: ptBR })}
+                        <div className="space-y-1">
+                          <p>{format(new Date(pedido.data_entrega), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          <p className="text-xs">
+                            {ENTREGA_LABELS[pedido.tipo_entrega]} • {CANAL_VENDA_LABELS[pedido.canal_venda]}
+                          </p>
+                        </div>
                       </td>
                       <td className="p-4">
                         <span className="text-sm text-muted-foreground">
@@ -240,7 +254,26 @@ export function VendasPage() {
                         R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-4">
-                        <span className="text-sm">{PAGAMENTO_LABELS[pedido.forma_pagamento]}</span>
+                        <div className="space-y-1">
+                          <span className={cn("inline-flex rounded-full px-2 py-1 text-xs font-medium", getPedidoFinanceiroStatusBadgeClass(pedido.status_financeiro))}>
+                            {getPedidoFinanceiroStatusLabel(pedido.status_financeiro)}
+                          </span>
+                          <p className="text-xs text-muted-foreground">{PAGAMENTO_LABELS[pedido.forma_pagamento]}</p>
+                          {pedido.saldo_restante > 0 && (
+                            <p className="text-xs text-warning">Saldo: R$ {pedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          )}
+                          {pedido.saldo_restante > 0 && !pedido.archived_at && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => handleRegisterRemainingPayment(pedido)}
+                            >
+                              Registrar saldo
+                            </Button>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4">
                         <Select
@@ -285,11 +318,25 @@ export function VendasPage() {
                                     <p className="font-medium">{getClienteDisplayName(pedido)}</p>
                                   </div>
                                   <div>
-                                    <p className="text-muted-foreground">Data</p>
+                                    <p className="text-muted-foreground">Data de entrega/retirada</p>
                                     <p className="font-medium">
-                                      {format(new Date(pedido.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                      {format(new Date(pedido.data_entrega), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                                     </p>
                                   </div>
+                                  <div>
+                                    <p className="text-muted-foreground">Atendimento</p>
+                                    <p className="font-medium">{ENTREGA_LABELS[pedido.tipo_entrega]}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-muted-foreground">Canal</p>
+                                    <p className="font-medium">{CANAL_VENDA_LABELS[pedido.canal_venda]}</p>
+                                  </div>
+                                  {pedido.endereco_entrega && (
+                                    <div className="col-span-2">
+                                      <p className="text-muted-foreground">Endereço</p>
+                                      <p className="font-medium">{pedido.endereco_entrega}</p>
+                                    </div>
+                                  )}
                                 </div>
                                 {pedido.archived_at && (
                                   <div className="p-3 bg-muted/50 rounded-lg text-sm">
@@ -318,10 +365,32 @@ export function VendasPage() {
                                   </div>
                                 )}
                                 <div className="pt-4 border-t border-border flex justify-between items-center">
-                                  <span className="font-medium">Total</span>
-                                  <span className="text-2xl font-display font-semibold text-primary">
-                                    R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                  </span>
+                                  <div className="space-y-1">
+                                    <span className="font-medium">Pagamento</span>
+                                    <p className="text-sm text-muted-foreground">
+                                      Pago: R$ {pedido.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Saldo: R$ {pedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </p>
+                                    {pedido.saldo_restante > 0 && !pedido.archived_at && (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="mt-2"
+                                        onClick={() => handleRegisterRemainingPayment(pedido)}
+                                      >
+                                        Registrar saldo restante
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm text-muted-foreground">Total</p>
+                                    <span className="text-2xl font-display font-semibold text-primary">
+                                      R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
                                 </div>
                                 {/* Audit History */}
                                 <div className="pt-4 border-t border-border">

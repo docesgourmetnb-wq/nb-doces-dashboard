@@ -4,7 +4,12 @@ import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { type PedidoStatus } from '@/domain/pedidos';
+import {
+  type CanalVenda,
+  type EntregaTipo,
+  type PedidoFinanceiroStatus,
+  type PedidoStatus,
+} from '@/domain/pedidos';
 
 export interface ItemPedido {
   id?: string;
@@ -20,10 +25,18 @@ export interface Pedido {
   cliente_id?: string | null;
   cliente_nome?: string | null; // joined from clientes table
   data: string;
+  data_entrega: string;
   tipo_pedido: 'encomenda' | 'pronta-entrega' | 'evento';
+  tipo_entrega: EntregaTipo;
+  endereco_entrega?: string | null;
+  canal_venda: CanalVenda;
   valor_total: number;
+  valor_pago: number;
+  saldo_restante: number;
   forma_pagamento: 'pix' | 'cartao' | 'dinheiro' | 'transferencia';
   status: PedidoStatus;
+  status_operacional: PedidoStatus;
+  status_financeiro: PedidoFinanceiroStatus;
   observacoes?: string | null;
   itens?: ItemPedido[];
   archived_at?: string | null;
@@ -54,6 +67,19 @@ interface UpdatePedidoStatusRpc {
   }>;
 }
 
+interface UpdatePedidoPaymentRpc {
+  (
+    fn: 'update_pedido_payment',
+    params: {
+      p_pedido_id: string;
+      p_valor_pago: number;
+    },
+  ): Promise<{
+    data: Partial<PedidoRow> | null;
+    error: Error | null;
+  }>;
+}
+
 interface CreatePedidoWithItemsRpc {
   (
     fn: 'create_pedido_with_items',
@@ -72,6 +98,11 @@ interface CreatePedidoWithItemsRpc {
         quantidade: number;
         preco_unitario: number;
       }>;
+      p_data_entrega: string;
+      p_tipo_entrega: EntregaTipo;
+      p_endereco_entrega: string | null;
+      p_canal_venda: CanalVenda;
+      p_valor_pago: number;
     },
   ): Promise<{
     data: PedidoRow | null;
@@ -90,10 +121,18 @@ export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
     cliente_id: pedido.cliente_id,
     cliente_nome: pedido.clientes?.nome || null,
     data: pedido.data,
+    data_entrega: pedido.data_entrega,
     tipo_pedido: pedido.tipo_pedido as Pedido['tipo_pedido'],
+    tipo_entrega: pedido.tipo_entrega as EntregaTipo,
+    endereco_entrega: pedido.endereco_entrega,
+    canal_venda: pedido.canal_venda as CanalVenda,
     valor_total: pedido.valor_total,
+    valor_pago: pedido.valor_pago,
+    saldo_restante: pedido.saldo_restante,
     forma_pagamento: pedido.forma_pagamento as Pedido['forma_pagamento'],
-    status: pedido.status as Pedido['status'],
+    status: (pedido.status_operacional || pedido.status) as Pedido['status'],
+    status_operacional: (pedido.status_operacional || pedido.status) as Pedido['status'],
+    status_financeiro: pedido.status_financeiro as PedidoFinanceiroStatus,
     observacoes: pedido.observacoes,
     itens: pedido.itens_pedido || [],
     archived_at: pedido.archived_at,
@@ -156,6 +195,14 @@ export function usePedidos() {
     try {
       const pedido = pedidos.find(p => p.id === id);
       if (!pedido || pedido.status === status) return; // idempotency guard
+      if (status === 'entregue' && pedido.saldo_restante > 0) {
+        toast({
+          title: 'Saldo pendente',
+          description: 'Este pedido ainda possui saldo pendente e não pode ser marcado como entregue.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const updateStatusRpc = supabase.rpc as unknown as UpdatePedidoStatusRpc;
       const { error } = await updateStatusRpc('update_pedido_status', {
@@ -165,11 +212,32 @@ export function usePedidos() {
 
       if (error) throw error;
 
-      setPedidos(pedidos.map(p => p.id === id ? { ...p, status } : p));
+      setPedidos(pedidos.map(p => p.id === id ? { ...p, status, status_operacional: status } : p));
       toast({ title: 'Status atualizado!' });
     } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar status',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const updatePedidoPayment = async (id: string, valorPago: number) => {
+    try {
+      const updatePaymentRpc = supabase.rpc as unknown as UpdatePedidoPaymentRpc;
+      const { error } = await updatePaymentRpc('update_pedido_payment', {
+        p_pedido_id: id,
+        p_valor_pago: valorPago,
+      });
+
+      if (error) throw error;
+
+      await fetchPedidos();
+      toast({ title: 'Pagamento registrado!' });
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao registrar pagamento',
         description: getErrorMessage(error),
         variant: 'destructive',
       });
@@ -196,6 +264,11 @@ export function usePedidos() {
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
           })),
+        p_data_entrega: pedido.data_entrega,
+        p_tipo_entrega: pedido.tipo_entrega,
+        p_endereco_entrega: pedido.endereco_entrega || null,
+        p_canal_venda: pedido.canal_venda,
+        p_valor_pago: pedido.valor_pago,
       });
 
       if (error) throw error;
@@ -255,5 +328,16 @@ export function usePedidos() {
     }
   };
 
-  return { pedidos, loading, updatePedidoStatus, addPedido, refetch: fetchPedidos, showArchived, setShowArchived, archivePedido, unarchivePedido };
+  return {
+    pedidos,
+    loading,
+    updatePedidoStatus,
+    updatePedidoPayment,
+    addPedido,
+    refetch: fetchPedidos,
+    showArchived,
+    setShowArchived,
+    archivePedido,
+    unarchivePedido,
+  };
 }
