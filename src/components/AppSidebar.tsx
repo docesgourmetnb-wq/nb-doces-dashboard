@@ -9,10 +9,8 @@ import {
   BookOpen,
   Menu,
   X,
-  Cookie,
   LogOut,
-  Users,
-  Snowflake
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';

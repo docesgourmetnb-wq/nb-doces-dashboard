@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, AlertTriangle, Package, Loader2, ArrowRight, ArrowLeft, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
+import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
 import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 
 function InsumosTab() {
-  const { insumos, loading, addInsumo, updateInsumo, deleteInsumo } = useInsumos();
+  const { insumos, loading, addInsumo, updateInsumo } = useInsumos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
   const [saving, setSaving] = useState(false);
