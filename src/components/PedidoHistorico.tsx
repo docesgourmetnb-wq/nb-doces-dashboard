@@ -26,10 +26,12 @@ function formatMeta(entry: AuditLogEntry): string | null {
     case 'archived':
       return metadataText(m, 'reason') ? `Motivo: ${metadataText(m, 'reason')}` : null;
     case 'venda_created':
-    case 'estorno_created':
-      return typeof m.valor === 'number'
-        ? `R$ ${m.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    case 'estorno_created': {
+      const valor = m['valor'];
+      return typeof valor === 'number'
+        ? `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
         : null;
+    }
     default:
       return null;
   }
