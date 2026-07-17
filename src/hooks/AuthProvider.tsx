@@ -58,6 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session && devAutoLoginEnabled && devAutoEmail && devAutoPassword) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: devAutoEmail,
+          password: devAutoPassword,
+        });
+        if (error) {
+          if (import.meta.env.DEV) console.warn('[dev auto-login] failed:', error.message);
+        } else {
+          session = data.session;
+        }
+      }
       setSession(session);
       setUser(session?.user ?? null);
       await loadProfile(session?.user ?? null);
