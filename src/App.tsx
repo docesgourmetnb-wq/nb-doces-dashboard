@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   
   if (loading) {
     return (
@@ -24,6 +24,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (profile && !profile.active) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="max-w-md text-center space-y-2">
+          <h1 className="font-display text-2xl font-semibold text-foreground">Acesso desativado</h1>
+          <p className="text-muted-foreground">Sua conta está inativa. Solicite reativação ao administrador.</p>
+        </div>
+      </div>
+    );
   }
   
   return <>{children}</>;

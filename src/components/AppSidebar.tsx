@@ -23,19 +23,20 @@ interface AppSidebarProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'produtos', label: 'Produtos', icon: Package },
-  { id: 'clientes', label: 'Clientes', icon: Users },
-  { id: 'vendas', label: 'Vendas', icon: ShoppingCart },
-  { id: 'producao', label: 'Produção', icon: Factory },
-  { id: 'receitas', label: 'Receitas', icon: BookOpen },
-  { id: 'estoque', label: 'Estoque', icon: Warehouse },
-  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
+  { id: 'dashboard', module: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'produtos', module: 'produtos', label: 'Produtos', icon: Package },
+  { id: 'clientes', module: 'clientes', label: 'Clientes', icon: Users },
+  { id: 'vendas', module: 'pedidos', label: 'Vendas', icon: ShoppingCart },
+  { id: 'producao', module: 'producao', label: 'Produção', icon: Factory },
+  { id: 'receitas', module: 'receitas', label: 'Receitas', icon: BookOpen },
+  { id: 'estoque', module: 'estoque', label: 'Estoque', icon: Warehouse },
+  { id: 'financeiro', module: 'financeiro', label: 'Financeiro', icon: DollarSign },
 ];
 
 export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { signOut, user } = useAuth();
+  const { signOut, user, profile, canAccess } = useAuth();
+  const visibleMenuItems = menuItems.filter((item) => canAccess(item.module));
 
   const handleLogout = async () => {
     await signOut();
@@ -76,7 +77,7 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {menuItems.map((item) => {
+            {visibleMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
               
@@ -104,9 +105,10 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
           {/* User & Logout */}
           <div className="p-4 border-t border-white/10 space-y-3">
             {user && (
-              <p className="text-xs text-white/60 truncate px-2">
-                {user.email}
-              </p>
+              <div className="px-2 space-y-1">
+                <p className="text-xs text-white/60 truncate">{user.email}</p>
+                {profile?.role && <p className="text-[11px] uppercase tracking-wide text-white/40">{profile.role}</p>}
+              </div>
             )}
             <button
               onClick={handleLogout}
