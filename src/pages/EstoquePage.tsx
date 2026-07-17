@@ -224,7 +224,13 @@ function InsumosTab() {
             const stockStatus = getStockStatus(insumo);
             const progressValue = Math.min((insumo.quantidade_atual / insumo.quantidade_minima) * 100, 100);
             return (
-              <div key={insumo.id} onClick={() => handleOpenDialog(insumo)} className="bg-card border border-border rounded-xl p-5 card-hover cursor-pointer shadow-sm">
+              <button
+                key={insumo.id}
+                type="button"
+                onClick={() => handleOpenDialog(insumo)}
+                className="w-full bg-card border border-border rounded-xl p-5 card-hover cursor-pointer shadow-sm text-left"
+                aria-label={`Editar insumo ${insumo.nome}`}
+              >
                 <div className="flex justify-between mb-3">
                   <h3 className="font-semibold font-display">{insumo.nome}</h3>
                   {stockStatus.status !== 'ok' && (
@@ -239,7 +245,7 @@ function InsumosTab() {
                 </div>
                 <Progress value={progressValue} className="h-2 mb-4" />
                 <p className="text-sm text-muted-foreground">R$ {insumo.preco_unitario?.toFixed(2) || '0.00'} / un</p>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -300,8 +306,8 @@ function MassasTab() {
             <DialogHeader><DialogTitle>Registrar Novo Sabor de Massa</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>Sabor da Massa</Label>
-                <Input value={sabor} onChange={(e) => setSabor(e.target.value)} placeholder="Ex: Chocolate ao Leite" />
+                <Label htmlFor="estoque-massa-sabor">Sabor da Massa</Label>
+                <Input id="estoque-massa-sabor" value={sabor} onChange={(e) => setSabor(e.target.value)} placeholder="Ex: Chocolate ao Leite" />
               </div>
               <Button onClick={handleRegister} className="w-full">Registrar</Button>
             </div>
@@ -357,8 +363,8 @@ function MassasTab() {
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">Massa: <strong>{actionMassa?.sabor}</strong></p>
             <div className="space-y-2">
-              <Label>Quantidade (Gramas g)</Label>
-              <Input type="number" min="0.1" step="0.1" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 500" />
+              <Label htmlFor="estoque-massa-quantidade">Quantidade (Gramas g)</Label>
+              <Input id="estoque-massa-quantidade" type="number" min="0.1" step="0.1" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 500" />
             </div>
             <Button onClick={handleAction} className="w-full" variant={actionType === 'add' ? 'default' : 'destructive'}>
               Confirmar {actionType === 'add' ? 'Entrada' : 'Saída'}
@@ -428,8 +434,8 @@ function ProdutosTab() {
             <DialogHeader><DialogTitle>Acompanhar Novo Produto</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>Produto Base</Label>
-                <select className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" value={brigadeiroId} onChange={e => setBrigadeiroId(e.target.value)}>
+                <Label htmlFor="estoque-produto-base">Produto Base</Label>
+                <select id="estoque-produto-base" className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" value={brigadeiroId} onChange={e => setBrigadeiroId(e.target.value)}>
                    <option value="">Selecione um produto...</option>
                    {availableBrigadeiros.map(b => (
                      <option key={b.id} value={b.id}>{b.nome}</option>
@@ -490,8 +496,8 @@ function ProdutosTab() {
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">Produto: <strong>{actionProduto?.brigadeiro?.nome}</strong></p>
             <div className="space-y-2">
-              <Label>Quantidade (Unidades)</Label>
-              <Input type="number" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 50" />
+              <Label htmlFor="estoque-produto-quantidade">Quantidade (Unidades)</Label>
+              <Input id="estoque-produto-quantidade" type="number" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 50" />
             </div>
             <Button onClick={handleAction} className="w-full" variant={actionType === 'add' ? 'default' : 'destructive'}>
               Confirmar {actionType === 'add' ? 'Entrada' : 'Saída'}
