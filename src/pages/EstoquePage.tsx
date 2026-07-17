@@ -142,16 +142,16 @@ function InsumosTab() {
                   <Input id="insumo-nome" value={formData.nome} onChange={(e) => {
                     setFormData({ ...formData, nome: e.target.value });
                     if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
-                  }} placeholder="Ex: Leite Condensado" />
-                  {formErrors.nome && <p className="text-xs text-destructive">{formErrors.nome}</p>}
+                  }} placeholder="Ex: Leite Condensado" aria-invalid={!!formErrors.nome} aria-describedby={formErrors.nome ? 'insumo-nome-error' : undefined} />
+                  {formErrors.nome && <p id="insumo-nome-error" className="text-xs text-destructive">{formErrors.nome}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-unidade">Unidade</Label>
                   <Input id="insumo-unidade" value={formData.unidade} onChange={(e) => {
                     setFormData({ ...formData, unidade: e.target.value });
                     if (formErrors.unidade) setFormErrors({ ...formErrors, unidade: '' });
-                  }} placeholder="Ex: lata, kg" />
-                  {formErrors.unidade && <p className="text-xs text-destructive">{formErrors.unidade}</p>}
+                  }} placeholder="Ex: lata, kg" aria-invalid={!!formErrors.unidade} aria-describedby={formErrors.unidade ? 'insumo-unidade-error' : undefined} />
+                  {formErrors.unidade && <p id="insumo-unidade-error" className="text-xs text-destructive">{formErrors.unidade}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -160,16 +160,16 @@ function InsumosTab() {
                   <Input id="insumo-quantidade-atual" type="number" step="0.1" min="0" value={formData.quantidade_atual} onChange={(e) => {
                     setFormData({ ...formData, quantidade_atual: e.target.value });
                     if (formErrors.quantidade_atual) setFormErrors({ ...formErrors, quantidade_atual: '' });
-                  }} />
-                  {formErrors.quantidade_atual && <p className="text-xs text-destructive">{formErrors.quantidade_atual}</p>}
+                  }} aria-invalid={!!formErrors.quantidade_atual} aria-describedby={formErrors.quantidade_atual ? 'insumo-quantidade-atual-error' : undefined} />
+                  {formErrors.quantidade_atual && <p id="insumo-quantidade-atual-error" className="text-xs text-destructive">{formErrors.quantidade_atual}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-quantidade-minima">Quantidade Mínima</Label>
                   <Input id="insumo-quantidade-minima" type="number" step="0.1" min="0" value={formData.quantidade_minima} onChange={(e) => {
                     setFormData({ ...formData, quantidade_minima: e.target.value });
                     if (formErrors.quantidade_minima) setFormErrors({ ...formErrors, quantidade_minima: '' });
-                  }} />
-                  {formErrors.quantidade_minima && <p className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
+                  }} aria-invalid={!!formErrors.quantidade_minima} aria-describedby={formErrors.quantidade_minima ? 'insumo-quantidade-minima-error' : undefined} />
+                  {formErrors.quantidade_minima && <p id="insumo-quantidade-minima-error" className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -178,16 +178,16 @@ function InsumosTab() {
                   <Input id="insumo-consumo-medio" type="number" step="0.1" min="0" value={formData.consumo_medio} onChange={(e) => {
                     setFormData({ ...formData, consumo_medio: e.target.value });
                     if (formErrors.consumo_medio) setFormErrors({ ...formErrors, consumo_medio: '' });
-                  }} />
-                  {formErrors.consumo_medio && <p className="text-xs text-destructive">{formErrors.consumo_medio}</p>}
+                  }} aria-invalid={!!formErrors.consumo_medio} aria-describedby={formErrors.consumo_medio ? 'insumo-consumo-medio-error' : undefined} />
+                  {formErrors.consumo_medio && <p id="insumo-consumo-medio-error" className="text-xs text-destructive">{formErrors.consumo_medio}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-preco-unitario">Preço Unitário (R$)</Label>
                   <Input id="insumo-preco-unitario" type="number" step="0.01" min="0" value={formData.preco_unitario} onChange={(e) => {
                     setFormData({ ...formData, preco_unitario: e.target.value });
                     if (formErrors.preco_unitario) setFormErrors({ ...formErrors, preco_unitario: '' });
-                  }} />
-                  {formErrors.preco_unitario && <p className="text-xs text-destructive">{formErrors.preco_unitario}</p>}
+                  }} aria-invalid={!!formErrors.preco_unitario} aria-describedby={formErrors.preco_unitario ? 'insumo-preco-unitario-error' : undefined} />
+                  {formErrors.preco_unitario && <p id="insumo-preco-unitario-error" className="text-xs text-destructive">{formErrors.preco_unitario}</p>}
                 </div>
               </div>
               <Button onClick={handleSave} className="w-full" disabled={saving}>
