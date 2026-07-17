@@ -51,12 +51,15 @@ export function ClientesPage() {
     c.telefone?.includes(search)
   );
 
-  const getClientePedidos = (clienteNome: string) => {
-    return pedidos.filter(p => p.cliente.toLowerCase() === clienteNome.toLowerCase());
+  const getClientePedidos = (cliente: Cliente) => {
+    return pedidos.filter((pedido) => {
+      if (pedido.cliente_id) return pedido.cliente_id === cliente.id;
+      return pedido.cliente.toLowerCase() === cliente.nome.toLowerCase();
+    });
   };
 
-  const getClienteStats = (clienteNome: string) => {
-    const clientePedidos = getClientePedidos(clienteNome);
+  const getClienteStats = (cliente: Cliente) => {
+    const clientePedidos = getClientePedidos(cliente);
     const totalPedidos = clientePedidos.length;
     const totalGasto = clientePedidos.reduce((acc, p) => acc + p.valor_total, 0);
     return { totalPedidos, totalGasto };
@@ -240,7 +243,7 @@ export function ClientesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClientes.map((cliente) => {
-            const stats = getClienteStats(cliente.nome);
+            const stats = getClienteStats(cliente);
             return (
               <div
                 key={cliente.id}
@@ -363,7 +366,7 @@ export function ClientesPage() {
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Total gasto</p>
                     <p className="font-semibold text-primary">
-                      R$ {getClienteStats(viewingCliente.nome).totalGasto.toFixed(2)}
+                      R$ {getClienteStats(viewingCliente).totalGasto.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -374,13 +377,13 @@ export function ClientesPage() {
                     <ShoppingBag size={18} />
                     Histórico de Pedidos
                   </h3>
-                  {getClientePedidos(viewingCliente.nome).length === 0 ? (
+                  {getClientePedidos(viewingCliente).length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center bg-muted/30 rounded-lg">
                       Nenhum pedido encontrado para este cliente.
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {getClientePedidos(viewingCliente.nome).map((pedido) => (
+                      {getClientePedidos(viewingCliente).map((pedido) => (
                         <div
                           key={pedido.id}
                           className="p-4 bg-muted/30 rounded-lg border border-border"
