@@ -165,8 +165,10 @@ export function ProdutosPage() {
                     if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
                   }}
                   placeholder="Ex: Brigadeiro de Nutella"
+                  aria-invalid={!!formErrors.nome}
+                  aria-describedby={formErrors.nome ? 'produto-nome-error' : undefined}
                 />
-                {formErrors.nome && <p className="text-xs text-destructive">{formErrors.nome}</p>}
+                {formErrors.nome && <p id="produto-nome-error" className="text-xs text-destructive">{formErrors.nome}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="produto-tipo">Tipo</Label>
@@ -198,8 +200,10 @@ export function ProdutosPage() {
                       if (formErrors.preco_venda) setFormErrors({ ...formErrors, preco_venda: '' });
                     }}
                     placeholder="5.00"
+                    aria-invalid={!!formErrors.preco_venda}
+                    aria-describedby={formErrors.preco_venda ? 'produto-preco-venda-error' : undefined}
                   />
-                  {formErrors.preco_venda && <p className="text-xs text-destructive">{formErrors.preco_venda}</p>}
+                  {formErrors.preco_venda && <p id="produto-preco-venda-error" className="text-xs text-destructive">{formErrors.preco_venda}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="produto-custo-unitario">Custo Unitário (R$)</Label>
@@ -214,8 +218,10 @@ export function ProdutosPage() {
                       if (formErrors.custo_unitario) setFormErrors({ ...formErrors, custo_unitario: '' });
                     }}
                     placeholder="1.80"
+                    aria-invalid={!!formErrors.custo_unitario}
+                    aria-describedby={formErrors.custo_unitario ? 'produto-custo-unitario-error' : undefined}
                   />
-                  {formErrors.custo_unitario && <p className="text-xs text-destructive">{formErrors.custo_unitario}</p>}
+                  {formErrors.custo_unitario && <p id="produto-custo-unitario-error" className="text-xs text-destructive">{formErrors.custo_unitario}</p>}
                 </div>
               </div>
               {canShowMargin && (
