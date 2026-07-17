@@ -9,13 +9,20 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
 const passwordSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracteres');
+type ResetPasswordErrors = { password?: string; confirmPassword?: string };
+
+function clearResetPasswordError(errors: ResetPasswordErrors, key: keyof ResetPasswordErrors) {
+  const nextErrors = { ...errors };
+  delete nextErrors[key];
+  return nextErrors;
+}
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<ResetPasswordErrors>({});
   
   const { updatePassword, session } = useAuth();
   const navigate = useNavigate();
@@ -125,7 +132,7 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
+                    if (errors.password) setErrors(clearResetPasswordError(errors, 'password'));
                   }}
                   placeholder="••••••••"
                   className="pl-10"
@@ -146,7 +153,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
-                    if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
+                    if (errors.confirmPassword) setErrors(clearResetPasswordError(errors, 'confirmPassword'));
                   }}
                   placeholder="••••••••"
                   className="pl-10"

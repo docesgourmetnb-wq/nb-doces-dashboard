@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,6 +13,8 @@ export interface Transacao {
   data: string;
   referencia?: string | null;
 }
+
+type TransacaoInsert = TablesInsert<'transacoes'>;
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -56,17 +59,21 @@ export function useTransacoes() {
     if (!user) return undefined;
     
     try {
+      const insertData: TransacaoInsert = {
+        tipo: transacao.tipo,
+        categoria: transacao.categoria,
+        descricao: transacao.descricao,
+        valor: transacao.valor,
+        data: transacao.data,
+        user_id: user.id,
+      };
+      if (transacao.referencia !== undefined) {
+        insertData.referencia = transacao.referencia;
+      }
+
       const { data, error } = await supabase
         .from('transacoes')
-        .insert({
-          tipo: transacao.tipo,
-          categoria: transacao.categoria,
-          descricao: transacao.descricao,
-          valor: transacao.valor,
-          data: transacao.data,
-          referencia: transacao.referencia,
-          user_id: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 

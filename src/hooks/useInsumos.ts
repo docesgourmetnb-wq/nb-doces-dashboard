@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +14,8 @@ export interface Insumo {
   preco_unitario: number;
   ultima_compra?: string | null;
 }
+
+type InsumoInsert = TablesInsert<'insumos'>;
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -58,18 +61,22 @@ export function useInsumos() {
     if (!user) return undefined;
     
     try {
+      const insertData: InsumoInsert = {
+        nome: insumo.nome,
+        unidade: insumo.unidade,
+        quantidade_atual: insumo.quantidade_atual,
+        quantidade_minima: insumo.quantidade_minima,
+        consumo_medio: insumo.consumo_medio,
+        preco_unitario: insumo.preco_unitario,
+        user_id: user.id,
+      };
+      if (insumo.ultima_compra !== undefined) {
+        insertData.ultima_compra = insumo.ultima_compra;
+      }
+
       const { data, error } = await supabase
         .from('insumos')
-        .insert({
-          nome: insumo.nome,
-          unidade: insumo.unidade,
-          quantidade_atual: insumo.quantidade_atual,
-          quantidade_minima: insumo.quantidade_minima,
-          consumo_medio: insumo.consumo_medio,
-          preco_unitario: insumo.preco_unitario,
-          ultima_compra: insumo.ultima_compra,
-          user_id: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 

@@ -11,6 +11,13 @@ import { z } from 'zod';
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracteres');
 const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
+type AuthFormErrors = { email?: string; password?: string };
+
+function clearAuthError(errors: AuthFormErrors, key: keyof AuthFormErrors) {
+  const nextErrors = { ...errors };
+  delete nextErrors[key];
+  return nextErrors;
+}
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -18,7 +25,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<AuthFormErrors>({});
   const [resetEmailSent, setResetEmailSent] = useState(false);
   
   const { signIn, signUp, resetPassword } = useAuth();
@@ -213,7 +220,7 @@ export default function AuthPage() {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      if (errors.email) setErrors({ ...errors, email: undefined });
+                      if (errors.email) setErrors(clearAuthError(errors, 'email'));
                     }}
                     placeholder="seu@email.com"
                     className="pl-10"
@@ -292,7 +299,7 @@ export default function AuthPage() {
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: undefined });
+                    if (errors.email) setErrors(clearAuthError(errors, 'email'));
                   }}
                   placeholder="seu@email.com"
                   className="pl-10"
@@ -324,7 +331,7 @@ export default function AuthPage() {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
+                    if (errors.password) setErrors(clearAuthError(errors, 'password'));
                   }}
                   placeholder="••••••••"
                   className="pl-10"

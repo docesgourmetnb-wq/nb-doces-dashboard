@@ -32,11 +32,13 @@ export interface MassaComPesoCalculado extends MassaCongelada {
 }
 
 function withPesoMassa(massa: MassaCongeladaWithRecipiente): MassaComPesoCalculado {
+  const { recipiente, ...massaData } = massa;
+
   return {
-    ...massa,
+    ...massaData,
     status: massa.status as MassaCongelada['status'],
-    recipiente: massa.recipiente as Recipiente | undefined,
-    peso_massa: massa.peso_total - (massa.recipiente?.peso_vazio || 0),
+    ...(recipiente ? { recipiente: recipiente as Recipiente } : {}),
+    peso_massa: massa.peso_total - (recipiente?.peso_vazio || 0),
   };
 }
 

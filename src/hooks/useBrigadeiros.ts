@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +14,8 @@ export interface Brigadeiro {
   descricao?: string | null;
   ativo: boolean;
 }
+
+type BrigadeiroInsert = TablesInsert<'brigadeiros'>;
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -57,17 +60,21 @@ export function useBrigadeiros() {
     if (!user) return undefined;
     
     try {
+      const insertData: BrigadeiroInsert = {
+        nome: brigadeiro.nome,
+        tipo: brigadeiro.tipo,
+        preco_venda: brigadeiro.preco_venda,
+        custo_unitario: brigadeiro.custo_unitario,
+        ativo: brigadeiro.ativo,
+        user_id: user.id,
+      };
+      if (brigadeiro.descricao !== undefined) {
+        insertData.descricao = brigadeiro.descricao;
+      }
+
       const { data, error } = await supabase
         .from('brigadeiros')
-        .insert({
-          nome: brigadeiro.nome,
-          tipo: brigadeiro.tipo,
-          preco_venda: brigadeiro.preco_venda,
-          custo_unitario: brigadeiro.custo_unitario,
-          descricao: brigadeiro.descricao,
-          ativo: brigadeiro.ativo,
-          user_id: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 

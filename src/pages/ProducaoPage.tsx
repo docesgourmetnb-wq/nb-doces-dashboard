@@ -174,6 +174,13 @@ export function ProducaoPage() {
     const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiro_id);
     if (!brigadeiro) return;
     if (!quantidadeProducaoValida) return;
+    const integrationOptions = {
+      enabled: formData.integrar_estoque,
+      notes: `Integração automática - ${brigadeiro.nome}`,
+      ...(formData.recipe_version_id ? { recipeVersionId: formData.recipe_version_id } : {}),
+      ...(formData.output_item_id ? { outputItemId: formData.output_item_id } : {}),
+    };
+
     setSaving(true);
     await addProducao({
       data: formData.data,
@@ -182,12 +189,7 @@ export function ProducaoPage() {
       quantidade: quantidadeProducao,
       custo_total: 0,
       status: formData.integrar_estoque ? 'concluido' : 'planejado',
-    }, {
-      enabled: formData.integrar_estoque,
-      recipeVersionId: formData.recipe_version_id || undefined,
-      outputItemId: formData.output_item_id || undefined,
-      notes: `Integração automática - ${brigadeiro.nome}`,
-    });
+    }, integrationOptions);
     setSaving(false);
     setIsDialogOpen(false);
     setFormData({
