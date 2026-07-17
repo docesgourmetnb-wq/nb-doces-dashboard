@@ -58,7 +58,7 @@ export function useEstoqueMassas() {
 
       setMassas(massasFormatadas);
     } catch (error: unknown) {
-      console.error('Error fetching massas:', error);
+      if (import.meta.env.DEV) console.error('Error fetching massas:', error);
       toast({
         title: 'Erro ao carregar estoque de bases',
         description: getErrorMessage(error),

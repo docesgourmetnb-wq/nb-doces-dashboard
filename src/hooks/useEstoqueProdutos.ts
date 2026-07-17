@@ -68,7 +68,7 @@ export function useEstoqueProdutos() {
 
       setProdutos(produtosFormatados);
     } catch (error: unknown) {
-      console.error('Error fetching produtos:', error);
+      if (import.meta.env.DEV) console.error('Error fetching produtos:', error);
       toast({
         title: 'Erro ao carregar estoque final',
         description: getErrorMessage(error),
