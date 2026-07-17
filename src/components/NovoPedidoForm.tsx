@@ -67,7 +67,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     const existingIndex = itens.findIndex(i => i.brigadeiro_id === selectedBrigadeiro);
     if (existingIndex >= 0) {
       const updated = [...itens];
-      updated[existingIndex].quantidade += quantidade;
+      const existingItem = updated[existingIndex];
+      if (!existingItem) return;
+      existingItem.quantidade += quantidade;
       setItens(updated);
     } else {
       setItens([...itens, {
