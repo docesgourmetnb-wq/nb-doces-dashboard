@@ -4,6 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { AuthContext, AuthProfile } from '@/hooks/useAuth';
 
 const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
+const devAutoLoginEnabled =
+  import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
+const devAutoEmail = import.meta.env.VITE_DEV_AUTH_EMAIL;
+const devAutoPassword = import.meta.env.VITE_DEV_AUTH_PASSWORD;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
