@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+
+type InsumoRow = Tables<'insumos'>;
 
 export interface EstoqueMassa {
   id: string;
@@ -10,6 +13,21 @@ export interface EstoqueMassa {
   user_id: string;
   created_at: string;
   updated_at: string;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
+function toEstoqueMassa(insumo: InsumoRow): EstoqueMassa {
+  return {
+    id: insumo.id,
+    sabor: insumo.nome.replace('[MASSA] ', ''),
+    quantidade_g: insumo.quantidade_atual || 0,
+    user_id: insumo.user_id,
+    created_at: insumo.created_at,
+    updated_at: insumo.updated_at,
+  };
 }
 
 export function useEstoqueMassas() {
@@ -34,21 +52,16 @@ export function useEstoqueMassas() {
 
       if (error) throw error;
       
-      const massasFormatadas = (data || []).map((m: any) => ({
-        id: m.id,
-        sabor: m.nome.replace('[MASSA] ', ''),
-        quantidade_g: m.quantidade_atual || 0,
-        user_id: m.user_id,
-        created_at: m.created_at,
-        updated_at: m.updated_at
-      })).sort((a, b) => a.sabor.localeCompare(b.sabor));
+      const massasFormatadas = (data || [])
+        .map(toEstoqueMassa)
+        .sort((a, b) => a.sabor.localeCompare(b.sabor));
 
       setMassas(massasFormatadas);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching massas:', error);
       toast({
         title: 'Erro ao carregar estoque de bases',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -80,14 +93,7 @@ export function useEstoqueMassas() {
 
       if (error) throw error;
       
-      const novaMassa = {
-        id: data.id,
-        sabor: data.nome.replace('[MASSA] ', ''),
-        quantidade_g: data.quantidade_atual || 0,
-        user_id: data.user_id,
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      } as EstoqueMassa;
+      const novaMassa = toEstoqueMassa(data);
 
       setMassas(prev => [...prev, novaMassa].sort((a, b) => a.sabor.localeCompare(b.sabor)));
       toast({
@@ -95,10 +101,10 @@ export function useEstoqueMassas() {
         description: 'Sabor cadastrado no estoque.',
       });
       return novaMassa;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao cadastrar sabor',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       return null;
@@ -133,10 +139,10 @@ export function useEstoqueMassas() {
         description: `Saldo atualizado com sucesso.`,
       });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar saldo',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       return false;
@@ -158,10 +164,10 @@ export function useEstoqueMassas() {
         description: 'Sabor removido do estoque.',
       });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
       return false;
