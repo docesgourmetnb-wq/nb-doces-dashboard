@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -28,6 +29,36 @@ export interface Pedido {
   itens?: ItemPedido[];
   archived_at?: string | null;
   archived_reason?: string | null;
+}
+
+type PedidoRow = Tables<'pedidos'>;
+type ClienteRow = Pick<Tables<'clientes'>, 'nome'>;
+type ItemPedidoRow = Tables<'itens_pedido'>;
+type PedidoWithRelations = PedidoRow & {
+  clientes?: ClienteRow | null;
+  itens_pedido?: ItemPedidoRow[] | null;
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
+export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
+  return {
+    id: pedido.id,
+    cliente: pedido.cliente,
+    cliente_id: pedido.cliente_id,
+    cliente_nome: pedido.clientes?.nome || null,
+    data: pedido.data,
+    tipo_pedido: pedido.tipo_pedido as Pedido['tipo_pedido'],
+    valor_total: pedido.valor_total,
+    forma_pagamento: pedido.forma_pagamento as Pedido['forma_pagamento'],
+    status: pedido.status as Pedido['status'],
+    observacoes: pedido.observacoes,
+    itens: pedido.itens_pedido || [],
+    archived_at: pedido.archived_at,
+    archived_reason: pedido.archived_reason,
+  };
 }
 
 // Helper: get display name prioritizing joined client
@@ -63,19 +94,13 @@ export function usePedidos() {
 
       if (pedidosError) throw pedidosError;
 
-      const pedidosWithItems = (pedidosData || []).map((pedido: any) => ({
-        ...pedido,
-        cliente_nome: pedido.clientes?.nome || null,
-        clientes: undefined,
-        itens: (pedido.itens_pedido || []) as ItemPedido[],
-        itens_pedido: undefined,
-      })) as Pedido[];
+      const pedidosWithItems = (pedidosData || []).map(toPedidoWithItems);
 
       setPedidos(pedidosWithItems);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar pedidos',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {

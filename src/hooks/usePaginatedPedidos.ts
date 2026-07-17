@@ -2,9 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Pedido, ItemPedido } from '@/hooks/usePedidos';
+import { Pedido, toPedidoWithItems } from '@/hooks/usePedidos';
 
 const PAGE_SIZE = 20;
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
 
 export function usePaginatedPedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -65,17 +69,11 @@ export function usePaginatedPedidos() {
       const { data: pedidosData, error } = await dataQuery;
       if (error) throw error;
 
-      const pedidosWithItems = (pedidosData || []).map((pedido: any) => ({
-        ...pedido,
-        cliente_nome: pedido.clientes?.nome || null,
-        clientes: undefined,
-        itens: (pedido.itens_pedido || []) as ItemPedido[],
-        itens_pedido: undefined,
-      })) as Pedido[];
+      const pedidosWithItems = (pedidosData || []).map(toPedidoWithItems);
 
       setPedidos(pedidosWithItems);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar pedidos', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar pedidos', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
