@@ -337,7 +337,10 @@ export function ProducaoPage() {
                         onValueChange={(value) => setFormData({ ...formData, recipe_version_id: value })}
                         disabled={loadingIntegrationOptions || recipeOptions.length === 0}
                       >
-                        <SelectTrigger id="producao-receita">
+                        <SelectTrigger
+                          id="producao-receita"
+                          aria-describedby={!loadingIntegrationOptions && recipeOptions.length === 0 ? 'producao-receita-error' : undefined}
+                        >
                           <SelectValue placeholder="Selecione a receita" />
                         </SelectTrigger>
                         <SelectContent>
@@ -349,7 +352,7 @@ export function ProducaoPage() {
                         </SelectContent>
                       </Select>
                       {!loadingIntegrationOptions && recipeOptions.length === 0 && (
-                        <p className="text-xs text-destructive">Nenhuma receita ativa cadastrada.</p>
+                        <p id="producao-receita-error" className="text-xs text-destructive">Nenhuma receita ativa cadastrada.</p>
                       )}
                     </div>
                     <div className="space-y-2">
@@ -359,7 +362,10 @@ export function ProducaoPage() {
                         onValueChange={(value) => setFormData({ ...formData, output_item_id: value })}
                         disabled={loadingIntegrationOptions || outputItemOptions.length === 0}
                       >
-                        <SelectTrigger id="producao-item-saida">
+                        <SelectTrigger
+                          id="producao-item-saida"
+                          aria-describedby={!loadingIntegrationOptions && outputItemOptions.length === 0 ? 'producao-item-saida-error' : undefined}
+                        >
                           <SelectValue placeholder="Selecione o item produzido" />
                         </SelectTrigger>
                         <SelectContent>
@@ -371,7 +377,7 @@ export function ProducaoPage() {
                         </SelectContent>
                       </Select>
                       {!loadingIntegrationOptions && outputItemOptions.length === 0 && (
-                        <p className="text-xs text-destructive">Nenhum item de saída cadastrado no estoque integrado.</p>
+                        <p id="producao-item-saida-error" className="text-xs text-destructive">Nenhum item de saída cadastrado no estoque integrado.</p>
                       )}
                     </div>
                   </div>
