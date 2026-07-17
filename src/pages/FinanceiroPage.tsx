@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet } from 'lucide-react';
-import { useTransacoes, Transacao } from '@/hooks/useTransacoes';
+import { Transacao } from '@/hooks/useTransacoes';
 import { usePaginatedTransacoes } from '@/hooks/usePaginatedTransacoes';
+import { useFinancialSummary } from '@/hooks/useFinancialSummary';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PaginationControls } from '@/components/PaginationControls';
@@ -23,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 import {
   BarChart,
   Bar,
@@ -34,17 +36,19 @@ import {
 } from 'recharts';
 
 export function FinanceiroPage() {
-  // Full dataset for totals
-  const { transacoes: allTransacoes, loading: loadingAll, addTransacao } = useTransacoes();
+  const { summary, loading: loadingSummary, refetch: refetchSummary } = useFinancialSummary();
   // Paginated dataset for list
   const {
     transacoes, loading,
     page, setPage, totalPages, totalCount,
     tipoFilter, setTipoFilter,
+    addTransacao,
   } = usePaginatedTransacoes();
+  const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     tipo: 'entrada' as Transacao['tipo'],
     categoria: '',
@@ -53,26 +57,37 @@ export function FinanceiroPage() {
     data: format(new Date(), 'yyyy-MM-dd'),
   });
 
-  const totalEntradas = allTransacoes
-    .filter(t => t.tipo === 'entrada')
-    .reduce((acc, t) => acc + t.valor, 0);
-  
-  const totalSaidas = allTransacoes
-    .filter(t => t.tipo === 'saida')
-    .reduce((acc, t) => acc + t.valor, 0);
-  
-  const lucroBruto = totalEntradas - totalSaidas;
+  const totalEntradas = summary.totalEntradas;
+  const totalSaidas = summary.totalSaidas;
+  const lucroBruto = summary.lucroBruto;
 
   const handleAddTransacao = async () => {
+    const valor = Number(formData.valor);
+    const errors: Record<string, string> = {};
+
+    if (!formData.categoria.trim()) errors.categoria = 'Informe uma categoria';
+    if (!formData.descricao.trim()) errors.descricao = 'Informe uma descrição';
+    if (!Number.isFinite(valor) || valor <= 0) errors.valor = 'Informe um valor maior que zero';
+    if (!formData.data) errors.data = 'Informe uma data';
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast({ title: 'Revise os campos da transação', variant: 'destructive' });
+      return;
+    }
+
     setSaving(true);
-    await addTransacao({
+    const newTransacao = await addTransacao({
       tipo: formData.tipo,
-      categoria: formData.categoria,
-      descricao: formData.descricao,
-      valor: parseFloat(formData.valor),
+      categoria: formData.categoria.trim(),
+      descricao: formData.descricao.trim(),
+      valor,
       data: formData.data,
     });
+    await refetchSummary();
     setSaving(false);
+    if (!newTransacao) return;
+
     setIsDialogOpen(false);
     setFormData({
       tipo: 'entrada',
@@ -81,6 +96,7 @@ export function FinanceiroPage() {
       valor: '',
       data: format(new Date(), 'yyyy-MM-dd'),
     });
+    setFormErrors({});
   };
 
   const chartData = [
@@ -88,7 +104,7 @@ export function FinanceiroPage() {
     { categoria: 'Saídas', valor: totalSaidas },
   ];
 
-  if (loading || loadingAll) {
+  if (loading || loadingSummary) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -135,17 +151,25 @@ export function FinanceiroPage() {
                 <Label>Categoria</Label>
                 <Input
                   value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, categoria: e.target.value });
+                    if (formErrors.categoria) setFormErrors({ ...formErrors, categoria: '' });
+                  }}
                   placeholder="Ex: Vendas, Insumos, Embalagens"
                 />
+                {formErrors.categoria && <p className="text-xs text-destructive">{formErrors.categoria}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <Input
                   value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, descricao: e.target.value });
+                    if (formErrors.descricao) setFormErrors({ ...formErrors, descricao: '' });
+                  }}
                   placeholder="Descreva a transação"
                 />
+                {formErrors.descricao && <p className="text-xs text-destructive">{formErrors.descricao}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -153,17 +177,26 @@ export function FinanceiroPage() {
                   <Input
                     type="number"
                     step="0.01"
+                    min="0.01"
                     value={formData.valor}
-                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, valor: e.target.value });
+                      if (formErrors.valor) setFormErrors({ ...formErrors, valor: '' });
+                    }}
                   />
+                  {formErrors.valor && <p className="text-xs text-destructive">{formErrors.valor}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Data</Label>
                   <Input
                     type="date"
                     value={formData.data}
-                    onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, data: e.target.value });
+                      if (formErrors.data) setFormErrors({ ...formErrors, data: '' });
+                    }}
                   />
+                  {formErrors.data && <p className="text-xs text-destructive">{formErrors.data}</p>}
                 </div>
               </div>
               <Button onClick={handleAddTransacao} className="w-full" disabled={saving}>

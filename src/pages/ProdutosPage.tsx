@@ -68,17 +68,27 @@ export function ProdutosPage() {
   };
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const precoVendaNumber = Number(formData.preco_venda);
+  const custoUnitarioNumber = Number(formData.custo_unitario);
+  const canShowMargin =
+    Number.isFinite(precoVendaNumber) &&
+    Number.isFinite(custoUnitarioNumber) &&
+    precoVendaNumber > 0 &&
+    custoUnitarioNumber >= 0;
 
   const handleSave = async () => {
     const errors: Record<string, string> = {};
-    const preco_venda = parseFloat(formData.preco_venda);
-    const custo_unitario = parseFloat(formData.custo_unitario);
+    const preco_venda = Number(formData.preco_venda);
+    const custo_unitario = Number(formData.custo_unitario);
 
-    if (isNaN(preco_venda) || preco_venda <= 0) {
+    if (!formData.nome.trim()) {
+      errors.nome = 'Informe o nome do produto';
+    }
+    if (!Number.isFinite(preco_venda) || preco_venda <= 0) {
       errors.preco_venda = 'Preço de venda deve ser maior que zero';
     }
-    if (isNaN(custo_unitario) || custo_unitario <= 0) {
-      errors.custo_unitario = 'Custo unitário deve ser maior que zero';
+    if (!Number.isFinite(custo_unitario) || custo_unitario < 0) {
+      errors.custo_unitario = 'Custo unitário não pode ser negativo';
     }
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -87,19 +97,19 @@ export function ProdutosPage() {
 
     if (editingBrigadeiro) {
       await updateBrigadeiro(editingBrigadeiro.id, {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         tipo: formData.tipo,
         preco_venda,
         custo_unitario,
-        descricao: formData.descricao || null,
+        descricao: formData.descricao.trim() || null,
       });
     } else {
       await addBrigadeiro({
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         tipo: formData.tipo,
         preco_venda,
         custo_unitario,
-        descricao: formData.descricao || null,
+        descricao: formData.descricao.trim() || null,
         ativo: true,
       });
     }
@@ -147,9 +157,13 @@ export function ProdutosPage() {
                 <Label>Nome</Label>
                 <Input
                   value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, nome: e.target.value });
+                    if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
+                  }}
                   placeholder="Ex: Brigadeiro de Nutella"
                 />
+                {formErrors.nome && <p className="text-xs text-destructive">{formErrors.nome}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
@@ -175,7 +189,10 @@ export function ProdutosPage() {
                     step="0.01"
                     min="0"
                     value={formData.preco_venda}
-                    onChange={(e) => setFormData({ ...formData, preco_venda: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, preco_venda: e.target.value });
+                      if (formErrors.preco_venda) setFormErrors({ ...formErrors, preco_venda: '' });
+                    }}
                     placeholder="5.00"
                   />
                   {formErrors.preco_venda && <p className="text-xs text-destructive">{formErrors.preco_venda}</p>}
@@ -187,16 +204,19 @@ export function ProdutosPage() {
                     step="0.01"
                     min="0"
                     value={formData.custo_unitario}
-                    onChange={(e) => setFormData({ ...formData, custo_unitario: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, custo_unitario: e.target.value });
+                      if (formErrors.custo_unitario) setFormErrors({ ...formErrors, custo_unitario: '' });
+                    }}
                     placeholder="1.80"
                   />
                   {formErrors.custo_unitario && <p className="text-xs text-destructive">{formErrors.custo_unitario}</p>}
                 </div>
               </div>
-              {formData.preco_venda && formData.custo_unitario && (
+              {canShowMargin && (
                 <div className="p-3 bg-success/10 rounded-lg">
                   <p className="text-sm text-success font-medium">
-                    Margem de lucro: {(((parseFloat(formData.preco_venda) - parseFloat(formData.custo_unitario)) / parseFloat(formData.preco_venda)) * 100).toFixed(1)}%
+                    Margem de lucro: {(((precoVendaNumber - custoUnitarioNumber) / precoVendaNumber) * 100).toFixed(1)}%
                   </p>
                 </div>
               )}
