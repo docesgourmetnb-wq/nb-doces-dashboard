@@ -72,7 +72,17 @@ type InsumoTableRow = Pick<Tables<'insumos'>, 'id' | 'nome' | 'unidade'>;
 type RecipeComponentTableRow = Tables<'recipe_components'>;
 type RecipeComponentInsert = TablesInsert<'recipe_components'>;
 
-function toRecipeRow(row: RecipeTableRow): RecipeRow {
+type RecipeListTableRow = Pick<RecipeTableRow, 'id' | 'nome' | 'tipo' | 'ativo'>;
+type RecipeVersionListTableRow = Pick<
+  RecipeVersionTableRow,
+  'id' | 'recipe_id' | 'version_no' | 'status' | 'yield_qty' | 'peso_total_massa_g' | 'peso_unitario_base_g'
+>;
+type RecipeComponentListTableRow = Pick<
+  RecipeComponentTableRow,
+  'id' | 'stock_item_id' | 'qty_per_batch' | 'uom' | 'component_type' | 'waste_factor'
+>;
+
+function toRecipeRow(row: RecipeListTableRow): RecipeRow {
   return {
     id: row.id,
     nome: row.nome,
@@ -81,7 +91,7 @@ function toRecipeRow(row: RecipeTableRow): RecipeRow {
   };
 }
 
-function toRecipeVersionRow(row: RecipeVersionTableRow): RecipeVersionRow {
+function toRecipeVersionRow(row: RecipeVersionListTableRow): RecipeVersionRow {
   return {
     id: row.id,
     recipe_id: row.recipe_id,
@@ -110,7 +120,7 @@ function toInsumoRow(row: InsumoTableRow): InsumoRow {
   };
 }
 
-function toRecipeComponentRow(row: RecipeComponentTableRow): RecipeComponentRow {
+function toRecipeComponentRow(row: RecipeComponentListTableRow): RecipeComponentRow {
   return {
     id: row.id,
     stock_item_id: row.stock_item_id,
