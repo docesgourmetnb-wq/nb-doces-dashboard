@@ -98,7 +98,7 @@ export function useProducao() {
         .from('producao_diaria')
         .insert({
           data: item.data,
-          brigadeiro_id: item.brigadeiro_id,
+          brigadeiro_id: item.brigadeiro_id ?? null,
           brigadeiro_nome: item.brigadeiro_nome,
           quantidade: item.quantidade,
           custo_total: item.custo_total,

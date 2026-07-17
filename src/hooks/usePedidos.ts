@@ -191,7 +191,7 @@ export function usePedidos() {
         p_status: pedido.status,
         p_observacoes: pedido.observacoes || null,
         p_itens: itens.map(item => ({
-            brigadeiro_id: item.brigadeiro_id,
+            brigadeiro_id: item.brigadeiro_id ?? null,
             brigadeiro_nome: item.brigadeiro_nome,
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
