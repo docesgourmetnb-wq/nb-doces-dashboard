@@ -162,8 +162,10 @@ export function FinanceiroPage() {
                     if (formErrors.categoria) setFormErrors({ ...formErrors, categoria: '' });
                   }}
                   placeholder="Ex: Vendas, Insumos, Embalagens"
+                  aria-invalid={!!formErrors.categoria}
+                  aria-describedby={formErrors.categoria ? 'transacao-categoria-error' : undefined}
                 />
-                {formErrors.categoria && <p className="text-xs text-destructive">{formErrors.categoria}</p>}
+                {formErrors.categoria && <p id="transacao-categoria-error" className="text-xs text-destructive">{formErrors.categoria}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="transacao-descricao">Descrição</Label>
@@ -175,8 +177,10 @@ export function FinanceiroPage() {
                     if (formErrors.descricao) setFormErrors({ ...formErrors, descricao: '' });
                   }}
                   placeholder="Descreva a transação"
+                  aria-invalid={!!formErrors.descricao}
+                  aria-describedby={formErrors.descricao ? 'transacao-descricao-error' : undefined}
                 />
-                {formErrors.descricao && <p className="text-xs text-destructive">{formErrors.descricao}</p>}
+                {formErrors.descricao && <p id="transacao-descricao-error" className="text-xs text-destructive">{formErrors.descricao}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -191,8 +195,10 @@ export function FinanceiroPage() {
                       setFormData({ ...formData, valor: e.target.value });
                       if (formErrors.valor) setFormErrors({ ...formErrors, valor: '' });
                     }}
+                    aria-invalid={!!formErrors.valor}
+                    aria-describedby={formErrors.valor ? 'transacao-valor-error' : undefined}
                   />
-                  {formErrors.valor && <p className="text-xs text-destructive">{formErrors.valor}</p>}
+                  {formErrors.valor && <p id="transacao-valor-error" className="text-xs text-destructive">{formErrors.valor}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="transacao-data">Data</Label>
@@ -204,8 +210,10 @@ export function FinanceiroPage() {
                       setFormData({ ...formData, data: e.target.value });
                       if (formErrors.data) setFormErrors({ ...formErrors, data: '' });
                     }}
+                    aria-invalid={!!formErrors.data}
+                    aria-describedby={formErrors.data ? 'transacao-data-error' : undefined}
                   />
-                  {formErrors.data && <p className="text-xs text-destructive">{formErrors.data}</p>}
+                  {formErrors.data && <p id="transacao-data-error" className="text-xs text-destructive">{formErrors.data}</p>}
                 </div>
               </div>
               <Button onClick={handleAddTransacao} className="w-full" disabled={saving}>
