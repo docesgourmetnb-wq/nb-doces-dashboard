@@ -3,6 +3,7 @@ import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from '
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
 import {
   PRODUCAO_STATUSES,
+  type ProducaoStatus,
   getProducaoStatusLabel,
   getProducaoStatusBadgeClass,
   isProducaoConcluida,
@@ -76,7 +77,11 @@ export function ProducaoPage() {
 
   // Edit state
   const [editItem, setEditItem] = useState<ProducaoDiaria | null>(null);
-  const [editData, setEditData] = useState({ data: '', quantidade: '', status: '' as string });
+  const [editData, setEditData] = useState<{ data: string; quantidade: string; status: ProducaoStatus | '' }>({
+    data: '',
+    quantidade: '',
+    status: '',
+  });
 
   // Confirmation for editing concluido
   const [editConfirmItem, setEditConfirmItem] = useState<ProducaoDiaria | null>(null);
@@ -447,7 +452,7 @@ export function ProducaoPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="producao-edit-status">Status</Label>
-              <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v })}>
+              <Select value={editData.status} onValueChange={(v: ProducaoStatus) => setEditData({ ...editData, status: v })}>
                 <SelectTrigger id="producao-edit-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                 {PRODUCAO_STATUSES.map(s => (

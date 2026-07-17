@@ -5,20 +5,30 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 import { getPedidoStatusLabel } from '@/domain/pedidos';
+import type { Json } from '@/integrations/supabase/types';
+
+function isMetadataRecord(metadata: Json): metadata is { [key: string]: Json | undefined } {
+  return !!metadata && typeof metadata === 'object' && !Array.isArray(metadata);
+}
+
+function metadataText(metadata: { [key: string]: Json | undefined }, key: string) {
+  const value = metadata[key];
+  return typeof value === 'string' ? value : null;
+}
 
 function formatMeta(entry: AuditLogEntry): string | null {
   const m = entry.metadata;
-  if (!m) return null;
+  if (!m || !isMetadataRecord(m)) return null;
 
   switch (entry.action) {
     case 'status_changed':
-      return `${getPedidoStatusLabel(m.from)} → ${getPedidoStatusLabel(m.to)}`;
+      return `${getPedidoStatusLabel(metadataText(m, 'from') || '')} → ${getPedidoStatusLabel(metadataText(m, 'to') || '')}`;
     case 'archived':
-      return m.reason ? `Motivo: ${m.reason}` : null;
+      return metadataText(m, 'reason') ? `Motivo: ${metadataText(m, 'reason')}` : null;
     case 'venda_created':
     case 'estorno_created':
-      return m.valor != null
-        ? `R$ ${Number(m.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+      return typeof m.valor === 'number'
+        ? `R$ ${m.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
         : null;
     default:
       return null;
