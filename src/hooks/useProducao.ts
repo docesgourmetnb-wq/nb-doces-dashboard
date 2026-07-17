@@ -17,6 +17,10 @@ export interface ProducaoDiaria {
   deleted_reason?: string | null;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
 export function useProducao() {
   const [producao, setProducao] = useState<ProducaoDiaria[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,10 +48,10 @@ export function useProducao() {
 
       if (error) throw error;
       setProducao((data || []) as ProducaoDiaria[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar produção',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -108,10 +112,10 @@ export function useProducao() {
       await fetchProducao();
       toast({ title: integration?.enabled ? 'Produção registrada e estoque movimentado!' : 'Produção planejada!' });
       return data as ProducaoDiaria;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: integration?.enabled ? 'Erro ao registrar produção integrada' : 'Erro ao planejar produção',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -127,10 +131,10 @@ export function useProducao() {
       if (error) throw error;
       setProducao(producao.map(p => p.id === id ? { ...p, status } : p));
       toast({ title: 'Status atualizado!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar status',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -147,10 +151,10 @@ export function useProducao() {
       // Refetch to get recalculated custo_total from trigger
       await fetchProducao();
       toast({ title: 'Produção atualizada!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar produção',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -166,10 +170,10 @@ export function useProducao() {
       if (error) throw error;
       await fetchProducao();
       toast({ title: 'Produção cancelada.' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao cancelar produção',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
