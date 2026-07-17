@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.stock_items (
   ativo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT stock_items_user_id_id_key UNIQUE (user_id, id),
   UNIQUE (user_id, nome, tipo)
 );
 
@@ -83,13 +84,14 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   ativo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT recipes_user_id_id_key UNIQUE (user_id, id),
   UNIQUE (user_id, nome, tipo)
 );
 
 CREATE TABLE IF NOT EXISTS public.recipe_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  recipe_id UUID NOT NULL REFERENCES public.recipes(id) ON DELETE CASCADE,
+  recipe_id UUID NOT NULL,
   version_no INTEGER NOT NULL CHECK (version_no > 0),
   status public.recipe_version_status NOT NULL DEFAULT 'draft',
   yield_qty NUMERIC(14,4) NOT NULL CHECK (yield_qty > 0),
@@ -98,6 +100,9 @@ CREATE TABLE IF NOT EXISTS public.recipe_versions (
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT recipe_versions_user_id_id_key UNIQUE (user_id, id),
+  CONSTRAINT recipe_versions_recipe_owner_fkey
+    FOREIGN KEY (user_id, recipe_id) REFERENCES public.recipes(user_id, id) ON DELETE CASCADE,
   UNIQUE (recipe_id, version_no)
 );
 
@@ -108,15 +113,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_recipe_single_active_version
 CREATE TABLE IF NOT EXISTS public.recipe_components (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  recipe_version_id UUID NOT NULL REFERENCES public.recipe_versions(id) ON DELETE CASCADE,
-  stock_item_id UUID NOT NULL REFERENCES public.stock_items(id) ON DELETE RESTRICT,
+  recipe_version_id UUID NOT NULL,
+  stock_item_id UUID NOT NULL,
   component_type public.recipe_component_type NOT NULL DEFAULT 'base',
   qty_per_batch NUMERIC(14,4) NOT NULL CHECK (qty_per_batch > 0),
   uom TEXT NOT NULL,
   waste_factor NUMERIC(8,6) NOT NULL DEFAULT 0 CHECK (waste_factor >= 0 AND waste_factor < 1),
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT recipe_components_user_id_id_key UNIQUE (user_id, id),
+  CONSTRAINT recipe_components_version_owner_fkey
+    FOREIGN KEY (user_id, recipe_version_id) REFERENCES public.recipe_versions(user_id, id) ON DELETE CASCADE,
+  CONSTRAINT recipe_components_stock_item_owner_fkey
+    FOREIGN KEY (user_id, stock_item_id) REFERENCES public.stock_items(user_id, id) ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_recipe_component_once
@@ -126,8 +136,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_recipe_component_once
 CREATE TABLE IF NOT EXISTS public.production_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  recipe_version_id UUID NOT NULL REFERENCES public.recipe_versions(id) ON DELETE RESTRICT,
-  output_item_id UUID NOT NULL REFERENCES public.stock_items(id) ON DELETE RESTRICT,
+  recipe_version_id UUID NOT NULL,
+  output_item_id UUID NOT NULL,
   planned_output_qty NUMERIC(14,4) NOT NULL CHECK (planned_output_qty > 0),
   actual_output_qty NUMERIC(14,4),
   output_uom TEXT NOT NULL,
@@ -135,27 +145,37 @@ CREATE TABLE IF NOT EXISTS public.production_orders (
   notes TEXT,
   executed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT production_orders_user_id_id_key UNIQUE (user_id, id),
+  CONSTRAINT production_orders_recipe_version_owner_fkey
+    FOREIGN KEY (user_id, recipe_version_id) REFERENCES public.recipe_versions(user_id, id) ON DELETE RESTRICT,
+  CONSTRAINT production_orders_output_item_owner_fkey
+    FOREIGN KEY (user_id, output_item_id) REFERENCES public.stock_items(user_id, id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS public.production_consumptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  production_order_id UUID NOT NULL REFERENCES public.production_orders(id) ON DELETE CASCADE,
-  stock_item_id UUID NOT NULL REFERENCES public.stock_items(id) ON DELETE RESTRICT,
+  production_order_id UUID NOT NULL,
+  stock_item_id UUID NOT NULL,
   component_type public.recipe_component_type NOT NULL,
   required_qty NUMERIC(14,4) NOT NULL CHECK (required_qty >= 0),
   consumed_qty NUMERIC(14,4) NOT NULL CHECK (consumed_qty >= 0),
   uom TEXT NOT NULL,
   waste_factor NUMERIC(8,6) NOT NULL DEFAULT 0 CHECK (waste_factor >= 0 AND waste_factor < 1),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT production_consumptions_user_id_id_key UNIQUE (user_id, id),
+  CONSTRAINT production_consumptions_order_owner_fkey
+    FOREIGN KEY (user_id, production_order_id) REFERENCES public.production_orders(user_id, id) ON DELETE CASCADE,
+  CONSTRAINT production_consumptions_stock_item_owner_fkey
+    FOREIGN KEY (user_id, stock_item_id) REFERENCES public.stock_items(user_id, id) ON DELETE RESTRICT
 );
 
 -- Ledger
 CREATE TABLE IF NOT EXISTS public.stock_movements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  stock_item_id UUID NOT NULL REFERENCES public.stock_items(id) ON DELETE RESTRICT,
+  stock_item_id UUID NOT NULL,
   direction public.movement_direction NOT NULL,
   quantity NUMERIC(14,4) NOT NULL CHECK (quantity > 0),
   uom TEXT NOT NULL,
@@ -169,7 +189,10 @@ CREATE TABLE IF NOT EXISTS public.stock_movements (
   CONSTRAINT chk_reference_pair CHECK (
     (reference_type IS NULL AND reference_id IS NULL) OR
     (reference_type IS NOT NULL AND reference_id IS NOT NULL)
-  )
+  ),
+  CONSTRAINT stock_movements_user_id_id_key UNIQUE (user_id, id),
+  CONSTRAINT stock_movements_stock_item_owner_fkey
+    FOREIGN KEY (user_id, stock_item_id) REFERENCES public.stock_items(user_id, id) ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_stock_movements_idempotency
@@ -195,7 +218,9 @@ SELECT
     END
   ), 0)::NUMERIC(14,4) AS saldo_atual
 FROM public.stock_items si
-LEFT JOIN public.stock_movements sm ON sm.stock_item_id = si.id
+LEFT JOIN public.stock_movements sm
+  ON sm.user_id = si.user_id
+ AND sm.stock_item_id = si.id
 GROUP BY si.id, si.user_id, si.nome, si.unidade_base, si.tipo;
 
 -- Helper function for consistent balance lookup
@@ -207,14 +232,19 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT COALESCE(SUM(
-    CASE direction
-      WHEN 'in' THEN quantity
-      WHEN 'out' THEN -quantity
+    CASE sm.direction
+      WHEN 'in' THEN sm.quantity
+      WHEN 'out' THEN -sm.quantity
       ELSE 0
     END
   ), 0)
-  FROM public.stock_movements
-  WHERE user_id = p_user_id AND stock_item_id = p_stock_item_id;
+  FROM public.stock_items si
+  LEFT JOIN public.stock_movements sm
+    ON sm.user_id = si.user_id
+   AND sm.stock_item_id = si.id
+  WHERE si.user_id = auth.uid()
+    AND si.id = p_stock_item_id
+    AND p_user_id = auth.uid();
 $$;
 
 -- Transaction-safe production execution
