@@ -16,7 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
 type Uom = (typeof UOM_OPTIONS)[number];
@@ -61,10 +61,16 @@ type RecipeComponentRow = {
 };
 
 type RecipeTableRow = Tables<'recipes'>;
+type RecipeInsert = TablesInsert<'recipes'>;
+type RecipeUpdate = TablesUpdate<'recipes'>;
 type RecipeVersionTableRow = Tables<'recipe_versions'>;
+type RecipeVersionInsert = TablesInsert<'recipe_versions'>;
+type RecipeVersionUpdate = TablesUpdate<'recipe_versions'>;
 type StockItemTableRow = Tables<'stock_items'>;
+type StockItemInsert = TablesInsert<'stock_items'>;
 type InsumoTableRow = Pick<Tables<'insumos'>, 'id' | 'nome' | 'unidade'>;
 type RecipeComponentTableRow = Tables<'recipe_components'>;
+type RecipeComponentInsert = TablesInsert<'recipe_components'>;
 
 function toRecipeRow(row: RecipeTableRow): RecipeRow {
   return {
@@ -247,12 +253,14 @@ export function ReceitasPage() {
     if (!user || !nome) return;
     setSavingRecipe(true);
     try {
-      const { error } = await supabase.from('recipes' as any).insert({
+      const recipe: RecipeInsert = {
         user_id: user.id,
         nome,
         tipo: 'consumo',
         yield_uom: 'lote',
-      });
+      };
+
+      const { error } = await supabase.from('recipes').insert(recipe);
       if (error) {
         toast({ title: 'Erro ao criar receita', description: error.message, variant: 'destructive' });
         return;
@@ -279,7 +287,7 @@ export function ReceitasPage() {
     }
 
     const nextVersion = (versions[0]?.version_no || 0) + 1;
-    const { error } = await supabase.from('recipe_versions' as any).insert({
+    const version: RecipeVersionInsert = {
       user_id: user.id,
       recipe_id: selectedRecipeId,
       version_no: nextVersion,
@@ -287,7 +295,9 @@ export function ReceitasPage() {
       yield_qty: pesoTotal, // compatibilidade
       peso_total_massa_g: pesoTotal,
       peso_unitario_base_g: pesoUnit,
-    });
+    };
+
+    const { error } = await supabase.from('recipe_versions').insert(version);
     if (error) {
       toast({ title: 'Erro ao criar versão', description: error.message, variant: 'destructive' });
       return;
@@ -310,20 +320,28 @@ export function ReceitasPage() {
     )?.id;
 
     if (!stockId) {
+      const stockItem: StockItemInsert = {
+        user_id: user.id,
+        nome: insumo.nome,
+        unidade_base: insumo.unidade,
+        tipo: 'insumo',
+      };
+
       const { data: created, error: createErr } = await supabase
-        .from('stock_items' as any)
-        .insert({ user_id: user.id, nome: insumo.nome, unidade_base: insumo.unidade, tipo: 'insumo' })
+        .from('stock_items')
+        .insert(stockItem)
         .select('id,nome,unidade_base,tipo')
         .single();
       if (createErr || !created) {
         toast({ title: 'Erro ao vincular insumo', description: createErr?.message, variant: 'destructive' });
         return;
       }
-      stockId = (created as any).id;
-      setStockItems((prev) => [...prev, created as unknown as StockItemRow]);
+      const createdStockItem = toStockItemRow(created);
+      stockId = createdStockItem.id;
+      setStockItems((prev) => [...prev, createdStockItem]);
     }
 
-    const { error } = await supabase.from('recipe_components' as any).insert({
+    const component: RecipeComponentInsert = {
       user_id: user.id,
       recipe_version_id: selectedVersionId,
       stock_item_id: stockId,
@@ -331,7 +349,9 @@ export function ReceitasPage() {
       uom: newComponent.uom,
       component_type: 'base',
       waste_factor: 0,
-    });
+    };
+
+    const { error } = await supabase.from('recipe_components').insert(component);
     if (error) {
       toast({ title: 'Erro ao adicionar insumo', description: error.message, variant: 'destructive' });
       return;
@@ -343,12 +363,15 @@ export function ReceitasPage() {
 
   const setVersionActive = async (versionId: string) => {
     if (!selectedRecipeId) return;
+    const archiveActiveVersion: RecipeVersionUpdate = { status: 'archived' };
+    const activateVersion: RecipeVersionUpdate = { status: 'active' };
+
     await supabase
-      .from('recipe_versions' as any)
-      .update({ status: 'archived' })
+      .from('recipe_versions')
+      .update(archiveActiveVersion)
       .eq('recipe_id', selectedRecipeId)
       .eq('status', 'active');
-    const { error } = await supabase.from('recipe_versions' as any).update({ status: 'active' }).eq('id', versionId);
+    const { error } = await supabase.from('recipe_versions').update(activateVersion).eq('id', versionId);
     if (error) {
       toast({ title: 'Erro ao ativar versão', description: error.message, variant: 'destructive' });
       return;
@@ -359,9 +382,14 @@ export function ReceitasPage() {
 
   // ===== Exclusões =====
   const doDeleteRecipe = async (id: string) => {
+    const updates: RecipeUpdate = {
+      deleted_at: new Date().toISOString(),
+      ativo: false,
+    };
+
     const { error } = await supabase
-      .from('recipes' as any)
-      .update({ deleted_at: new Date().toISOString(), ativo: false })
+      .from('recipes')
+      .update(updates)
       .eq('id', id);
     if (error) {
       toast({ title: 'Erro ao excluir receita', description: error.message, variant: 'destructive' });
@@ -392,8 +420,8 @@ export function ReceitasPage() {
     }
 
     // Apaga componentes primeiro
-    await supabase.from('recipe_components' as any).delete().eq('recipe_version_id', id);
-    const { error } = await supabase.from('recipe_versions' as any).delete().eq('id', id);
+    await supabase.from('recipe_components').delete().eq('recipe_version_id', id);
+    const { error } = await supabase.from('recipe_versions').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro ao excluir versão', description: error.message, variant: 'destructive' });
       return;
@@ -404,7 +432,7 @@ export function ReceitasPage() {
   };
 
   const doDeleteComponent = async (id: string) => {
-    const { error } = await supabase.from('recipe_components' as any).delete().eq('id', id);
+    const { error } = await supabase.from('recipe_components').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro ao remover insumo', description: error.message, variant: 'destructive' });
       return;
