@@ -13,6 +13,10 @@ export interface Transacao {
   referencia?: string | null;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
 export function useTransacoes() {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,10 +37,10 @@ export function useTransacoes() {
 
       if (error) throw error;
       setTransacoes((data || []) as Transacao[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar transações',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -71,10 +75,10 @@ export function useTransacoes() {
       setTransacoes([newTransacao, ...transacoes]);
       toast({ title: 'Transação registrada!' });
       return newTransacao;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao registrar transação',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
