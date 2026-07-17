@@ -22,7 +22,9 @@ function getErrorMessage(error: unknown) {
 }
 
 function toEstoqueProduto(insumo: InsumoRow, fallbackNome = 'Produto Desconhecido'): EstoqueProduto {
-  const [, brigadeiroId, brigadeiroNome] = insumo.nome.match(/\[PRODUTO\] (.*?)::(.*)/) || ['', '', fallbackNome];
+  const match = insumo.nome.match(/\[PRODUTO\] (.*?)::(.*)/);
+  const brigadeiroId = match?.[1] || '';
+  const brigadeiroNome = match?.[2] || fallbackNome;
 
   return {
     id: insumo.id,

@@ -509,7 +509,7 @@ export function ProducaoPage() {
                 </h3>
               </div>
               <div className="divide-y divide-border">
-                {producaoByDate[dateKey].map((item) => {
+                {(producaoByDate[dateKey] || []).map((item) => {
                   const isDeleted = !!item.deleted_at;
                   return (
                     <div key={item.id} className={cn("p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4", isDeleted && "opacity-50")}>
