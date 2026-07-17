@@ -289,7 +289,7 @@ export function FinanceiroPage() {
         <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h3 className="font-display font-semibold">Transações Recentes</h3>
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filtrar transações por tipo">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
