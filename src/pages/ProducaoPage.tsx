@@ -66,18 +66,21 @@ export function ProducaoPage() {
   const activeProducao = producao.filter(p => !p.deleted_at);
   const totalUnidadesHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.quantidade, 0);
   const totalCustoHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.custo_total, 0);
+  const quantidadeProducao = Number(formData.quantidade);
+  const quantidadeProducaoValida = Number.isInteger(quantidadeProducao) && quantidadeProducao > 0;
+  const quantidadeEdicao = Number(editData.quantidade);
+  const quantidadeEdicaoValida = Number.isInteger(quantidadeEdicao) && quantidadeEdicao > 0;
 
   const handleAddProducao = async () => {
     const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiro_id);
     if (!brigadeiro) return;
+    if (!quantidadeProducaoValida) return;
     setSaving(true);
-    const quantidade = parseInt(formData.quantidade);
-    if (quantidade <= 0) { setSaving(false); return; }
     await addProducao({
       data: formData.data,
       brigadeiro_id: brigadeiro.id,
       brigadeiro_nome: brigadeiro.nome,
-      quantidade,
+      quantidade: quantidadeProducao,
       custo_total: 0,
       status: formData.integrar_estoque ? 'concluido' : 'planejado',
     }, {
@@ -118,9 +121,15 @@ export function ProducaoPage() {
   const handleEdit = async () => {
     if (!editItem) return;
     setSaving(true);
-    const updates: any = {};
+    const updates: Partial<Pick<ProducaoDiaria, 'data' | 'quantidade' | 'status'>> = {};
     if (editData.data) updates.data = editData.data;
-    if (editData.quantidade) updates.quantidade = parseInt(editData.quantidade);
+    if (editData.quantidade) {
+      if (!quantidadeEdicaoValida) {
+        setSaving(false);
+        return;
+      }
+      updates.quantidade = quantidadeEdicao;
+    }
     if (editData.status) updates.status = editData.status;
     await updateProducao(editItem.id, updates);
     setSaving(false);
@@ -218,10 +227,10 @@ export function ProducaoPage() {
                   </div>
                 )}
               </div>
-              {formData.brigadeiro_id && formData.quantidade && (
+              {formData.brigadeiro_id && quantidadeProducaoValida && (
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm font-medium">
-                    Custo estimado: R$ {(parseInt(formData.quantidade) * (brigadeiros.find(b => b.id === formData.brigadeiro_id)?.custo_unitario || 0)).toFixed(2)}
+                    Custo estimado: R$ {(quantidadeProducao * (brigadeiros.find(b => b.id === formData.brigadeiro_id)?.custo_unitario || 0)).toFixed(2)}
                   </p>
                 </div>
               )}
@@ -231,8 +240,7 @@ export function ProducaoPage() {
                 disabled={
                   saving ||
                   !formData.brigadeiro_id ||
-                  !formData.quantidade ||
-                  parseInt(formData.quantidade) <= 0 ||
+                  !quantidadeProducaoValida ||
                   (formData.integrar_estoque && (!formData.recipe_version_id || !formData.output_item_id))
                 }
               >
@@ -305,7 +313,7 @@ export function ProducaoPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleEdit} className="w-full" disabled={saving || !editData.quantidade || parseInt(editData.quantidade) <= 0}>
+            <Button onClick={handleEdit} className="w-full" disabled={saving || !quantidadeEdicaoValida}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Salvar Alterações
             </Button>

@@ -6,6 +6,10 @@ import { Transacao } from '@/hooks/useTransacoes';
 
 const PAGE_SIZE = 20;
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
 export function usePaginatedTransacoes() {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +22,10 @@ export function usePaginatedTransacoes() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const fetchTransacoes = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       let countQuery = supabase
@@ -49,8 +56,8 @@ export function usePaginatedTransacoes() {
       const { data, error } = await dataQuery;
       if (error) throw error;
       setTransacoes((data || []) as Transacao[]);
-    } catch (error: any) {
-      toast({ title: 'Erro ao carregar transações', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao carregar transações', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -64,6 +71,37 @@ export function usePaginatedTransacoes() {
     setPage(0);
   }, [tipoFilter]);
 
+  const addTransacao = async (transacao: Omit<Transacao, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('transacoes')
+        .insert({
+          tipo: transacao.tipo,
+          categoria: transacao.categoria,
+          descricao: transacao.descricao,
+          valor: transacao.valor,
+          data: transacao.data,
+          referencia: transacao.referencia,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchTransacoes();
+      toast({ title: 'Transação registrada!' });
+      return data as Transacao;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao registrar transação',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    }
+  };
+
   return {
     transacoes,
     loading,
@@ -73,6 +111,7 @@ export function usePaginatedTransacoes() {
     totalCount,
     tipoFilter,
     setTipoFilter,
+    addTransacao,
     refetch: fetchTransacoes,
   };
 }

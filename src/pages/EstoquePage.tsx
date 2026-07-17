@@ -24,6 +24,7 @@ function InsumosTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     nome: '',
     unidade: '',
@@ -58,28 +59,45 @@ function InsumosTab() {
         preco_unitario: '',
       });
     }
+    setFormErrors({});
     setIsDialogOpen(true);
   };
 
   const handleSave = async () => {
+    const quantidadeAtual = Number(formData.quantidade_atual);
+    const quantidadeMinima = Number(formData.quantidade_minima);
+    const consumoMedio = Number(formData.consumo_medio);
+    const precoUnitario = Number(formData.preco_unitario);
+    const errors: Record<string, string> = {};
+
+    if (!formData.nome.trim()) errors.nome = 'Informe o nome do insumo';
+    if (!formData.unidade.trim()) errors.unidade = 'Informe a unidade';
+    if (!Number.isFinite(quantidadeAtual) || quantidadeAtual < 0) errors.quantidade_atual = 'Informe uma quantidade válida';
+    if (!Number.isFinite(quantidadeMinima) || quantidadeMinima < 0) errors.quantidade_minima = 'Informe uma quantidade mínima válida';
+    if (!Number.isFinite(consumoMedio) || consumoMedio < 0) errors.consumo_medio = 'Informe um consumo médio válido';
+    if (!Number.isFinite(precoUnitario) || precoUnitario < 0) errors.preco_unitario = 'Informe um preço válido';
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setSaving(true);
     if (editingInsumo) {
       await updateInsumo(editingInsumo.id, {
-        nome: formData.nome,
-        unidade: formData.unidade,
-        quantidade_atual: parseFloat(formData.quantidade_atual),
-        quantidade_minima: parseFloat(formData.quantidade_minima),
-        consumo_medio: parseFloat(formData.consumo_medio),
-        preco_unitario: parseFloat(formData.preco_unitario),
+        nome: formData.nome.trim(),
+        unidade: formData.unidade.trim(),
+        quantidade_atual: quantidadeAtual,
+        quantidade_minima: quantidadeMinima,
+        consumo_medio: consumoMedio,
+        preco_unitario: precoUnitario,
       });
     } else {
       await addInsumo({
-        nome: formData.nome,
-        unidade: formData.unidade,
-        quantidade_atual: parseFloat(formData.quantidade_atual),
-        quantidade_minima: parseFloat(formData.quantidade_minima),
-        consumo_medio: parseFloat(formData.consumo_medio),
-        preco_unitario: parseFloat(formData.preco_unitario),
+        nome: formData.nome.trim(),
+        unidade: formData.unidade.trim(),
+        quantidade_atual: quantidadeAtual,
+        quantidade_minima: quantidadeMinima,
+        consumo_medio: consumoMedio,
+        preco_unitario: precoUnitario,
       });
     }
     setSaving(false);
@@ -116,31 +134,55 @@ function InsumosTab() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
-                  <Input value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} placeholder="Ex: Leite Condensado" />
+                  <Input value={formData.nome} onChange={(e) => {
+                    setFormData({ ...formData, nome: e.target.value });
+                    if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
+                  }} placeholder="Ex: Leite Condensado" />
+                  {formErrors.nome && <p className="text-xs text-destructive">{formErrors.nome}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Unidade</Label>
-                  <Input value={formData.unidade} onChange={(e) => setFormData({ ...formData, unidade: e.target.value })} placeholder="Ex: lata, kg" />
+                  <Input value={formData.unidade} onChange={(e) => {
+                    setFormData({ ...formData, unidade: e.target.value });
+                    if (formErrors.unidade) setFormErrors({ ...formErrors, unidade: '' });
+                  }} placeholder="Ex: lata, kg" />
+                  {formErrors.unidade && <p className="text-xs text-destructive">{formErrors.unidade}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Quantidade Atual</Label>
-                  <Input type="number" step="0.1" value={formData.quantidade_atual} onChange={(e) => setFormData({ ...formData, quantidade_atual: e.target.value })} />
+                  <Input type="number" step="0.1" min="0" value={formData.quantidade_atual} onChange={(e) => {
+                    setFormData({ ...formData, quantidade_atual: e.target.value });
+                    if (formErrors.quantidade_atual) setFormErrors({ ...formErrors, quantidade_atual: '' });
+                  }} />
+                  {formErrors.quantidade_atual && <p className="text-xs text-destructive">{formErrors.quantidade_atual}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Quantidade Mínima</Label>
-                  <Input type="number" step="0.1" value={formData.quantidade_minima} onChange={(e) => setFormData({ ...formData, quantidade_minima: e.target.value })} />
+                  <Input type="number" step="0.1" min="0" value={formData.quantidade_minima} onChange={(e) => {
+                    setFormData({ ...formData, quantidade_minima: e.target.value });
+                    if (formErrors.quantidade_minima) setFormErrors({ ...formErrors, quantidade_minima: '' });
+                  }} />
+                  {formErrors.quantidade_minima && <p className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Consumo Médio/Sem.</Label>
-                  <Input type="number" step="0.1" value={formData.consumo_medio} onChange={(e) => setFormData({ ...formData, consumo_medio: e.target.value })} />
+                  <Input type="number" step="0.1" min="0" value={formData.consumo_medio} onChange={(e) => {
+                    setFormData({ ...formData, consumo_medio: e.target.value });
+                    if (formErrors.consumo_medio) setFormErrors({ ...formErrors, consumo_medio: '' });
+                  }} />
+                  {formErrors.consumo_medio && <p className="text-xs text-destructive">{formErrors.consumo_medio}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Preço Unitário (R$)</Label>
-                  <Input type="number" step="0.01" value={formData.preco_unitario} onChange={(e) => setFormData({ ...formData, preco_unitario: e.target.value })} />
+                  <Input type="number" step="0.01" min="0" value={formData.preco_unitario} onChange={(e) => {
+                    setFormData({ ...formData, preco_unitario: e.target.value });
+                    if (formErrors.preco_unitario) setFormErrors({ ...formErrors, preco_unitario: '' });
+                  }} />
+                  {formErrors.preco_unitario && <p className="text-xs text-destructive">{formErrors.preco_unitario}</p>}
                 </div>
               </div>
               <Button onClick={handleSave} className="w-full" disabled={saving}>
@@ -220,8 +262,8 @@ function MassasTab() {
 
   const handleAction = async () => {
     if (!actionMassa || !actionValue) return;
-    const val = parseFloat(actionValue);
-    if (isNaN(val) || val <= 0) return toast({ title: 'Valor inválido', variant: 'destructive' });
+    const val = Number(actionValue);
+    if (!Number.isFinite(val) || val <= 0) return toast({ title: 'Valor inválido', variant: 'destructive' });
     
     const delta = actionType === 'add' ? val : -val;
     await updateQuantidade(actionMassa.id, delta);
@@ -308,7 +350,7 @@ function MassasTab() {
             <p className="text-sm text-muted-foreground">Massa: <strong>{actionMassa?.sabor}</strong></p>
             <div className="space-y-2">
               <Label>Quantidade (Gramas g)</Label>
-              <Input type="number" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 500" />
+              <Input type="number" min="0.1" step="0.1" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 500" />
             </div>
             <Button onClick={handleAction} className="w-full" variant={actionType === 'add' ? 'default' : 'destructive'}>
               Confirmar {actionType === 'add' ? 'Entrada' : 'Saída'}
@@ -341,8 +383,8 @@ function ProdutosTab() {
 
   const handleAction = async () => {
     if (!actionProduto || !actionValue) return;
-    const val = parseInt(actionValue);
-    if (isNaN(val) || val <= 0) return toast({ title: 'Valor inválido', variant: 'destructive' });
+    const val = Number(actionValue);
+    if (!Number.isInteger(val) || val <= 0) return toast({ title: 'Valor inválido', variant: 'destructive' });
     
     const delta = actionType === 'add' ? val : -val;
     await updateQuantidade(actionProduto.id, delta);
