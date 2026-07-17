@@ -482,7 +482,9 @@ export function ReceitasPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <h2 className="font-semibold">Nova Receita</h2>
+          <Label htmlFor="receita-nome" className="sr-only">Nome da receita</Label>
           <Input
+            id="receita-nome"
             value={newRecipe.nome}
             onChange={(e) => setNewRecipe({ nome: e.target.value })}
             placeholder="Ex: Brigadeiro 100% Cacau"
@@ -503,7 +505,12 @@ export function ReceitasPage() {
                   selectedRecipeId === r.id ? 'border-primary bg-primary/5' : 'border-border'
                 }`}
               >
-                <button onClick={() => setSelectedRecipeId(r.id)} className="text-left flex-1">
+                <button
+                  onClick={() => setSelectedRecipeId(r.id)}
+                  className="text-left flex-1"
+                  aria-label={`Selecionar receita ${r.nome}`}
+                  aria-pressed={selectedRecipeId === r.id}
+                >
                   <p className="font-medium">{r.nome}</p>
                 </button>
                 <Button
@@ -511,7 +518,7 @@ export function ReceitasPage() {
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   onClick={() => setConfirm({ kind: 'recipe', id: r.id, nome: r.nome })}
-                  aria-label="Excluir receita"
+                  aria-label={`Excluir receita ${r.nome}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -533,8 +540,9 @@ export function ReceitasPage() {
             <p className="text-sm font-medium">Nova versão</p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <Label className="text-xs">Peso total da massa (g)</Label>
+                <Label htmlFor="receita-versao-peso-total" className="text-xs">Peso total da massa (g)</Label>
                 <Input
+                  id="receita-versao-peso-total"
                   type="number"
                   value={newVersion.peso_total_massa_g}
                   onChange={(e) => setNewVersion((p) => ({ ...p, peso_total_massa_g: e.target.value }))}
@@ -542,8 +550,9 @@ export function ReceitasPage() {
                 />
               </div>
               <div>
-                <Label className="text-xs">Peso unitário base (g)</Label>
+                <Label htmlFor="receita-versao-peso-unitario" className="text-xs">Peso unitário base (g)</Label>
                 <Input
+                  id="receita-versao-peso-unitario"
                   type="number"
                   value={newVersion.peso_unitario_base_g}
                   onChange={(e) => setNewVersion((p) => ({ ...p, peso_unitario_base_g: e.target.value }))}
@@ -551,8 +560,9 @@ export function ReceitasPage() {
                 />
               </div>
               <div>
-                <Label className="text-xs">Status</Label>
+                <Label htmlFor="receita-versao-status" className="text-xs">Status</Label>
                 <select
+                  id="receita-versao-status"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={newVersion.status}
                   onChange={(e) =>
@@ -589,7 +599,12 @@ export function ReceitasPage() {
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <button className="text-left flex-1" onClick={() => setSelectedVersionId(v.id)}>
+                    <button
+                      className="text-left flex-1"
+                      onClick={() => setSelectedVersionId(v.id)}
+                      aria-label={`Selecionar versão ${v.version_no}`}
+                      aria-pressed={isSelected}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="font-medium">v{v.version_no}</span>
                         <span
@@ -621,7 +636,7 @@ export function ReceitasPage() {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => setConfirm({ kind: 'version', id: v.id, label: `v${v.version_no}` })}
-                        aria-label="Excluir versão"
+                        aria-label={`Excluir versão ${v.version_no}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -647,8 +662,9 @@ export function ReceitasPage() {
 
           <div className="rounded-lg border border-dashed border-border p-4 bg-muted/30 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             <div className="md:col-span-6">
-              <Label className="text-xs">Insumo</Label>
+              <Label htmlFor="receita-componente-insumo" className="text-xs">Insumo</Label>
               <select
+                id="receita-componente-insumo"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={newComponent.stock_item_id}
                 onChange={(e) => {
@@ -665,8 +681,9 @@ export function ReceitasPage() {
               </select>
             </div>
             <div className="md:col-span-3">
-              <Label className="text-xs">Quantidade</Label>
+              <Label htmlFor="receita-componente-quantidade" className="text-xs">Quantidade</Label>
               <Input
+                id="receita-componente-quantidade"
                 type="number"
                 value={newComponent.qty_per_batch}
                 onChange={(e) => setNewComponent((p) => ({ ...p, qty_per_batch: e.target.value }))}
@@ -674,8 +691,9 @@ export function ReceitasPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-xs">Unidade</Label>
+              <Label htmlFor="receita-componente-unidade" className="text-xs">Unidade</Label>
               <select
+                id="receita-componente-unidade"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={newComponent.uom}
                 onChange={(e) => setNewComponent((p) => ({ ...p, uom: e.target.value as Uom }))}
@@ -686,7 +704,7 @@ export function ReceitasPage() {
               </select>
             </div>
             <div className="md:col-span-1">
-              <Button onClick={addComponent} className="w-full" aria-label="Adicionar">
+              <Button onClick={addComponent} className="w-full" aria-label="Adicionar insumo à receita">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -716,7 +734,7 @@ export function ReceitasPage() {
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           onClick={() => setConfirm({ kind: 'component', id: c.id, label: item?.nome || 'insumo' })}
-                          aria-label="Remover insumo"
+                          aria-label={`Remover insumo ${item?.nome || 'sem nome'}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
