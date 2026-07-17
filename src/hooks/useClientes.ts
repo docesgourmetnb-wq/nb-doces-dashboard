@@ -51,7 +51,7 @@ export function useClientes() {
   }, [fetchClientes]);
 
   const addCliente = async (cliente: Omit<Cliente, 'id' | 'created_at'>) => {
-    if (!user) return;
+    if (!user) return undefined;
     
     try {
       const { data, error } = await supabase
@@ -75,6 +75,7 @@ export function useClientes() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 

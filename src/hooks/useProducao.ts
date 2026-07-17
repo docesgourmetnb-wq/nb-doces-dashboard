@@ -72,7 +72,7 @@ export function useProducao() {
       notes?: string;
     }
   ) => {
-    if (!user) return;
+    if (!user) return undefined;
     
     try {
       if (integration?.enabled) {
@@ -118,6 +118,7 @@ export function useProducao() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 

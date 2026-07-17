@@ -53,7 +53,7 @@ export function useTransacoes() {
   }, [fetchTransacoes]);
 
   const addTransacao = async (transacao: Omit<Transacao, 'id'>) => {
-    if (!user) return;
+    if (!user) return undefined;
     
     try {
       const { data, error } = await supabase
@@ -81,6 +81,7 @@ export function useTransacoes() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 

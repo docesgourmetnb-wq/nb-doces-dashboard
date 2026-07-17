@@ -177,7 +177,7 @@ export function usePedidos() {
   };
 
   const addPedido = async (pedido: PedidoInput, itens: ItemPedido[]) => {
-    if (!user) return;
+    if (!user) return undefined;
     
     try {
       const createPedidoRpc = supabase.rpc as unknown as CreatePedidoWithItemsRpc;
@@ -209,6 +209,7 @@ export function usePedidos() {
         description: getErrorMessage(error),
         variant: 'destructive',
       });
+      return undefined;
     }
   };
 
