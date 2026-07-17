@@ -1,16 +1,10 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json, Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 
-export interface AuditLogEntry {
-  id: string;
-  user_id: string;
-  entity_type: string;
-  entity_id: string;
-  action: string;
-  metadata: Record<string, any> | null;
-  created_at: string;
-}
+export type AuditLogEntry = Tables<'audit_log'>;
+export type AuditLogMetadata = Record<string, Json>;
 
 const ACTION_LABELS: Record<string, string> = {
   status_changed: 'Status alterado',
@@ -32,7 +26,7 @@ export function useAuditLog() {
       entityType: string,
       entityId: string,
       action: string,
-      metadata?: Record<string, any>,
+      metadata?: AuditLogMetadata,
     ) => {
       if (!user) return;
       try {
@@ -42,7 +36,7 @@ export function useAuditLog() {
           entity_id: entityId,
           action,
           metadata: metadata || null,
-        } as any);
+        });
       } catch {
         // audit logging is best-effort, don't break the main flow
       }
@@ -59,8 +53,8 @@ export function useAuditLog() {
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .order('created_at', { ascending: false })
-        .limit(limit) as any;
-      return (data || []) as AuditLogEntry[];
+        .limit(limit);
+      return data || [];
     },
     [user],
   );
