@@ -16,6 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 
 const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
 type Uom = (typeof UOM_OPTIONS)[number];
@@ -59,6 +60,61 @@ type RecipeComponentRow = {
   waste_factor: number;
 };
 
+type RecipeTableRow = Tables<'recipes'>;
+type RecipeVersionTableRow = Tables<'recipe_versions'>;
+type StockItemTableRow = Tables<'stock_items'>;
+type InsumoTableRow = Pick<Tables<'insumos'>, 'id' | 'nome' | 'unidade'>;
+type RecipeComponentTableRow = Tables<'recipe_components'>;
+
+function toRecipeRow(row: RecipeTableRow): RecipeRow {
+  return {
+    id: row.id,
+    nome: row.nome,
+    tipo: row.tipo,
+    ativo: row.ativo,
+  };
+}
+
+function toRecipeVersionRow(row: RecipeVersionTableRow): RecipeVersionRow {
+  return {
+    id: row.id,
+    recipe_id: row.recipe_id,
+    version_no: row.version_no,
+    status: row.status as RecipeVersionRow['status'],
+    yield_qty: row.yield_qty,
+    peso_total_massa_g: row.peso_total_massa_g,
+    peso_unitario_base_g: row.peso_unitario_base_g,
+  };
+}
+
+function toStockItemRow(row: StockItemTableRow): StockItemRow {
+  return {
+    id: row.id,
+    nome: row.nome,
+    unidade_base: row.unidade_base,
+    tipo: row.tipo as StockItemRow['tipo'],
+  };
+}
+
+function toInsumoRow(row: InsumoTableRow): InsumoRow {
+  return {
+    id: row.id,
+    nome: row.nome,
+    unidade: row.unidade,
+  };
+}
+
+function toRecipeComponentRow(row: RecipeComponentTableRow): RecipeComponentRow {
+  return {
+    id: row.id,
+    stock_item_id: row.stock_item_id,
+    qty_per_batch: row.qty_per_batch,
+    uom: row.uom,
+    component_type: row.component_type as RecipeComponentRow['component_type'],
+    waste_factor: row.waste_factor,
+  };
+}
+
 type ConfirmState =
   | { kind: 'recipe'; id: string; nome: string }
   | { kind: 'version'; id: string; label: string }
@@ -99,11 +155,11 @@ export function ReceitasPage() {
     setLoading(true);
     const [recipesRes, stockRes, insumosRes] = await Promise.all([
       supabase
-        .from('recipes' as any)
+        .from('recipes')
         .select('id,nome,tipo,ativo,deleted_at')
         .is('deleted_at', null)
         .order('nome'),
-      supabase.from('stock_items' as any).select('id,nome,unidade_base,tipo').order('nome'),
+      supabase.from('stock_items').select('id,nome,unidade_base,tipo').order('nome'),
       supabase
         .from('insumos')
         .select('id,nome,unidade')
@@ -122,9 +178,9 @@ export function ReceitasPage() {
         variant: 'destructive',
       });
     } else {
-      setRecipes((recipesRes.data || []) as unknown as RecipeRow[]);
-      setStockItems((stockRes.data || []) as unknown as StockItemRow[]);
-      setInsumosEstoque((insumosRes.data || []) as unknown as InsumoRow[]);
+      setRecipes((recipesRes.data || []).map(toRecipeRow));
+      setStockItems((stockRes.data || []).map(toStockItemRow));
+      setInsumosEstoque((insumosRes.data || []).map(toInsumoRow));
     }
     setLoading(false);
   }, [toast, user]);
@@ -136,7 +192,7 @@ export function ReceitasPage() {
       return;
     }
     const { data, error } = await supabase
-      .from('recipe_versions' as any)
+      .from('recipe_versions')
       .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
       .eq('recipe_id', selectedRecipeId)
       .order('version_no', { ascending: false });
@@ -144,7 +200,7 @@ export function ReceitasPage() {
       toast({ title: 'Erro ao carregar versões', description: error.message, variant: 'destructive' });
       return;
     }
-    const list = (data || []) as unknown as RecipeVersionRow[];
+    const list = (data || []).map(toRecipeVersionRow);
     setVersions(list);
     if (!list.find((v) => v.id === selectedVersionId)) {
       setSelectedVersionId(list[0]?.id || '');
@@ -157,7 +213,7 @@ export function ReceitasPage() {
       return;
     }
     const { data, error } = await supabase
-      .from('recipe_components' as any)
+      .from('recipe_components')
       .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
       .eq('recipe_version_id', selectedVersionId)
       .order('sort_order');
@@ -165,7 +221,7 @@ export function ReceitasPage() {
       toast({ title: 'Erro ao carregar componentes', description: error.message, variant: 'destructive' });
       return;
     }
-    setComponents((data || []) as unknown as RecipeComponentRow[]);
+    setComponents((data || []).map(toRecipeComponentRow));
   }, [selectedVersionId, toast]);
 
   useEffect(() => { loadBase(); }, [loadBase]);
