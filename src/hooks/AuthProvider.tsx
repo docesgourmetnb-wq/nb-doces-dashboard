@@ -5,9 +5,33 @@ import { AuthContext, AuthProfile } from '@/hooks/useAuth';
 
 const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
 const devAutoLoginEnabled =
-  import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
+  import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
 const devAutoEmail = import.meta.env.VITE_DEV_AUTH_EMAIL;
 const devAutoPassword = import.meta.env.VITE_DEV_AUTH_PASSWORD;
+
+function isDevAutoLoginAllowed() {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === 'undefined') return false;
+
+  const { hostname } = window.location;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('id-preview--');
+}
+
+function withTimeout<T, TTimeout>(promise: PromiseLike<T>, timeoutMs: number, timeoutValue: TTimeout) {
+  return new Promise<T | TTimeout>((resolve) => {
+    const timeoutId = window.setTimeout(() => resolve(timeoutValue), timeoutMs);
+
+    Promise.resolve(promise)
+      .then((value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch(() => {
+        window.clearTimeout(timeoutId);
+        resolve(timeoutValue);
+      });
+  });
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -24,11 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('user_id,email,nome,role,active,permissions')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+      const profileResult = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('user_id,email,nome,role,active,permissions')
+          .eq('user_id', currentUser.id)
+          .maybeSingle() as PromiseLike<{ data: unknown | null }>,
+        5000,
+        { data: null },
+      );
+      const data = profileResult.data;
 
       if (!mounted) return;
 
@@ -60,23 +89,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session && devAutoLoginEnabled && devAutoEmail && devAutoPassword) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: devAutoEmail,
-          password: devAutoPassword,
-        });
-        if (error) {
-          if (import.meta.env.DEV) console.warn('[dev auto-login] failed:', error.message);
-        } else {
-          session = data.session;
+    const initializeAuth = async () => {
+      const sessionResult = await withTimeout(
+        supabase.auth.getSession(),
+        5000,
+        null,
+      );
+
+      let nextSession = sessionResult?.data.session ?? null;
+
+      if (!nextSession && devAutoLoginEnabled && isDevAutoLoginAllowed() && devAutoEmail && devAutoPassword) {
+        const loginResult = await withTimeout(
+          supabase.auth.signInWithPassword({
+            email: devAutoEmail,
+            password: devAutoPassword,
+          }),
+          8000,
+          null,
+        );
+
+        if (loginResult?.error && import.meta.env.DEV) {
+          console.warn('[dev auto-login] failed:', loginResult.error.message);
         }
+
+        nextSession = loginResult?.data.session ?? null;
       }
-      setSession(session);
-      setUser(session?.user ?? null);
-      await loadProfile(session?.user ?? null);
+
+      if (!mounted) return;
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
       setLoading(false);
-    });
+
+      setTimeout(() => {
+        void loadProfile(nextSession?.user ?? null);
+      }, 0);
+    };
+
+    void initializeAuth();
 
     return () => {
       mounted = false;
