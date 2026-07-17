@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { shouldGenerateRevenue, type PedidoStatus } from '@/domain/pedidos';
+import { type PedidoStatus } from '@/domain/pedidos';
 import { format } from 'date-fns';
 
 export interface ItemPedido {
@@ -52,7 +52,7 @@ export function usePedidos() {
     try {
       let query = supabase
         .from('pedidos')
-        .select('*, clientes(nome)')
+        .select('*, clientes(nome), itens_pedido(*)')
         .order('data', { ascending: true });
 
       if (!showArchived) {
@@ -63,21 +63,13 @@ export function usePedidos() {
 
       if (pedidosError) throw pedidosError;
 
-      // Fetch items for each order
-      const pedidosWithItems = await Promise.all(
-        (pedidosData || []).map(async (pedido: any) => {
-          const { data: itens } = await supabase
-            .from('itens_pedido')
-            .select('*')
-            .eq('pedido_id', pedido.id);
-          return {
-            ...pedido,
-            cliente_nome: pedido.clientes?.nome || null,
-            clientes: undefined,
-            itens: (itens || []) as ItemPedido[],
-          } as Pedido;
-        })
-      );
+      const pedidosWithItems = (pedidosData || []).map((pedido: any) => ({
+        ...pedido,
+        cliente_nome: pedido.clientes?.nome || null,
+        clientes: undefined,
+        itens: (pedido.itens_pedido || []) as ItemPedido[],
+        itens_pedido: undefined,
+      })) as Pedido[];
 
       setPedidos(pedidosWithItems);
     } catch (error: any) {
@@ -100,78 +92,14 @@ export function usePedidos() {
       const pedido = pedidos.find(p => p.id === id);
       if (!pedido || pedido.status === status) return; // idempotency guard
 
-      const { error } = await supabase
-        .from('pedidos')
-        .update({ status })
-        .eq('id', id);
+      const { data: updatedPedido, error } = await (supabase.rpc as any)('update_pedido_status', {
+        p_pedido_id: id,
+        p_status: status,
+      });
 
       if (error) throw error;
 
-      // Audit: status change
-      await auditLog('pedido', id, 'status_changed', {
-        from: pedido.status,
-        to: status,
-        cliente: getClienteDisplayName(pedido),
-        valor_total: pedido.valor_total,
-      });
-
-      // Fetch existing transactions for this order to determine cycle
-      const { data: existingTxs } = await supabase
-        .from('transacoes')
-        .select('referencia')
-        .like('referencia', `pedido:${id}:%`);
-
-      const refs = (existingTxs || []).map(t => t.referencia || '');
-      const vendaCount = refs.filter(r => r.includes(':venda:')).length;
-      const estornoCount = refs.filter(r => r.includes(':estorno:')).length;
-
-      // Entering revenue-generating status → create venda
-      if (shouldGenerateRevenue(status) && !shouldGenerateRevenue(pedido.status)) {
-        const cycle = 1 + estornoCount;
-        const vendaRef = `pedido:${id}:venda:${cycle}`;
-        const alreadyExists = refs.includes(vendaRef);
-
-        if (!alreadyExists && pedido.valor_total > 0) {
-          await supabase.from('transacoes').insert({
-            tipo: 'entrada',
-            categoria: 'Vendas',
-            descricao: `Venda - Pedido ${pedido.cliente}`,
-            valor: pedido.valor_total,
-            data: pedido.data,
-            referencia: vendaRef,
-            user_id: user!.id,
-          });
-          await auditLog('pedido', id, 'venda_created', {
-            valor: pedido.valor_total,
-            referencia: vendaRef,
-          });
-        }
-      }
-
-      // Leaving revenue-generating status → create estorno
-      if (shouldGenerateRevenue(pedido.status) && !shouldGenerateRevenue(status)) {
-        const cycle = Math.max(vendaCount, 1);
-        const estornoRef = `pedido:${id}:estorno:${cycle}`;
-        const alreadyExists = refs.includes(estornoRef);
-
-        if (!alreadyExists && pedido.valor_total > 0) {
-          await supabase.from('transacoes').insert({
-            tipo: 'saida',
-            categoria: 'Estornos',
-            descricao: `Estorno - Pedido ${pedido.cliente}`,
-            valor: pedido.valor_total,
-            data: pedido.data,
-            referencia: estornoRef,
-            user_id: user!.id,
-          });
-          await auditLog('pedido', id, 'estorno_created', {
-            valor: pedido.valor_total,
-            referencia: estornoRef,
-          });
-        }
-      }
-
-      setPedidos(pedidos.map(p => p.id === id ? { ...p, status } : p));
+      setPedidos(pedidos.map(p => p.id === id ? { ...p, ...(updatedPedido || {}), status } : p));
       toast({ title: 'Status atualizado!' });
     } catch (error: any) {
       toast({

@@ -48,7 +48,7 @@ export function usePaginatedPedidos() {
 
       let dataQuery = supabase
         .from('pedidos')
-        .select('*, clientes(nome)')
+        .select('*, clientes(nome), itens_pedido(*)')
         .order('data', { ascending: false })
         .range(from, to);
 
@@ -65,21 +65,13 @@ export function usePaginatedPedidos() {
       const { data: pedidosData, error } = await dataQuery;
       if (error) throw error;
 
-      // Fetch items for each order
-      const pedidosWithItems = await Promise.all(
-        (pedidosData || []).map(async (pedido: any) => {
-          const { data: itens } = await supabase
-            .from('itens_pedido')
-            .select('*')
-            .eq('pedido_id', pedido.id);
-          return {
-            ...pedido,
-            cliente_nome: pedido.clientes?.nome || null,
-            clientes: undefined,
-            itens: (itens || []) as ItemPedido[],
-          } as Pedido;
-        })
-      );
+      const pedidosWithItems = (pedidosData || []).map((pedido: any) => ({
+        ...pedido,
+        cliente_nome: pedido.clientes?.nome || null,
+        clientes: undefined,
+        itens: (pedido.itens_pedido || []) as ItemPedido[],
+        itens_pedido: undefined,
+      })) as Pedido[];
 
       setPedidos(pedidosWithItems);
     } catch (error: any) {
