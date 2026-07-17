@@ -49,10 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        await loadProfile(session?.user ?? null);
+        // Defer any Supabase calls to avoid deadlocking the auth callback
+        setTimeout(() => {
+          void loadProfile(session?.user ?? null);
+        }, 0);
         setLoading(false);
       },
     );
