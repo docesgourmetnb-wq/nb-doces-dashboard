@@ -11,6 +11,10 @@ export interface Cliente {
   created_at: string;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erro inesperado';
+}
+
 export function useClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,10 +35,10 @@ export function useClientes() {
 
       if (error) throw error;
       setClientes(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar clientes',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
@@ -65,10 +69,10 @@ export function useClientes() {
       setClientes([...clientes, data]);
       toast({ title: 'Cliente cadastrado com sucesso!' });
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao cadastrar cliente',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -84,10 +88,10 @@ export function useClientes() {
       if (error) throw error;
       setClientes(clientes.map(c => c.id === id ? { ...c, ...updates } : c));
       toast({ title: 'Cliente atualizado!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar cliente',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
@@ -103,10 +107,10 @@ export function useClientes() {
       if (error) throw error;
       setClientes(clientes.filter(c => c.id !== id));
       toast({ title: 'Cliente removido!' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao remover cliente',
-        description: error.message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     }
