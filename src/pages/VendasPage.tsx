@@ -109,8 +109,10 @@ export function VendasPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 max-w-md">
+          <Label htmlFor="vendas-busca" className="sr-only">Buscar pedidos por cliente</Label>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input
+            id="vendas-busca"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por cliente..."
@@ -118,7 +120,7 @@ export function VendasPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar pedidos por status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -170,7 +172,9 @@ export function VendasPage() {
           <p className="text-sm text-muted-foreground">
             O pedido de <strong>{showArchiveReasonModal && getClienteDisplayName(showArchiveReasonModal)}</strong> será arquivado. Isso não afeta o financeiro.
           </p>
+          <Label htmlFor="vendas-motivo-arquivamento" className="sr-only">Motivo do arquivamento</Label>
           <Textarea
+            id="vendas-motivo-arquivamento"
             placeholder="Motivo (opcional)"
             value={archiveReason}
             onChange={(e) => setArchiveReason(e.target.value)}
@@ -246,7 +250,7 @@ export function VendasPage() {
                           <SelectTrigger className={cn(
                             "h-8 text-xs font-medium rounded-full px-3",
                             getPedidoStatusBadgeClass(pedido.status)
-                          )}>
+                          )} aria-label={`Status do pedido de ${getClienteDisplayName(pedido)}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -261,7 +265,10 @@ export function VendasPage() {
                           {/* View details */}
                           <Dialog>
                             <DialogTrigger asChild>
-                              <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+                              <button
+                                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                aria-label={`Ver detalhes do pedido de ${getClienteDisplayName(pedido)}`}
+                              >
                                 <Eye size={18} className="text-muted-foreground" />
                               </button>
                             </DialogTrigger>
@@ -330,6 +337,7 @@ export function VendasPage() {
                               className="p-2 hover:bg-muted rounded-lg transition-colors"
                               onClick={() => handleUnarchive(pedido.id)}
                               title="Desarquivar"
+                              aria-label={`Desarquivar pedido de ${getClienteDisplayName(pedido)}`}
                             >
                               <ArchiveRestore size={18} className="text-muted-foreground" />
                             </button>
@@ -338,6 +346,7 @@ export function VendasPage() {
                               className="p-2 hover:bg-muted rounded-lg transition-colors"
                               onClick={() => handleArchiveClick(pedido)}
                               title="Arquivar"
+                              aria-label={`Arquivar pedido de ${getClienteDisplayName(pedido)}`}
                             >
                               <Archive size={18} className="text-muted-foreground" />
                             </button>
