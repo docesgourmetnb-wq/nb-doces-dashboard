@@ -46,15 +46,19 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-primary text-primary-foreground shadow-chocolate"
+        aria-label={isOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
+        aria-expanded={isOpen}
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {/* Overlay for mobile */}
       {isOpen && (
-        <div 
+        <button
+          type="button"
           className="lg:hidden fixed inset-0 bg-black/50 z-30"
           onClick={() => setIsOpen(false)}
+          aria-label="Fechar menu de navegação"
         />
       )}
 
@@ -86,6 +90,7 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
                     onPageChange(item.id);
                     setIsOpen(false);
                   }}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left outline-none",
                     isActive 
@@ -111,6 +116,7 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label="Sair da conta"
             >
               <LogOut size={18} />
               <span className="text-sm">Sair</span>
