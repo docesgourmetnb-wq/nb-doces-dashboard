@@ -2,6 +2,8 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -41,6 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, nome?: string) => {
+    if (!signupEnabled) {
+      return { error: new Error('Cadastro desativado. Solicite acesso ao administrador.') };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
