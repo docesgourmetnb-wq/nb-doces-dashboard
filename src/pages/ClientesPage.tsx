@@ -179,7 +179,11 @@ export function ClientesPage() {
                       <Button
                         id="cliente-desde"
                         variant="outline"
-                        aria-label="Selecionar data de cadastro do cliente"
+                        aria-label={clienteDesde
+                          ? `Selecionar data de cadastro do cliente: ${format(clienteDesde, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`
+                          : 'Selecionar data de cadastro do cliente'
+                        }
+                        aria-haspopup="dialog"
                         className={cn(
                           "w-full justify-start text-left font-normal",
                           !clienteDesde && "text-muted-foreground"
