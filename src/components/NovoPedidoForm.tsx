@@ -42,7 +42,7 @@ interface NovoPedidoFormProps {
 
 export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const { brigadeiros } = useBrigadeiros();
-  const { clientes } = useClientes();
+  const { clientes, addCliente } = useClientes();
   const { addPedido } = usePedidos();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -144,10 +144,21 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     try {
       const dataEntrega = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`;
       const statusFinanceiro = derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber);
+      let pedidoClienteId = modoCliente === 'existente' && clienteId ? clienteId : null;
 
-      await addPedido({
+      if (modoCliente === 'novo') {
+        const novoCliente = await addCliente({
+          nome: clienteNome,
+          email: null,
+          telefone: null,
+        });
+        if (!novoCliente) return;
+        pedidoClienteId = novoCliente.id;
+      }
+
+      const novoPedido = await addPedido({
         cliente: clienteNome,
-        cliente_id: modoCliente === 'existente' && clienteId ? clienteId : null,
+        cliente_id: pedidoClienteId,
         data: dataEntrega,
         data_entrega: dataEntrega,
         tipo_pedido: tipoPedido,
@@ -163,6 +174,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
         status_financeiro: statusFinanceiro,
         observacoes: observacoes.trim() || null,
       }, itensDoPedido);
+      if (!novoPedido) return;
       
       // Reset form
       resetForm();
