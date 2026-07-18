@@ -91,7 +91,12 @@ export function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const { summary, loading } = useDashboardSummary(Number(selectedYear), Number(selectedMonth));
-  const { items: productionDemand, totalUnidades: totalProductionDemand, loading: loadingProductionDemand } = useProductionDemand();
+  const {
+    items: productionDemand,
+    totalUnidades: totalProductionDemand,
+    totalCobertoPorEstoque,
+    loading: loadingProductionDemand,
+  } = useProductionDemand();
   const {
     items: orderAgenda,
     pedidosHoje,
@@ -134,6 +139,9 @@ export function DashboardPage() {
   const saboresMaisVendidosDescricao = saboresMaisVendidos
     .map(item => `${item.nome}: ${item.quantidade} unidades`)
     .join('; ');
+  const productionDemandSubtitle = totalCobertoPorEstoque > 0
+    ? `${totalCobertoPorEstoque} un. cobertas pelo estoque`
+    : 'A produzir após estoque pronto';
 
   if (loading) {
     return (
@@ -173,7 +181,7 @@ export function DashboardPage() {
           <StatCard title="Entregas Hoje" value={pedidosHoje} subtitle="Pedidos abertos para hoje" icon={Calendar} variant={pedidosHoje > 0 ? 'warning' : 'default'} />
           <StatCard title="Atrasados" value={pedidosAtrasados} subtitle="Pedidos abertos vencidos" icon={ClockAlert} variant={pedidosAtrasados > 0 ? 'warning' : 'success'} />
           <StatCard title="Saldo Pendente" value={pedidosBloqueadosPorSaldo} subtitle="Prontos ainda não quitados" icon={WalletCards} variant={pedidosBloqueadosPorSaldo > 0 ? 'warning' : 'success'} />
-          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="A produzir após estoque pronto" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
+          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle={productionDemandSubtitle} icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
         </div>
       </div>
 

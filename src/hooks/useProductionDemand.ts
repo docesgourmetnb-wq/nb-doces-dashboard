@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import {
-  aggregateProductionDemand,
+  summarizeProductionDemand,
   type ProductionDemandItem,
   type ProductionDemandPedidoInput,
 } from '@/domain/productionDemand';
@@ -47,6 +47,9 @@ function getErrorMessage(error: unknown) {
 
 export function useProductionDemand() {
   const [items, setItems] = useState<ProductionDemandItem[]>([]);
+  const [totalPedido, setTotalPedido] = useState(0);
+  const [totalCobertoPorEstoque, setTotalCobertoPorEstoque] = useState(0);
+  const [totalAProduzir, setTotalAProduzir] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,6 +57,9 @@ export function useProductionDemand() {
   const fetchDemand = useCallback(async () => {
     if (!user) {
       setItems([]);
+      setTotalPedido(0);
+      setTotalCobertoPorEstoque(0);
+      setTotalAProduzir(0);
       setLoading(false);
       return;
     }
@@ -84,8 +90,12 @@ export function useProductionDemand() {
         itens: pedido.itens_pedido || [],
       }));
       const estoquePronto = ((estoqueResult.data || []) as EstoqueProdutoRow[]).map(parseLegacyProdutoEstoque);
+      const summary = summarizeProductionDemand(pedidos, estoquePronto);
 
-      setItems(aggregateProductionDemand(pedidos, estoquePronto));
+      setItems(summary.items);
+      setTotalPedido(summary.totalPedido);
+      setTotalCobertoPorEstoque(summary.totalCobertoPorEstoque);
+      setTotalAProduzir(summary.totalAProduzir);
     } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar produção pendente',
@@ -104,7 +114,9 @@ export function useProductionDemand() {
   return {
     items,
     loading,
-    totalUnidades: items.reduce((total, item) => total + item.quantidade, 0),
+    totalUnidades: totalAProduzir,
+    totalPedido,
+    totalCobertoPorEstoque,
     refetch: fetchDemand,
   };
 }
