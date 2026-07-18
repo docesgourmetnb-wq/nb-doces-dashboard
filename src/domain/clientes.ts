@@ -10,6 +10,20 @@ export interface PedidoClienteReferencia {
   cliente_id?: string | null;
 }
 
+export interface PedidoClienteStatsReferencia extends PedidoClienteReferencia {
+  valor_total: number;
+  data_entrega?: string | null;
+  data?: string | null;
+}
+
+export interface ClientePedidoStats {
+  totalPedidos: number;
+  totalComercial: number;
+  totalFinanceiroOficial: number;
+  totalPedidosHistoricos: number;
+  totalPedidosSemVinculo: number;
+}
+
 function normalizeClienteNome(nome: string) {
   return nome.toLowerCase().replace(/\s+/g, ' ').trim();
 }
@@ -53,4 +67,22 @@ export function getPedidosSemVinculoComMesmoNome<TPedido extends PedidoClienteRe
     !pedido.cliente_id &&
     normalizeClienteNome(pedido.cliente) === clienteNome
   ));
+}
+
+export function getClientePedidoStats<TPedido extends PedidoClienteStatsReferencia>(
+  cliente: ClienteReferencia,
+  pedidos: TPedido[],
+  isPedidoFinanceiroOficial: (pedido: TPedido) => boolean,
+): ClientePedidoStats {
+  const pedidosVinculados = getPedidosVinculadosAoCliente(cliente, pedidos);
+  const pedidosSemVinculo = getPedidosSemVinculoComMesmoNome(cliente, pedidos);
+  const pedidosFinanceiros = pedidosVinculados.filter(isPedidoFinanceiroOficial);
+
+  return {
+    totalPedidos: pedidosVinculados.length,
+    totalComercial: pedidosVinculados.reduce((total, pedido) => total + pedido.valor_total, 0),
+    totalFinanceiroOficial: pedidosFinanceiros.reduce((total, pedido) => total + pedido.valor_total, 0),
+    totalPedidosHistoricos: pedidosVinculados.length - pedidosFinanceiros.length,
+    totalPedidosSemVinculo: pedidosSemVinculo.length,
+  };
 }
