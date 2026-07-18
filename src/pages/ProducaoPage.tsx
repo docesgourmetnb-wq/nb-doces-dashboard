@@ -10,6 +10,7 @@ import {
 } from '@/domain/producao';
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { supabase } from '@/integrations/supabase/client';
+import { suggestProductionIntegration } from '@/domain/producaoIntegrada';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -169,6 +170,39 @@ export function ProducaoPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!formData.integrar_estoque || !formData.brigadeiro_id || loadingIntegrationOptions) return;
+
+    const brigadeiro = brigadeiros.find((item) => item.id === formData.brigadeiro_id);
+    if (!brigadeiro) return;
+
+    const suggestion = suggestProductionIntegration(brigadeiro.nome, recipeOptions, outputItemOptions);
+    if (!suggestion) return;
+
+    setFormData((current) => {
+      if (!current.integrar_estoque || current.brigadeiro_id !== brigadeiro.id) return current;
+
+      const nextRecipeVersionId = current.recipe_version_id || suggestion.recipeVersionId;
+      const nextOutputItemId = current.output_item_id || suggestion.outputItemId;
+      if (current.recipe_version_id === nextRecipeVersionId && current.output_item_id === nextOutputItemId) {
+        return current;
+      }
+
+      return {
+        ...current,
+        recipe_version_id: nextRecipeVersionId,
+        output_item_id: nextOutputItemId,
+      };
+    });
+  }, [
+    formData.integrar_estoque,
+    formData.brigadeiro_id,
+    brigadeiros,
+    loadingIntegrationOptions,
+    outputItemOptions,
+    recipeOptions,
+  ]);
 
   const handleAddProducao = async () => {
     const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiro_id);
