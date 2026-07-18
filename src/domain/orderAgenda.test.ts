@@ -54,8 +54,44 @@ test('buildOrderAgenda sorts open orders and labels urgency', () => {
   assert.deepEqual(result.map((pedido) => ({
     id: pedido.id,
     urgency: pedido.urgency,
+    bloqueadoPorSaldo: pedido.bloqueadoPorSaldo,
   })), [
-    { id: 'pedido-1', urgency: 'atrasado' },
-    { id: 'pedido-3', urgency: 'proximo' },
+    { id: 'pedido-1', urgency: 'atrasado', bloqueadoPorSaldo: false },
+    { id: 'pedido-3', urgency: 'proximo', bloqueadoPorSaldo: false },
+  ]);
+});
+
+test('buildOrderAgenda flags ready orders with remaining balance', () => {
+  const result = buildOrderAgenda([
+    {
+      id: 'pedido-1',
+      cliente: 'Juliana',
+      data_entrega: '2026-07-17',
+      tipo_entrega: 'retirada',
+      status: 'pronto',
+      status_financeiro: 'parcial',
+      valor_total: 100,
+      saldo_restante: 50,
+      itens_total: 25,
+    },
+    {
+      id: 'pedido-2',
+      cliente: 'Sotaque Bar',
+      data_entrega: '2026-07-17',
+      tipo_entrega: 'retirada',
+      status: 'confirmado',
+      status_financeiro: 'parcial',
+      valor_total: 80,
+      saldo_restante: 40,
+      itens_total: 20,
+    },
+  ], '2026-07-17');
+
+  assert.deepEqual(result.map((pedido) => ({
+    id: pedido.id,
+    bloqueadoPorSaldo: pedido.bloqueadoPorSaldo,
+  })), [
+    { id: 'pedido-1', bloqueadoPorSaldo: true },
+    { id: 'pedido-2', bloqueadoPorSaldo: false },
   ]);
 });

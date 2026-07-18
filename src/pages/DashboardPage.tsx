@@ -13,6 +13,7 @@ import {
   Loader2,
   Factory,
   ClockAlert,
+  WalletCards,
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
@@ -91,7 +92,13 @@ export function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const { summary, loading } = useDashboardSummary(Number(selectedYear), Number(selectedMonth));
   const { items: productionDemand, totalUnidades: totalProductionDemand, loading: loadingProductionDemand } = useProductionDemand();
-  const { items: orderAgenda, pedidosHoje, pedidosAtrasados, loading: loadingOrderAgenda } = useOrderAgenda();
+  const {
+    items: orderAgenda,
+    pedidosHoje,
+    pedidosAtrasados,
+    pedidosBloqueadosPorSaldo,
+    loading: loadingOrderAgenda,
+  } = useOrderAgenda();
 
   const availableYears = useMemo(() => {
     const years: number[] = [];
@@ -192,6 +199,7 @@ export function DashboardPage() {
           <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="Pedidos confirmados/em produção" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
           <StatCard title="Entregas Hoje" value={pedidosHoje} subtitle="Pedidos abertos para hoje" icon={Calendar} variant={pedidosHoje > 0 ? 'warning' : 'default'} />
           <StatCard title="Atrasados" value={pedidosAtrasados} subtitle="Pedidos abertos vencidos" icon={ClockAlert} variant={pedidosAtrasados > 0 ? 'warning' : 'success'} />
+          <StatCard title="Saldo Pendente" value={pedidosBloqueadosPorSaldo} subtitle="Prontos ainda não quitados" icon={WalletCards} variant={pedidosBloqueadosPorSaldo > 0 ? 'warning' : 'success'} />
         </div>
       </div>
 
@@ -223,6 +231,11 @@ export function DashboardPage() {
                         <p className="text-xs text-muted-foreground">
                           {ENTREGA_LABELS[pedido.tipo_entrega as keyof typeof ENTREGA_LABELS]} • {getPedidoStatusLabel(pedido.status)} • {getPedidoFinanceiroStatusLabel(pedido.status_financeiro)}
                         </p>
+                        {pedido.bloqueadoPorSaldo && (
+                          <span className="inline-flex rounded-full border border-warning/25 bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+                            Quitar antes de entregar
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
