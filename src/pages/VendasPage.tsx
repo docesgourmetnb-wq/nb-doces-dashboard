@@ -17,6 +17,7 @@ import {
   getPedidoFinanceiroStatusBadgeClass,
   getPedidoFinanceiroStatusLabel,
   isPedidoTerminal,
+  calculateNextPedidoValorPago,
   CANAL_VENDA_LABELS,
   ENTREGA_LABELS,
   PAGAMENTO_LABELS,
@@ -54,6 +55,8 @@ export function VendasPage() {
   const [archiveReason, setArchiveReason] = useState('');
   const [archiveConfirmPedido, setArchiveConfirmPedido] = useState<Pedido | null>(null);
   const [showArchiveReasonModal, setShowArchiveReasonModal] = useState<Pedido | null>(null);
+  const [paymentPedido, setPaymentPedido] = useState<Pedido | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
 
   // Status labels/classes now come from domain helpers
 
@@ -91,8 +94,28 @@ export function VendasPage() {
     refetch();
   };
 
-  const handleRegisterRemainingPayment = async (pedido: Pedido) => {
-    await updatePedidoPayment(pedido.id, pedido.valor_total);
+  const parsedPaymentAmount = Number(paymentAmount.trim().replace(',', '.'));
+  const nextValorPago = paymentPedido
+    ? calculateNextPedidoValorPago(paymentPedido.valor_pago, paymentPedido.saldo_restante, parsedPaymentAmount)
+    : null;
+  const paymentError = paymentPedido && paymentAmount.trim()
+    ? !Number.isFinite(parsedPaymentAmount) || parsedPaymentAmount <= 0
+      ? 'Informe um valor maior que zero.'
+      : parsedPaymentAmount > paymentPedido.saldo_restante
+        ? 'O valor recebido não pode ser maior que o saldo restante.'
+        : null
+    : null;
+
+  const openPaymentDialog = (pedido: Pedido) => {
+    setPaymentPedido(pedido);
+    setPaymentAmount('');
+  };
+
+  const handleRegisterPayment = async () => {
+    if (!paymentPedido || nextValorPago === null) return;
+    await updatePedidoPayment(paymentPedido.id, nextValorPago);
+    setPaymentPedido(null);
+    setPaymentAmount('');
     refetch();
   };
 
@@ -195,6 +218,61 @@ export function VendasPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Payment modal */}
+      <Dialog open={!!paymentPedido} onOpenChange={(open) => { if (!open) { setPaymentPedido(null); setPaymentAmount(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar pagamento</DialogTitle>
+          </DialogHeader>
+          {paymentPedido && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Cliente</span>
+                  <span className="font-medium text-right">{getClienteDisplayName(paymentPedido)}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Total</span>
+                  <span>R$ {paymentPedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Pago</span>
+                  <span>R$ {paymentPedido.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Saldo</span>
+                  <span className="font-medium">R$ {paymentPedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pedido-pagamento-valor">Valor recebido</Label>
+                <Input
+                  id="pedido-pagamento-valor"
+                  type="text"
+                  inputMode="decimal"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Ex: 50,00"
+                  aria-invalid={Boolean(paymentError)}
+                  aria-describedby={paymentError ? 'pedido-pagamento-valor-error' : undefined}
+                />
+                {paymentError && (
+                  <p id="pedido-pagamento-valor-error" className="text-xs text-destructive">{paymentError}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setPaymentAmount(String(paymentPedido.saldo_restante.toFixed(2)))}>
+                  Quitar saldo
+                </Button>
+                <Button onClick={handleRegisterPayment} disabled={nextValorPago === null}>
+                  Registrar pagamento
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Orders Table */}
       {filteredPedidos.length === 0 ? (
         <div className="text-center py-16">
@@ -268,9 +346,9 @@ export function VendasPage() {
                               size="sm"
                               variant="outline"
                               className="h-7 px-2 text-xs"
-                              onClick={() => handleRegisterRemainingPayment(pedido)}
+                              onClick={() => openPaymentDialog(pedido)}
                             >
-                              Registrar saldo
+                              Registrar pagamento
                             </Button>
                           )}
                         </div>
@@ -379,9 +457,9 @@ export function VendasPage() {
                                         size="sm"
                                         variant="outline"
                                         className="mt-2"
-                                        onClick={() => handleRegisterRemainingPayment(pedido)}
+                                        onClick={() => openPaymentDialog(pedido)}
                                       >
-                                        Registrar saldo restante
+                                        Registrar pagamento
                                       </Button>
                                     )}
                                   </div>

@@ -57,6 +57,12 @@ export function derivePedidoFinanceiroStatus(valorTotal: number, valorPago: numb
   return 'parcial';
 }
 
+export function calculateNextPedidoValorPago(valorPagoAtual: number, saldoRestante: number, valorRecebido: number) {
+  if (!Number.isFinite(valorRecebido) || valorRecebido <= 0) return null;
+  if (valorRecebido > saldoRestante) return null;
+  return valorPagoAtual + valorRecebido;
+}
+
 export const PAGAMENTO_LABELS: Record<string, string> = {
   'pix': 'PIX',
   'cartao': 'Cartão',
