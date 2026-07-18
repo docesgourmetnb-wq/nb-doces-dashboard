@@ -505,7 +505,7 @@ function ProdutosTab() {
                    <ArrowUpCircle className="w-4 h-4 mr-2" /> Enrolado (+un)
                 </Button>
                 <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => { setActionProduto(produto); setActionType('sub'); }}>
-                   <ArrowDownCircle className="w-4 h-4 mr-2" /> Venda (-un)
+                   <ArrowDownCircle className="w-4 h-4 mr-2" /> Saída (-un)
                 </Button>
              </div>
           </div>
@@ -518,7 +518,7 @@ function ProdutosTab() {
       {/* Action Dialog */}
       <Dialog open={!!actionProduto} onOpenChange={(open) => !open && setActionProduto(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{actionType === 'add' ? 'Registrar Produção Pronta' : 'Registrar Saída/Venda'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{actionType === 'add' ? 'Registrar Produção Pronta' : 'Registrar Saída de Produto'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">Produto: <strong>{actionProduto?.brigadeiro?.nome}</strong></p>
             <div className="space-y-2">
