@@ -12,11 +12,13 @@ import {
   Users,
   Loader2,
   Factory,
+  ClockAlert,
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
 import { useDashboardSummary } from '@/hooks/useDashboardSummary';
 import { useProductionDemand } from '@/hooks/useProductionDemand';
+import { useOrderAgenda } from '@/hooks/useOrderAgenda';
 import {
   BarChart,
   Bar,
@@ -45,6 +47,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatLocalDate } from '@/lib/utils';
+import {
+  ENTREGA_LABELS,
+  getPedidoFinanceiroStatusLabel,
+  getPedidoStatusLabel,
+} from '@/domain/pedidos';
 
 const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F', '#E67E22', '#8E44AD', '#2ECC71'];
 
@@ -65,6 +72,16 @@ const MESES = [
 
 const formatBRL = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 const chartColor = (index: number) => COLORS[index % COLORS.length] || '#95A5A6';
+const urgencyLabel = {
+  atrasado: 'Atrasado',
+  hoje: 'Hoje',
+  proximo: 'Próximo',
+} as const;
+const urgencyClass = {
+  atrasado: 'bg-destructive/10 text-destructive border-destructive/20',
+  hoje: 'bg-warning/15 text-warning border-warning/25',
+  proximo: 'bg-muted text-muted-foreground border-border',
+} as const;
 
 export function DashboardPage() {
   const currentYear = new Date().getFullYear();
@@ -74,6 +91,7 @@ export function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const { summary, loading } = useDashboardSummary(Number(selectedYear), Number(selectedMonth));
   const { items: productionDemand, totalUnidades: totalProductionDemand, loading: loadingProductionDemand } = useProductionDemand();
+  const { items: orderAgenda, pedidosHoje, pedidosAtrasados, loading: loadingOrderAgenda } = useOrderAgenda();
 
   const availableYears = useMemo(() => {
     const years: number[] = [];
@@ -172,43 +190,95 @@ export function DashboardPage() {
           <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
           <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
           <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="Pedidos confirmados/em produção" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
+          <StatCard title="Entregas Hoje" value={pedidosHoje} subtitle="Pedidos abertos para hoje" icon={Calendar} variant={pedidosHoje > 0 ? 'warning' : 'default'} />
+          <StatCard title="Atrasados" value={pedidosAtrasados} subtitle="Pedidos abertos vencidos" icon={ClockAlert} variant={pedidosAtrasados > 0 ? 'warning' : 'success'} />
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-        <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-          <Factory className="h-5 w-5 text-primary" /> Produção Pendente
-        </h3>
-        {loadingProductionDemand ? (
-          <div className="py-8 flex justify-center">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : productionDemand.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Sabor</TableHead>
-                <TableHead className="text-right">Qtd</TableHead>
-                <TableHead className="text-right">Pedidos</TableHead>
-                <TableHead className="text-right">Próxima entrega</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {productionDemand.slice(0, 8).map((item) => (
-                <TableRow key={item.nome}>
-                  <TableCell className="font-medium">{item.nome}</TableCell>
-                  <TableCell className="text-right tabular-nums">{item.quantidade} un.</TableCell>
-                  <TableCell className="text-right tabular-nums">{item.pedidos}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatLocalDate(item.proximaEntrega, 'dd/MM/yyyy')}
-                  </TableCell>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" /> Agenda de Entregas
+          </h3>
+          {loadingOrderAgenda ? (
+            <div className="py-8 flex justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : orderAgenda.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead className="text-right">Itens</TableHead>
+                  <TableHead className="text-right">Saldo</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-muted-foreground text-sm py-8 text-center">Nenhum pedido aguardando produção.</p>
-        )}
+              </TableHeader>
+              <TableBody>
+                {orderAgenda.map((pedido) => (
+                  <TableRow key={pedido.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="font-medium">{pedido.cliente}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ENTREGA_LABELS[pedido.tipo_entrega as keyof typeof ENTREGA_LABELS]} • {getPedidoStatusLabel(pedido.status)} • {getPedidoFinanceiroStatusLabel(pedido.status_financeiro)}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="tabular-nums">{formatLocalDate(pedido.data_entrega, 'dd/MM/yyyy')}</p>
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${urgencyClass[pedido.urgency]}`}>
+                          {urgencyLabel[pedido.urgency]}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{pedido.itens_total} un.</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatBRL(pedido.saldo_restante)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-sm py-8 text-center">Nenhum pedido aberto na agenda.</p>
+          )}
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+            <Factory className="h-5 w-5 text-primary" /> Produção Pendente
+          </h3>
+          {loadingProductionDemand ? (
+            <div className="py-8 flex justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : productionDemand.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sabor</TableHead>
+                  <TableHead className="text-right">Qtd</TableHead>
+                  <TableHead className="text-right">Pedidos</TableHead>
+                  <TableHead className="text-right">Próxima entrega</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {productionDemand.slice(0, 8).map((item) => (
+                  <TableRow key={item.nome}>
+                    <TableCell className="font-medium">{item.nome}</TableCell>
+                    <TableCell className="text-right tabular-nums">{item.quantidade} un.</TableCell>
+                    <TableCell className="text-right tabular-nums">{item.pedidos}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatLocalDate(item.proximaEntrega, 'dd/MM/yyyy')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-sm py-8 text-center">Nenhum pedido aguardando produção.</p>
+          )}
+        </div>
       </div>
 
       {/* Charts Row */}
