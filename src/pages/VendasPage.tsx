@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -239,7 +239,7 @@ export function VendasPage() {
                       </td>
                       <td className="p-4 text-muted-foreground">
                         <div className="space-y-1">
-                          <p>{format(new Date(pedido.data_entrega), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          <p>{formatLocalDate(pedido.data_entrega, 'dd/MM/yyyy', { locale: ptBR })}</p>
                           <p className="text-xs">
                             {ENTREGA_LABELS[pedido.tipo_entrega]} • {CANAL_VENDA_LABELS[pedido.canal_venda]}
                           </p>
@@ -320,7 +320,7 @@ export function VendasPage() {
                                   <div>
                                     <p className="text-muted-foreground">Data de entrega/retirada</p>
                                     <p className="font-medium">
-                                      {format(new Date(pedido.data_entrega), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                      {formatLocalDate(pedido.data_entrega, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                                     </p>
                                   </div>
                                   <div>
