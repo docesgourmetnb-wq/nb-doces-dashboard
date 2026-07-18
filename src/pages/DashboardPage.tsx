@@ -5,7 +5,6 @@ import {
   Cookie, 
   TrendingUp,
   Calendar,
-  History,
   CheckCircle2,
   Target,
   BarChart3,
@@ -53,7 +52,6 @@ import {
   getPedidoFinanceiroStatusLabel,
   getPedidoStatusLabel,
 } from '@/domain/pedidos';
-import { FINANCIAL_CONTROL_START_LABEL } from '@/domain/financeiro';
 
 const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F', '#E67E22', '#8E44AD', '#2ECC71'];
 
@@ -290,29 +288,12 @@ export function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="text-lg font-medium text-muted-foreground mb-3">Financeiro oficial de {mesLabel} de {selectedYear}</h2>
+        <h2 className="text-lg font-medium text-muted-foreground mb-3">Financeiro de {mesLabel} de {selectedYear}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard title="Receita oficial" value={formatBRL(summary.vendasPeriodo)} subtitle={`Entradas desde ${FINANCIAL_CONTROL_START_LABEL}`} icon={DollarSign} variant="primary" />
+          <StatCard title="Receita do mês" value={formatBRL(summary.vendasPeriodo)} subtitle="Entradas do período" icon={DollarSign} variant="primary" />
           <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
           <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
           <StatCard title="Ticket Médio" value={formatBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-lg bg-primary/10"><Calendar className="h-6 w-6 text-primary" /></div>
-          <div>
-            <p className="text-sm text-muted-foreground">Receita oficial {selectedYear}</p>
-            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasAno)}</p>
-          </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-lg bg-accent/50"><History className="h-6 w-6 text-accent-foreground" /></div>
-          <div>
-            <p className="text-sm text-muted-foreground">Acumulado desde {FINANCIAL_CONTROL_START_LABEL}</p>
-            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasTotal)}</p>
-          </div>
         </div>
       </div>
 
