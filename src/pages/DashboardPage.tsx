@@ -11,10 +11,12 @@ import {
   BarChart3,
   Users,
   Loader2,
+  Factory,
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { AlertaEstoqueBaixo } from '@/components/AlertaEstoqueBaixo';
 import { useDashboardSummary } from '@/hooks/useDashboardSummary';
+import { useProductionDemand } from '@/hooks/useProductionDemand';
 import {
   BarChart,
   Bar,
@@ -42,6 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatLocalDate } from '@/lib/utils';
 
 const COLORS = ['#5D3A1F', '#D4A574', '#8B5A2B', '#93C572', '#C4A35A', '#F4D03F', '#E67E22', '#8E44AD', '#2ECC71'];
 
@@ -70,6 +73,7 @@ export function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth);
   const { summary, loading } = useDashboardSummary(Number(selectedYear), Number(selectedMonth));
+  const { items: productionDemand, totalUnidades: totalProductionDemand, loading: loadingProductionDemand } = useProductionDemand();
 
   const availableYears = useMemo(() => {
     const years: number[] = [];
@@ -167,7 +171,44 @@ export function DashboardPage() {
           <StatCard title="Conversão" value={`${summary.taxaConversao.toFixed(0)}%`} subtitle="Entregues / criados" icon={Target} variant={summary.taxaConversao >= 70 ? 'success' : 'warning'} />
           <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
           <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
+          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="Pedidos confirmados/em produção" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
         </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+        <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+          <Factory className="h-5 w-5 text-primary" /> Produção Pendente
+        </h3>
+        {loadingProductionDemand ? (
+          <div className="py-8 flex justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : productionDemand.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Sabor</TableHead>
+                <TableHead className="text-right">Qtd</TableHead>
+                <TableHead className="text-right">Pedidos</TableHead>
+                <TableHead className="text-right">Próxima entrega</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {productionDemand.slice(0, 8).map((item) => (
+                <TableRow key={item.nome}>
+                  <TableCell className="font-medium">{item.nome}</TableCell>
+                  <TableCell className="text-right tabular-nums">{item.quantidade} un.</TableCell>
+                  <TableCell className="text-right tabular-nums">{item.pedidos}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatLocalDate(item.proximaEntrega, 'dd/MM/yyyy')}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-muted-foreground text-sm py-8 text-center">Nenhum pedido aguardando produção.</p>
+        )}
       </div>
 
       {/* Charts Row */}
