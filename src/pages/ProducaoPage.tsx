@@ -182,7 +182,7 @@ export function ProducaoPage() {
     };
 
     setSaving(true);
-    await addProducao({
+    const novaProducao = await addProducao({
       data: formData.data,
       brigadeiro_id: brigadeiro.id,
       brigadeiro_nome: brigadeiro.nome,
@@ -191,6 +191,8 @@ export function ProducaoPage() {
       status: formData.integrar_estoque ? 'concluido' : 'planejado',
     }, integrationOptions);
     setSaving(false);
+    if (!novaProducao) return;
+
     setIsDialogOpen(false);
     setFormData({
       data: format(new Date(), 'yyyy-MM-dd'),
