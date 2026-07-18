@@ -91,7 +91,7 @@ export function useDashboardSummary(year: number, month: number) {
 
     setLoading(true);
     try {
-      const rpc = supabase.rpc as unknown as DashboardSummaryRpc;
+      const rpc = supabase.rpc.bind(supabase) as unknown as DashboardSummaryRpc;
       const { data, error } = await rpc('get_dashboard_summary', {
         p_year: year,
         p_month: month,
