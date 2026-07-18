@@ -167,39 +167,13 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Faturamento Histórico Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-lg bg-primary/10"><Calendar className="h-6 w-6 text-primary" /></div>
-          <div>
-            <p className="text-sm text-muted-foreground">Faturamento {selectedYear}</p>
-            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasAno)}</p>
-          </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-lg bg-accent/50"><History className="h-6 w-6 text-accent-foreground" /></div>
-          <div>
-            <p className="text-sm text-muted-foreground">Faturamento Total (Histórico)</p>
-            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasTotal)}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
       <div>
-        <h2 className="text-lg font-medium text-muted-foreground mb-3">{mesLabel} de {selectedYear}</h2>
+        <h2 className="text-lg font-medium text-muted-foreground mb-3">Operação de hoje</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <StatCard title="Faturamento" value={formatBRL(summary.vendasPeriodo)} subtitle="Total de entradas" icon={DollarSign} variant="primary" />
-          <StatCard title="Pedidos" value={summary.pedidosPeriodo} subtitle="Pedidos no período" icon={ShoppingBag} variant="default" />
-          <StatCard title="Entregues" value={summary.pedidosEntregues} subtitle="Pedidos entregues" icon={CheckCircle2} variant="success" />
-          <StatCard title="Ticket Médio" value={formatBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
-          <StatCard title="Conversão" value={`${summary.taxaConversao.toFixed(0)}%`} subtitle="Entregues / criados" icon={Target} variant={summary.taxaConversao >= 70 ? 'success' : 'warning'} />
-          <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
-          <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
-          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="Pedidos confirmados/em produção" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
           <StatCard title="Entregas Hoje" value={pedidosHoje} subtitle="Pedidos abertos para hoje" icon={Calendar} variant={pedidosHoje > 0 ? 'warning' : 'default'} />
           <StatCard title="Atrasados" value={pedidosAtrasados} subtitle="Pedidos abertos vencidos" icon={ClockAlert} variant={pedidosAtrasados > 0 ? 'warning' : 'success'} />
           <StatCard title="Saldo Pendente" value={pedidosBloqueadosPorSaldo} subtitle="Prontos ainda não quitados" icon={WalletCards} variant={pedidosBloqueadosPorSaldo > 0 ? 'warning' : 'success'} />
+          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="Pedidos confirmados/em produção" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
         </div>
       </div>
 
@@ -291,6 +265,42 @@ export function DashboardPage() {
           ) : (
             <p className="text-muted-foreground text-sm py-8 text-center">Nenhum pedido aguardando produção.</p>
           )}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-medium text-muted-foreground mb-3">Financeiro de {mesLabel} de {selectedYear}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard title="Faturamento" value={formatBRL(summary.vendasPeriodo)} subtitle="Total de entradas" icon={DollarSign} variant="primary" />
+          <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
+          <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
+          <StatCard title="Ticket Médio" value={formatBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-primary/10"><Calendar className="h-6 w-6 text-primary" /></div>
+          <div>
+            <p className="text-sm text-muted-foreground">Faturamento {selectedYear}</p>
+            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasAno)}</p>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-accent/50"><History className="h-6 w-6 text-accent-foreground" /></div>
+          <div>
+            <p className="text-sm text-muted-foreground">Faturamento Total (Histórico)</p>
+            <p className="text-2xl font-semibold text-foreground">{formatBRL(summary.vendasTotal)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-medium text-muted-foreground mb-3">Indicadores comerciais</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard title="Pedidos" value={summary.pedidosPeriodo} subtitle="Pedidos no período" icon={ShoppingBag} variant="default" />
+          <StatCard title="Entregues" value={summary.pedidosEntregues} subtitle="Pedidos entregues" icon={CheckCircle2} variant="success" />
+          <StatCard title="Conversão" value={`${summary.taxaConversao.toFixed(0)}%`} subtitle="Entregues / criados" icon={Target} variant={summary.taxaConversao >= 70 ? 'success' : 'warning'} />
         </div>
       </div>
 
