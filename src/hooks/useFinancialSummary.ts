@@ -40,7 +40,7 @@ export function useFinancialSummary() {
 
     setLoading(true);
     try {
-      const rpc = supabase.rpc as unknown as FinancialSummaryRpc;
+      const rpc = supabase.rpc.bind(supabase) as unknown as FinancialSummaryRpc;
       const { data, error } = await rpc('get_financial_summary');
       if (error) throw error;
 

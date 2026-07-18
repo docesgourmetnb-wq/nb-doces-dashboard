@@ -41,7 +41,7 @@ interface ExecuteProductionRpc {
  * in a single ACID transaction.
  */
 export async function executeProductionOrder(payload: ExecuteProductionPayload): Promise<ExecuteProductionResult> {
-  const executeRpc = supabase.rpc as unknown as ExecuteProductionRpc;
+  const executeRpc = supabase.rpc.bind(supabase) as unknown as ExecuteProductionRpc;
   const { data, error } = await executeRpc('execute_production_order', {
     p_recipe_version_id: payload.recipeVersionId,
     p_output_item_id: payload.outputItemId,
