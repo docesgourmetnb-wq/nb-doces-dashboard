@@ -65,7 +65,7 @@ export function calculateNextPedidoValorPago(valorPagoAtual: number, saldoRestan
 
 export function getPedidoStatusUpdateErrorMessage(message: string) {
   if (message.includes('Estoque pronto insuficiente')) {
-    return `${message}. Produza ou registre entrada no estoque de Produtos Finais antes de marcar como entregue.`;
+    return `${message}. Produza ou registre entrada no estoque de Produtos Finais antes de avançar o status.`;
   }
 
   if (message.includes('saldo pendente') || message.includes('Saldo pendente')) {

@@ -64,7 +64,7 @@ test('calculateNextPedidoValorPago rejects invalid received amounts', () => {
 test('getPedidoStatusUpdateErrorMessage explains insufficient final stock', () => {
   assert.equal(
     getPedidoStatusUpdateErrorMessage('Estoque pronto insuficiente para Brulée 30g. Necessário: 12, disponível: 4'),
-    'Estoque pronto insuficiente para Brulée 30g. Necessário: 12, disponível: 4. Produza ou registre entrada no estoque de Produtos Finais antes de marcar como entregue.',
+    'Estoque pronto insuficiente para Brulée 30g. Necessário: 12, disponível: 4. Produza ou registre entrada no estoque de Produtos Finais antes de avançar o status.',
   );
 });
 
