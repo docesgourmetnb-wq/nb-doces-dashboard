@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalDate } from '@/lib/utils';
 import { getPedidoStatusLabel, getPedidoStatusBadgeClass } from '@/domain/pedidos';
 
 export function ClientesPage() {
@@ -404,7 +404,7 @@ export function ClientesPage() {
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar size={14} />
-                              {format(new Date(pedido.data), "dd/MM/yyyy", { locale: ptBR })}
+                              {formatLocalDate(pedido.data, "dd/MM/yyyy", { locale: ptBR })}
                             </div>
                             <span className={cn(
                               "text-xs px-2.5 py-1 rounded-full font-medium",

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -334,7 +334,7 @@ export function FinanceiroPage() {
                   <div>
                     <p className="font-medium">{transacao.descricao}</p>
                     <p className="text-sm text-muted-foreground">
-                      {transacao.categoria} • {format(new Date(transacao.data), 'dd/MM/yyyy', { locale: ptBR })}
+                      {transacao.categoria} • {formatLocalDate(transacao.data, 'dd/MM/yyyy', { locale: ptBR })}
                     </p>
                   </div>
                 </div>

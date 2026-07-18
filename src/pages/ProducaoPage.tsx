@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalDate, parseLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -254,7 +254,7 @@ export function ProducaoPage() {
     return acc;
   }, {} as Record<string, ProducaoDiaria[]>);
 
-  const sortedDates = Object.keys(producaoByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const sortedDates = Object.keys(producaoByDate).sort((a, b) => parseLocalDate(b).getTime() - parseLocalDate(a).getTime());
 
   if (loading) {
     return (
@@ -513,7 +513,7 @@ export function ProducaoPage() {
               <div className="bg-muted/50 px-5 py-3 flex items-center gap-2 border-b border-border">
                 <Calendar size={18} className="text-muted-foreground" />
                 <h3 className="font-display font-semibold">
-                  {format(new Date(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  {formatLocalDate(dateKey, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </h3>
               </div>
               <div className="divide-y divide-border">
