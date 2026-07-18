@@ -8,6 +8,7 @@ interface FinancialSummary {
   totalEntradas: number;
   totalSaidas: number;
   lucroBruto: number;
+  totalHistorico: number;
 }
 
 interface FinancialSummaryRow {
@@ -25,10 +26,16 @@ interface TransacaoSummaryRow {
   valor: number | string | null;
 }
 
+interface PedidoHistoricoSummaryRow {
+  valor_pago: number | string | null;
+  valor_total: number | string | null;
+}
+
 const emptySummary: FinancialSummary = {
   totalEntradas: 0,
   totalSaidas: 0,
   lucroBruto: 0,
+  totalHistorico: 0,
 };
 
 function toNumber(value: number | string | null | undefined) {
@@ -57,7 +64,15 @@ function buildSummaryFromRows(rows: TransacaoSummaryRow[]): FinancialSummary {
     totalEntradas,
     totalSaidas,
     lucroBruto: totalEntradas - totalSaidas,
+    totalHistorico: 0,
   };
+}
+
+function buildHistoricalTotalFromRows(rows: PedidoHistoricoSummaryRow[]) {
+  return rows.reduce((total, row) => {
+    const valorPago = toNumber(row.valor_pago);
+    return total + (valorPago > 0 ? valorPago : toNumber(row.valor_total));
+  }, 0);
 }
 
 export function useFinancialSummary() {
@@ -75,6 +90,17 @@ export function useFinancialSummary() {
 
     setLoading(true);
     try {
+      const { data: pedidosHistoricos, error: pedidosHistoricosError } = await supabase
+        .from('pedidos')
+        .select('valor_pago, valor_total')
+        .lt('data_entrega', FINANCIAL_CONTROL_START_DATE)
+        .eq('status_financeiro', 'pago')
+        .is('archived_at', null)
+        .or('status_operacional.eq.entregue,status.eq.entregue');
+
+      if (pedidosHistoricosError) throw pedidosHistoricosError;
+      const totalHistorico = buildHistoricalTotalFromRows((pedidosHistoricos || []) as PedidoHistoricoSummaryRow[]);
+
       const rpc = supabase.rpc.bind(supabase) as unknown as FinancialSummaryRpc;
       const { data, error } = await rpc('get_financial_summary');
       if (error) {
@@ -84,7 +110,10 @@ export function useFinancialSummary() {
           .gte('data', FINANCIAL_CONTROL_START_DATE);
 
         if (transacoesError) throw transacoesError;
-        setSummary(buildSummaryFromRows((transacoes || []) as TransacaoSummaryRow[]));
+        setSummary({
+          ...buildSummaryFromRows((transacoes || []) as TransacaoSummaryRow[]),
+          totalHistorico,
+        });
         return;
       }
 
@@ -93,6 +122,7 @@ export function useFinancialSummary() {
         totalEntradas: toNumber(row?.total_entradas),
         totalSaidas: toNumber(row?.total_saidas),
         lucroBruto: toNumber(row?.lucro_bruto),
+        totalHistorico,
       });
     } catch (error: unknown) {
       toast({
