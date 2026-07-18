@@ -388,26 +388,35 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active: boolean
           created_at: string
           email: string | null
           id: string
           nome: string | null
+          permissions: Json
+          role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
           email?: string | null
           id?: string
           nome?: string | null
+          permissions?: Json
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          active?: boolean
           created_at?: string
           email?: string | null
           id?: string
           nome?: string | null
+          permissions?: Json
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
         }
@@ -669,6 +678,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_module: { Args: { p_module: string }; Returns: boolean }
       create_pedido_with_items: {
         Args: {
           p_canal_venda?: string
@@ -717,9 +727,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      current_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      default_permissions_for_role: {
+        Args: { p_role: Database["public"]["Enums"]["app_role"] }
+        Returns: Json
+      }
       derive_pedido_financial_status: {
         Args: { p_valor_pago: number; p_valor_total: number }
         Returns: string
+      }
+      get_dashboard_summary: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          despesas_periodo: number
+          lucro_periodo: number
+          pedidos_entregues: number
+          pedidos_periodo: number
+          sabores_mais_vendidos: Json
+          taxa_conversao: number
+          ticket_medio: number
+          top_clientes: Json
+          top_produtos: Json
+          vendas_ano: number
+          vendas_periodo: number
+          vendas_total: number
+        }[]
       }
       update_pedido_payment: {
         Args: { p_pedido_id: string; p_valor_pago: number }
@@ -789,7 +824,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "operator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -916,6 +951,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "operator", "viewer"],
+    },
   },
 } as const
