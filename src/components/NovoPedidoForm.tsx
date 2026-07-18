@@ -64,7 +64,32 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const [selectedBrigadeiro, setSelectedBrigadeiro] = useState('');
   const [quantidade, setQuantidade] = useState(1);
 
-  const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.preco_unitario), 0);
+  const selectedBrigadeiroData = brigadeiros.find(b => b.id === selectedBrigadeiro) || null;
+  const itemPendente: ItemPedido | null = selectedBrigadeiroData && quantidade > 0
+    ? {
+        brigadeiro_id: selectedBrigadeiroData.id,
+        brigadeiro_nome: selectedBrigadeiroData.nome,
+        quantidade,
+        preco_unitario: selectedBrigadeiroData.preco_venda,
+      }
+    : null;
+  const itensDoPedido = itemPendente ? (() => {
+    const updated = [...itens];
+    const existingIndex = updated.findIndex(item => item.brigadeiro_id === itemPendente.brigadeiro_id);
+
+    if (existingIndex >= 0) {
+      const existingItem = updated[existingIndex];
+      if (!existingItem) return updated;
+      updated[existingIndex] = {
+        ...existingItem,
+        quantidade: existingItem.quantidade + itemPendente.quantidade,
+      };
+      return updated;
+    }
+
+    return [...updated, itemPendente];
+  })() : itens;
+  const valorTotal = itensDoPedido.reduce((acc, item) => acc + (item.quantidade * item.preco_unitario), 0);
   const valorPagoNormalizado = valorPago.trim().replace(',', '.');
   const valorPagoNumber = valorPagoNormalizado === '' ? 0 : Number(valorPagoNormalizado);
   const valorPagoEhNumero = Number.isFinite(valorPagoNumber);
@@ -79,7 +104,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const clienteNome = modoCliente === 'existente' 
     ? clientes.find(c => c.id === clienteId)?.nome || ''
     : clienteNovo.trim();
-  const canSubmit = Boolean(clienteNome) && itens.length > 0 && valorPagoValido && enderecoEntregaValido;
+  const canSubmit = Boolean(clienteNome) && itensDoPedido.length > 0 && valorPagoValido && enderecoEntregaValido;
 
   const handleAddItem = () => {
     if (!selectedBrigadeiro || quantidade <= 0) return;
@@ -137,7 +162,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
         status_operacional: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
         status_financeiro: statusFinanceiro,
         observacoes: observacoes.trim() || null,
-      }, itens);
+      }, itensDoPedido);
       
       // Reset form
       resetForm();
@@ -351,8 +376,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 className="w-24"
                 placeholder="Qtd"
               />
-              <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!selectedBrigadeiro} aria-label="Adicionar item ao pedido">
+              <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!selectedBrigadeiro} className="gap-2" aria-label="Adicionar item ao pedido">
                 <Plus size={18} />
+                <span className="hidden sm:inline">Adicionar</span>
               </Button>
             </div>
 
