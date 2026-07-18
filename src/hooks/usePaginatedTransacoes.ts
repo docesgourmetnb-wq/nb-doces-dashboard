@@ -4,6 +4,7 @@ import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Transacao } from '@/hooks/useTransacoes';
+import { FINANCIAL_CONTROL_START_DATE } from '@/domain/financeiro';
 
 const PAGE_SIZE = 20;
 type TransacaoInsert = TablesInsert<'transacoes'>;
@@ -32,7 +33,8 @@ export function usePaginatedTransacoes() {
     try {
       let countQuery = supabase
         .from('transacoes')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .gte('data', FINANCIAL_CONTROL_START_DATE);
 
       if (tipoFilter !== 'todos') {
         countQuery = countQuery.eq('tipo', tipoFilter);
@@ -48,6 +50,7 @@ export function usePaginatedTransacoes() {
       let dataQuery = supabase
         .from('transacoes')
         .select('*')
+        .gte('data', FINANCIAL_CONTROL_START_DATE)
         .order('data', { ascending: false })
         .range(from, to);
 
