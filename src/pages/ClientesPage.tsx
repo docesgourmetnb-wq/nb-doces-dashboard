@@ -29,6 +29,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatLocalDate } from '@/lib/utils';
 import { getPedidoStatusLabel, getPedidoStatusBadgeClass } from '@/domain/pedidos';
+import {
+  getPedidosSemVinculoComMesmoNome,
+  getPedidosVinculadosAoCliente,
+} from '@/domain/clientes';
 
 export function ClientesPage() {
   const { clientes, loading, addCliente, updateCliente, deleteCliente } = useClientes();
@@ -52,17 +56,19 @@ export function ClientesPage() {
   );
 
   const getClientePedidos = (cliente: Cliente) => {
-    return pedidos.filter((pedido) => {
-      if (pedido.cliente_id) return pedido.cliente_id === cliente.id;
-      return pedido.cliente.toLowerCase() === cliente.nome.toLowerCase();
-    });
+    return getPedidosVinculadosAoCliente(cliente, pedidos);
+  };
+
+  const getClientePedidosSemVinculo = (cliente: Cliente) => {
+    return getPedidosSemVinculoComMesmoNome(cliente, pedidos);
   };
 
   const getClienteStats = (cliente: Cliente) => {
     const clientePedidos = getClientePedidos(cliente);
+    const pedidosSemVinculo = getClientePedidosSemVinculo(cliente);
     const totalPedidos = clientePedidos.length;
     const totalGasto = clientePedidos.reduce((acc, p) => acc + p.valor_total, 0);
-    return { totalPedidos, totalGasto };
+    return { totalPedidos, totalGasto, totalPedidosSemVinculo: pedidosSemVinculo.length };
   };
 
   // Status labels/classes now come from domain helpers
@@ -340,6 +346,11 @@ export function ClientesPage() {
                     R$ {stats.totalGasto.toFixed(2)}
                   </div>
                 </div>
+                {stats.totalPedidosSemVinculo > 0 && (
+                  <p className="mt-3 text-xs text-warning">
+                    {stats.totalPedidosSemVinculo} pedido(s) antigo(s) com mesmo nome sem vínculo ao cadastro.
+                  </p>
+                )}
               </div>
             );
           })}
@@ -429,6 +440,11 @@ export function ClientesPage() {
                         </div>
                       ))}
                     </div>
+                  )}
+                  {getClientePedidosSemVinculo(viewingCliente).length > 0 && (
+                    <p className="text-xs text-warning bg-warning/10 border border-warning/20 rounded-lg p-3">
+                      Existem {getClientePedidosSemVinculo(viewingCliente).length} pedido(s) antigo(s) com o mesmo nome, mas sem vínculo direto a este cadastro. Eles não entram no total para evitar misturar clientes homônimos.
+                    </p>
                   )}
                 </div>
               </div>
