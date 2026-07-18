@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import {
-  buildOrderAgenda,
+  buildOrderAgendaSummary,
   type AgendaPedido,
   type AgendaPedidoInput,
 } from '@/domain/orderAgenda';
@@ -39,6 +39,9 @@ function getErrorMessage(error: unknown) {
 
 export function useOrderAgenda(limit = 6) {
   const [items, setItems] = useState<AgendaPedido[]>([]);
+  const [pedidosHoje, setPedidosHoje] = useState(0);
+  const [pedidosAtrasados, setPedidosAtrasados] = useState(0);
+  const [pedidosBloqueadosPorSaldo, setPedidosBloqueadosPorSaldo] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -46,6 +49,9 @@ export function useOrderAgenda(limit = 6) {
   const fetchAgenda = useCallback(async () => {
     if (!user) {
       setItems([]);
+      setPedidosHoje(0);
+      setPedidosAtrasados(0);
+      setPedidosBloqueadosPorSaldo(0);
       setLoading(false);
       return;
     }
@@ -57,8 +63,7 @@ export function useOrderAgenda(limit = 6) {
         .select('id, cliente, data_entrega, tipo_entrega, status, status_operacional, status_financeiro, valor_total, saldo_restante, itens_pedido(quantidade)')
         .is('archived_at', null)
         .not('status_operacional', 'in', '("entregue","cancelado")')
-        .order('data_entrega', { ascending: true })
-        .limit(limit);
+        .order('data_entrega', { ascending: true });
 
       if (error) throw error;
 
@@ -74,7 +79,11 @@ export function useOrderAgenda(limit = 6) {
         itens_total: (pedido.itens_pedido || []).reduce((total, item) => total + item.quantidade, 0),
       }));
 
-      setItems(buildOrderAgenda(pedidos, getTodayKey(), limit));
+      const summary = buildOrderAgendaSummary(pedidos, getTodayKey(), limit);
+      setItems(summary.items);
+      setPedidosHoje(summary.pedidosHoje);
+      setPedidosAtrasados(summary.pedidosAtrasados);
+      setPedidosBloqueadosPorSaldo(summary.pedidosBloqueadosPorSaldo);
     } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar agenda de entregas',
@@ -93,9 +102,9 @@ export function useOrderAgenda(limit = 6) {
   return {
     items,
     loading,
-    pedidosHoje: items.filter((item) => item.urgency === 'hoje').length,
-    pedidosAtrasados: items.filter((item) => item.urgency === 'atrasado').length,
-    pedidosBloqueadosPorSaldo: items.filter((item) => item.bloqueadoPorSaldo).length,
+    pedidosHoje,
+    pedidosAtrasados,
+    pedidosBloqueadosPorSaldo,
     refetch: fetchAgenda,
   };
 }

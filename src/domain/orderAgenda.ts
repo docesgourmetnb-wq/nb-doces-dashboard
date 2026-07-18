@@ -22,6 +22,13 @@ export interface AgendaPedido extends AgendaPedidoInput {
 
 export type AgendaAction = 'cobrar_saldo' | 'separar_entrega' | 'produzir';
 
+export interface OrderAgendaSummary {
+  items: AgendaPedido[];
+  pedidosHoje: number;
+  pedidosAtrasados: number;
+  pedidosBloqueadosPorSaldo: number;
+}
+
 export function isPedidoNaAgenda(status: string) {
   return status !== 'entregue' && status !== 'cancelado';
 }
@@ -39,7 +46,11 @@ export function getAgendaAction(status: string, saldoRestante: number): AgendaAc
 }
 
 export function buildOrderAgenda(pedidos: AgendaPedidoInput[], today: string, limit = 6): AgendaPedido[] {
-  return pedidos
+  return buildOrderAgendaSummary(pedidos, today, limit).items;
+}
+
+export function buildOrderAgendaSummary(pedidos: AgendaPedidoInput[], today: string, limit = 6): OrderAgendaSummary {
+  const sortedItems = pedidos
     .filter((pedido) => isPedidoNaAgenda(pedido.status))
     .map((pedido) => ({
       ...pedido,
@@ -47,6 +58,12 @@ export function buildOrderAgenda(pedidos: AgendaPedidoInput[], today: string, li
       bloqueadoPorSaldo: pedido.status === 'pronto' && pedido.saldo_restante > 0,
       acao: getAgendaAction(pedido.status, pedido.saldo_restante),
     }))
-    .sort((a, b) => a.data_entrega.localeCompare(b.data_entrega) || a.cliente.localeCompare(b.cliente))
-    .slice(0, limit);
+    .sort((a, b) => a.data_entrega.localeCompare(b.data_entrega) || a.cliente.localeCompare(b.cliente));
+
+  return {
+    items: sortedItems.slice(0, limit),
+    pedidosHoje: sortedItems.filter((item) => item.urgency === 'hoje').length,
+    pedidosAtrasados: sortedItems.filter((item) => item.urgency === 'atrasado').length,
+    pedidosBloqueadosPorSaldo: sortedItems.filter((item) => item.bloqueadoPorSaldo).length,
+  };
 }

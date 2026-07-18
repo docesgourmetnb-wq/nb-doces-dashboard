@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildOrderAgenda,
+  buildOrderAgendaSummary,
   getAgendaAction,
   isPedidoNaAgenda,
 } from './orderAgenda.ts';
@@ -103,4 +104,47 @@ test('buildOrderAgenda flags ready orders with remaining balance', () => {
     { id: 'pedido-1', bloqueadoPorSaldo: true, acao: 'cobrar_saldo' },
     { id: 'pedido-2', bloqueadoPorSaldo: false, acao: 'produzir' },
   ]);
+});
+
+test('buildOrderAgendaSummary counts all open orders even when visible items are limited', () => {
+  const result = buildOrderAgendaSummary([
+    {
+      id: 'pedido-1',
+      cliente: 'Atrasado',
+      data_entrega: '2026-07-16',
+      tipo_entrega: 'retirada',
+      status: 'confirmado',
+      status_financeiro: 'parcial',
+      valor_total: 100,
+      saldo_restante: 50,
+      itens_total: 25,
+    },
+    {
+      id: 'pedido-2',
+      cliente: 'Hoje',
+      data_entrega: '2026-07-17',
+      tipo_entrega: 'retirada',
+      status: 'confirmado',
+      status_financeiro: 'parcial',
+      valor_total: 80,
+      saldo_restante: 40,
+      itens_total: 20,
+    },
+    {
+      id: 'pedido-3',
+      cliente: 'Pronto pendente',
+      data_entrega: '2026-07-18',
+      tipo_entrega: 'retirada',
+      status: 'pronto',
+      status_financeiro: 'parcial',
+      valor_total: 120,
+      saldo_restante: 60,
+      itens_total: 30,
+    },
+  ], '2026-07-17', 1);
+
+  assert.deepEqual(result.items.map((pedido) => pedido.id), ['pedido-1']);
+  assert.equal(result.pedidosAtrasados, 1);
+  assert.equal(result.pedidosHoje, 1);
+  assert.equal(result.pedidosBloqueadosPorSaldo, 1);
 });
