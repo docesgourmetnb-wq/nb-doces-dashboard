@@ -3,8 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { Button } from "@/components/ui/button";
 import { AuthProvider } from "@/hooks/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
+import { supabaseConfigError } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -78,18 +82,47 @@ const AppRoutes = () => (
   </Routes>
 );
 
+function SupabaseConfigFallback() {
+  return (
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-md bg-warning/10 text-warning flex items-center justify-center">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="font-display text-xl font-semibold">Preview sem conexão</h1>
+            <p className="text-sm text-muted-foreground">O Supabase não está configurado neste ambiente.</p>
+          </div>
+        </div>
+        <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">{supabaseConfigError}</p>
+        <Button className="w-full gap-2" onClick={() => window.location.reload()}>
+          <RefreshCw className="h-4 w-4" />
+          Recarregar preview
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        {supabaseConfigError ? (
+          <SupabaseConfigFallback />
+        ) : (
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </AuthProvider>
+        )}
       </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
