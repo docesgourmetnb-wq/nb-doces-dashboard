@@ -34,6 +34,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate } from '@/domain/financeiro';
 
 type TransacaoFormErrors = Partial<Record<'categoria' | 'descricao' | 'valor' | 'data', string>>;
 
@@ -71,6 +72,9 @@ export function FinanceiroPage() {
     if (!formData.descricao.trim()) errors.descricao = 'Informe uma descrição';
     if (!Number.isFinite(valor) || valor <= 0) errors.valor = 'Informe um valor maior que zero';
     if (!formData.data) errors.data = 'Informe uma data';
+    if (formData.data && !isFinancialControlDate(formData.data)) {
+      errors.data = `Use uma data a partir de ${FINANCIAL_CONTROL_START_LABEL}`;
+    }
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -123,7 +127,7 @@ export function FinanceiroPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">Financeiro</h1>
-          <p className="text-muted-foreground mt-1">Controle de receitas e despesas</p>
+          <p className="text-muted-foreground mt-1">Controle oficial de receitas e despesas desde {FINANCIAL_CONTROL_START_LABEL}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

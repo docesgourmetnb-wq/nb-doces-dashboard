@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { FINANCIAL_CONTROL_START_DATE } from '@/domain/financeiro';
 
 export interface Transacao {
   id: string;
@@ -36,6 +37,7 @@ export function useTransacoes() {
       const { data, error } = await supabase
         .from('transacoes')
         .select('*')
+        .gte('data', FINANCIAL_CONTROL_START_DATE)
         .order('data', { ascending: false });
 
       if (error) throw error;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { FINANCIAL_CONTROL_START_DATE } from '@/domain/financeiro';
 
 interface FinancialSummary {
   totalEntradas: number;
@@ -79,7 +80,8 @@ export function useFinancialSummary() {
       if (error) {
         const { data: transacoes, error: transacoesError } = await supabase
           .from('transacoes')
-          .select('tipo, valor');
+          .select('tipo, valor')
+          .gte('data', FINANCIAL_CONTROL_START_DATE);
 
         if (transacoesError) throw transacoesError;
         setSummary(buildSummaryFromRows((transacoes || []) as TransacaoSummaryRow[]));
