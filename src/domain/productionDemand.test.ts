@@ -149,3 +149,35 @@ test('summarizeProductionDemand reports demand covered by ready stock', () => {
     },
   ]);
 });
+
+test('summarizeProductionDemand does not reuse stock reserved by ready orders', () => {
+  const result = summarizeProductionDemand([
+    {
+      id: 'pedido-1',
+      cliente: 'Pedido confirmado',
+      data_entrega: '2026-07-20',
+      status: 'confirmado',
+      itens: [
+        { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 12 },
+      ],
+    },
+    {
+      id: 'pedido-2',
+      cliente: 'Pedido pronto',
+      data_entrega: '2026-07-18',
+      status: 'pronto',
+      itens: [
+        { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 10 },
+      ],
+    },
+  ], [
+    { brigadeiro_id: 'brigadeiro-1', nome: 'Brulée 30g', quantidade: 10 },
+  ], [
+    { brigadeiro_id: 'brigadeiro-1', nome: 'Brulée 30g', quantidade: 10 },
+  ]);
+
+  assert.equal(result.totalPedido, 12);
+  assert.equal(result.totalCobertoPorEstoque, 0);
+  assert.equal(result.totalAProduzir, 12);
+  assert.equal(result.items[0]?.quantidade, 12);
+});

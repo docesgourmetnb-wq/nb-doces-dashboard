@@ -52,21 +52,30 @@ function getDemandKey(item: ProductionDemandItemInput | ProductionStockItemInput
 export function aggregateProductionDemand(
   pedidos: ProductionDemandPedidoInput[],
   estoquePronto: ProductionStockItemInput[] = [],
+  estoqueReservado: ProductionStockItemInput[] = [],
 ): ProductionDemandItem[] {
-  return summarizeProductionDemand(pedidos, estoquePronto).items;
+  return summarizeProductionDemand(pedidos, estoquePronto, estoqueReservado).items;
 }
 
 export function summarizeProductionDemand(
   pedidos: ProductionDemandPedidoInput[],
   estoquePronto: ProductionStockItemInput[] = [],
+  estoqueReservado: ProductionStockItemInput[] = [],
 ): ProductionDemandSummary {
   const demandByName = new Map<string, ProductionDemandItem & { pedidoIds: Set<string> }>();
   const stockByKey = new Map<string, number>();
+  const reservedByKey = new Map<string, number>();
 
   for (const item of estoquePronto) {
     const key = getDemandKey(item);
     if (!key || item.quantidade <= 0) continue;
     stockByKey.set(key, (stockByKey.get(key) || 0) + item.quantidade);
+  }
+
+  for (const item of estoqueReservado) {
+    const key = getDemandKey(item);
+    if (!key || item.quantidade <= 0) continue;
+    reservedByKey.set(key, (reservedByKey.get(key) || 0) + item.quantidade);
   }
 
   for (const pedido of pedidos) {
@@ -101,7 +110,7 @@ export function summarizeProductionDemand(
   const allItems = [...demandByName.values()]
     .map(({ pedidoIds, ...item }) => {
       const key = item.brigadeiroId || normalizeProductionMatchName(item.nome);
-      const estoqueDisponivel = stockByKey.get(key) || 0;
+      const estoqueDisponivel = Math.max((stockByKey.get(key) || 0) - (reservedByKey.get(key) || 0), 0);
 
       return {
         ...item,

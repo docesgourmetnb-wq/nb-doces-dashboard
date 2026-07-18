@@ -71,7 +71,7 @@ export function useProductionDemand() {
           .from('pedidos')
           .select('id, cliente, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade)')
           .is('archived_at', null)
-          .in('status_operacional', ['confirmado', 'em-producao'])
+          .in('status_operacional', ['confirmado', 'em-producao', 'pronto'])
           .order('data_entrega', { ascending: true }),
         supabase
           .from('insumos')
@@ -90,7 +90,15 @@ export function useProductionDemand() {
         itens: pedido.itens_pedido || [],
       }));
       const estoquePronto = ((estoqueResult.data || []) as EstoqueProdutoRow[]).map(parseLegacyProdutoEstoque);
-      const summary = summarizeProductionDemand(pedidos, estoquePronto);
+      const estoqueReservado = pedidos
+        .filter((pedido) => pedido.status === 'pronto')
+        .flatMap((pedido) => pedido.itens || [])
+        .map((item) => ({
+          brigadeiro_id: item.brigadeiro_id ?? null,
+          nome: item.brigadeiro_nome,
+          quantidade: item.quantidade,
+        }));
+      const summary = summarizeProductionDemand(pedidos, estoquePronto, estoqueReservado);
 
       setItems(summary.items);
       setTotalPedido(summary.totalPedido);
