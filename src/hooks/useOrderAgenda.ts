@@ -95,6 +95,7 @@ export function useOrderAgenda(limit = 6) {
     loading,
     pedidosHoje: items.filter((item) => item.urgency === 'hoje').length,
     pedidosAtrasados: items.filter((item) => item.urgency === 'atrasado').length,
+    pedidosBloqueadosPorSaldo: items.filter((item) => item.bloqueadoPorSaldo).length,
     refetch: fetchAgenda,
   };
 }
