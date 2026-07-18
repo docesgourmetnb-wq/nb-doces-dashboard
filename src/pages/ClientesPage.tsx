@@ -30,9 +30,11 @@ import { ptBR } from 'date-fns/locale';
 import { cn, formatLocalDate } from '@/lib/utils';
 import { getPedidoStatusLabel, getPedidoStatusBadgeClass } from '@/domain/pedidos';
 import {
+  getClientePedidoStats,
   getPedidosSemVinculoComMesmoNome,
   getPedidosVinculadosAoCliente,
 } from '@/domain/clientes';
+import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate } from '@/domain/financeiro';
 
 export function ClientesPage() {
   const { clientes, loading, addCliente, updateCliente, deleteCliente } = useClientes();
@@ -64,11 +66,7 @@ export function ClientesPage() {
   };
 
   const getClienteStats = (cliente: Cliente) => {
-    const clientePedidos = getClientePedidos(cliente);
-    const pedidosSemVinculo = getClientePedidosSemVinculo(cliente);
-    const totalPedidos = clientePedidos.length;
-    const totalGasto = clientePedidos.reduce((acc, p) => acc + p.valor_total, 0);
-    return { totalPedidos, totalGasto, totalPedidosSemVinculo: pedidosSemVinculo.length };
+    return getClientePedidoStats(cliente, pedidos, (pedido) => isFinancialControlDate(pedido.data_entrega || pedido.data));
   };
 
   // Status labels/classes now come from domain helpers
@@ -343,9 +341,17 @@ export function ClientesPage() {
                     <span className="text-muted-foreground">{stats.totalPedidos} pedidos</span>
                   </div>
                   <div className="text-sm font-medium text-primary">
-                    R$ {stats.totalGasto.toFixed(2)}
+                    R$ {stats.totalComercial.toFixed(2)}
                   </div>
                 </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Oficial: R$ {stats.totalFinanceiroOficial.toFixed(2)} desde {FINANCIAL_CONTROL_START_LABEL}
+                </p>
+                {stats.totalPedidosHistoricos > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {stats.totalPedidosHistoricos} pedido(s) no histórico comercial.
+                  </p>
+                )}
                 {stats.totalPedidosSemVinculo > 0 && (
                   <p className="mt-3 text-xs text-warning">
                     {stats.totalPedidosSemVinculo} pedido(s) antigo(s) com mesmo nome sem vínculo ao cadastro.
@@ -388,10 +394,20 @@ export function ClientesPage() {
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Total gasto</p>
+                    <p className="text-xs text-muted-foreground">Total comercial</p>
                     <p className="font-semibold text-primary">
-                      R$ {getClienteStats(viewingCliente).totalGasto.toFixed(2)}
+                      R$ {getClienteStats(viewingCliente).totalComercial.toFixed(2)}
                     </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Financeiro oficial</p>
+                    <p className="font-semibold text-primary">
+                      R$ {getClienteStats(viewingCliente).totalFinanceiroOficial.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Pedidos históricos</p>
+                    <p className="font-medium">{getClienteStats(viewingCliente).totalPedidosHistoricos}</p>
                   </div>
                 </div>
 
@@ -413,9 +429,16 @@ export function ClientesPage() {
                           className="p-4 bg-muted/30 rounded-lg border border-border"
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Calendar size={14} />
-                              {formatLocalDate(pedido.data, "dd/MM/yyyy", { locale: ptBR })}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar size={14} />
+                                {formatLocalDate(pedido.data_entrega || pedido.data, "dd/MM/yyyy", { locale: ptBR })}
+                              </div>
+                              {!isFinancialControlDate(pedido.data_entrega || pedido.data) && (
+                                <span className="inline-flex rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                                  Histórico comercial
+                                </span>
+                              )}
                             </div>
                             <span className={cn(
                               "text-xs px-2.5 py-1 rounded-full font-medium",

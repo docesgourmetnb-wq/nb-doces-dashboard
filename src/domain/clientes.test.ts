@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   findClienteByContato,
+  getClientePedidoStats,
   getPedidosSemVinculoComMesmoNome,
   getPedidosVinculadosAoCliente,
   normalizeClienteEmail,
@@ -30,6 +31,22 @@ test('getPedidosSemVinculoComMesmoNome returns legacy name matches separately', 
   assert.deepEqual(getPedidosSemVinculoComMesmoNome(cliente, pedidos), [
     { id: 'pedido-3', cliente: '  juliana  ', cliente_id: null, valor_total: 30 },
   ]);
+});
+
+test('getClientePedidoStats separates commercial and official financial totals', () => {
+  const result = getClientePedidoStats(cliente, [
+    { id: 'pedido-1', cliente: 'Juliana', cliente_id: 'cliente-1', valor_total: 50, data_entrega: '2026-07-31' },
+    { id: 'pedido-2', cliente: 'Juliana', cliente_id: 'cliente-1', valor_total: 90, data_entrega: '2026-08-01' },
+    { id: 'pedido-3', cliente: '  juliana  ', cliente_id: null, valor_total: 30, data_entrega: '2026-08-01' },
+  ], (pedido) => (pedido.data_entrega || '') >= '2026-08-01');
+
+  assert.deepEqual(result, {
+    totalPedidos: 2,
+    totalComercial: 140,
+    totalFinanceiroOficial: 90,
+    totalPedidosHistoricos: 1,
+    totalPedidosSemVinculo: 1,
+  });
 });
 
 test('normalizeClienteEmail trims and lowercases email', () => {
