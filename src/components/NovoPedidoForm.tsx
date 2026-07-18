@@ -148,6 +148,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
       const dataEntrega = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`;
       const statusFinanceiro = derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber);
       let pedidoClienteId = modoCliente === 'existente' && clienteId ? clienteId : null;
+      let pedidoClienteNome = clienteNome;
 
       if (modoCliente === 'novo') {
         const clienteExistente = findClienteByContato(clientes, {
@@ -157,6 +158,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
 
         if (clienteExistente) {
           pedidoClienteId = clienteExistente.id;
+          pedidoClienteNome = clienteExistente.nome;
         } else {
           const novoCliente = await addCliente({
             nome: clienteNome,
@@ -165,11 +167,12 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
           });
           if (!novoCliente) return;
           pedidoClienteId = novoCliente.id;
+          pedidoClienteNome = novoCliente.nome;
         }
       }
 
       const novoPedido = await addPedido({
-        cliente: clienteNome,
+        cliente: pedidoClienteNome,
         cliente_id: pedidoClienteId,
         data: dataEntrega,
         data_entrega: dataEntrega,
