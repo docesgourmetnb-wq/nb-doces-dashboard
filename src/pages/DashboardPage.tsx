@@ -173,7 +173,7 @@ export function DashboardPage() {
           <StatCard title="Entregas Hoje" value={pedidosHoje} subtitle="Pedidos abertos para hoje" icon={Calendar} variant={pedidosHoje > 0 ? 'warning' : 'default'} />
           <StatCard title="Atrasados" value={pedidosAtrasados} subtitle="Pedidos abertos vencidos" icon={ClockAlert} variant={pedidosAtrasados > 0 ? 'warning' : 'success'} />
           <StatCard title="Saldo Pendente" value={pedidosBloqueadosPorSaldo} subtitle="Prontos ainda não quitados" icon={WalletCards} variant={pedidosBloqueadosPorSaldo > 0 ? 'warning' : 'success'} />
-          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="Pedidos confirmados/em produção" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
+          <StatCard title="Produção Pendente" value={`${totalProductionDemand} un.`} subtitle="A produzir após estoque pronto" icon={Factory} variant={totalProductionDemand > 0 ? 'warning' : 'success'} />
         </div>
       </div>
 
@@ -244,8 +244,10 @@ export function DashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Sabor</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Pedidos</TableHead>
+                  <TableHead className="text-right">Qtd pedida</TableHead>
+                  <TableHead className="text-right">Estoque</TableHead>
+                  <TableHead className="text-right">A produzir</TableHead>
+                  <TableHead className="text-right">Nº pedidos</TableHead>
                   <TableHead className="text-right">Próxima entrega</TableHead>
                 </TableRow>
               </TableHeader>
@@ -253,7 +255,9 @@ export function DashboardPage() {
                 {productionDemand.slice(0, 8).map((item) => (
                   <TableRow key={item.nome}>
                     <TableCell className="font-medium">{item.nome}</TableCell>
-                    <TableCell className="text-right tabular-nums">{item.quantidade} un.</TableCell>
+                    <TableCell className="text-right tabular-nums">{item.quantidadePedido} un.</TableCell>
+                    <TableCell className="text-right tabular-nums">{item.estoqueDisponivel} un.</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{item.quantidade} un.</TableCell>
                     <TableCell className="text-right tabular-nums">{item.pedidos}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatLocalDate(item.proximaEntrega, 'dd/MM/yyyy')}
