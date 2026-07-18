@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { findClienteByContato } from '@/domain/clientes';
 import { cn } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
@@ -149,13 +150,22 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
       let pedidoClienteId = modoCliente === 'existente' && clienteId ? clienteId : null;
 
       if (modoCliente === 'novo') {
-        const novoCliente = await addCliente({
-          nome: clienteNome,
-          email: clienteNovoEmail.trim() || null,
-          telefone: clienteNovoTelefone.trim() || null,
+        const clienteExistente = findClienteByContato(clientes, {
+          email: clienteNovoEmail,
+          telefone: clienteNovoTelefone,
         });
-        if (!novoCliente) return;
-        pedidoClienteId = novoCliente.id;
+
+        if (clienteExistente) {
+          pedidoClienteId = clienteExistente.id;
+        } else {
+          const novoCliente = await addCliente({
+            nome: clienteNome,
+            email: clienteNovoEmail.trim() || null,
+            telefone: clienteNovoTelefone.trim() || null,
+          });
+          if (!novoCliente) return;
+          pedidoClienteId = novoCliente.id;
+        }
       }
 
       const novoPedido = await addPedido({
