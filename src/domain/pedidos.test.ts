@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   derivePedidoFinanceiroStatus,
+  calculateNextPedidoValorPago,
   getPedidoStatusBadgeClass,
   getPedidoFinanceiroStatusLabel,
   getPedidoStatusLabel,
@@ -45,4 +46,16 @@ test('getPedidoFinanceiroStatusLabel returns labels for known statuses', () => {
   assert.equal(getPedidoFinanceiroStatusLabel('nao_pago'), 'Não pago');
   assert.equal(getPedidoFinanceiroStatusLabel('parcial'), 'Parcial');
   assert.equal(getPedidoFinanceiroStatusLabel('pago'), 'Pago');
+});
+
+test('calculateNextPedidoValorPago adds a valid received amount to current paid amount', () => {
+  assert.equal(calculateNextPedidoValorPago(40, 60, 20), 60);
+  assert.equal(calculateNextPedidoValorPago(40, 60, 60), 100);
+});
+
+test('calculateNextPedidoValorPago rejects invalid received amounts', () => {
+  assert.equal(calculateNextPedidoValorPago(40, 60, 0), null);
+  assert.equal(calculateNextPedidoValorPago(40, 60, -10), null);
+  assert.equal(calculateNextPedidoValorPago(40, 60, 70), null);
+  assert.equal(calculateNextPedidoValorPago(40, 60, Number.NaN), null);
 });
