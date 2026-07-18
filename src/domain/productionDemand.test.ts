@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   aggregateProductionDemand,
   isPedidoDemandante,
+  summarizeProductionDemand,
 } from './productionDemand.ts';
 
 test('isPedidoDemandante includes only orders that still require production', () => {
@@ -114,4 +115,37 @@ test('aggregateProductionDemand can match stock by normalized name without ids',
   ]);
 
   assert.equal(result[0]?.quantidade, 15);
+});
+
+test('summarizeProductionDemand reports demand covered by ready stock', () => {
+  const result = summarizeProductionDemand([
+    {
+      id: 'pedido-1',
+      cliente: 'Juliana',
+      data_entrega: '2026-07-20',
+      status: 'confirmado',
+      itens: [
+        { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 18 },
+        { brigadeiro_id: 'brigadeiro-2', brigadeiro_nome: 'Ninho 30g', quantidade: 8 },
+      ],
+    },
+  ], [
+    { brigadeiro_id: 'brigadeiro-1', nome: 'Brulée 30g', quantidade: 6 },
+    { brigadeiro_id: 'brigadeiro-2', nome: 'Ninho 30g', quantidade: 10 },
+  ]);
+
+  assert.equal(result.totalPedido, 26);
+  assert.equal(result.totalCobertoPorEstoque, 14);
+  assert.equal(result.totalAProduzir, 12);
+  assert.deepEqual(result.items, [
+    {
+      brigadeiroId: 'brigadeiro-1',
+      nome: 'Brulée 30g',
+      quantidade: 12,
+      quantidadePedido: 18,
+      estoqueDisponivel: 6,
+      pedidos: 1,
+      proximaEntrega: '2026-07-20',
+    },
+  ]);
 });

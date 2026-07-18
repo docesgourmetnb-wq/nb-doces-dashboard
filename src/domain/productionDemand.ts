@@ -25,6 +25,13 @@ export interface ProductionDemandItem {
   proximaEntrega: string;
 }
 
+export interface ProductionDemandSummary {
+  items: ProductionDemandItem[];
+  totalPedido: number;
+  totalCobertoPorEstoque: number;
+  totalAProduzir: number;
+}
+
 export interface ProductionStockItemInput {
   brigadeiro_id?: string | null;
   nome: string;
@@ -46,6 +53,13 @@ export function aggregateProductionDemand(
   pedidos: ProductionDemandPedidoInput[],
   estoquePronto: ProductionStockItemInput[] = [],
 ): ProductionDemandItem[] {
+  return summarizeProductionDemand(pedidos, estoquePronto).items;
+}
+
+export function summarizeProductionDemand(
+  pedidos: ProductionDemandPedidoInput[],
+  estoquePronto: ProductionStockItemInput[] = [],
+): ProductionDemandSummary {
   const demandByName = new Map<string, ProductionDemandItem & { pedidoIds: Set<string> }>();
   const stockByKey = new Map<string, number>();
 
@@ -84,7 +98,7 @@ export function aggregateProductionDemand(
     }
   }
 
-  return [...demandByName.values()]
+  const allItems = [...demandByName.values()]
     .map(({ pedidoIds, ...item }) => {
       const key = item.brigadeiroId || normalizeProductionMatchName(item.nome);
       const estoqueDisponivel = stockByKey.get(key) || 0;
@@ -96,6 +110,15 @@ export function aggregateProductionDemand(
         pedidos: pedidoIds.size,
       };
     })
-    .filter((item) => item.quantidade > 0)
     .sort((a, b) => a.proximaEntrega.localeCompare(b.proximaEntrega) || b.quantidade - a.quantidade);
+
+  return {
+    items: allItems.filter((item) => item.quantidade > 0),
+    totalPedido: allItems.reduce((total, item) => total + item.quantidadePedido, 0),
+    totalCobertoPorEstoque: allItems.reduce(
+      (total, item) => total + Math.min(item.quantidadePedido, item.estoqueDisponivel),
+      0,
+    ),
+    totalAProduzir: allItems.reduce((total, item) => total + item.quantidade, 0),
+  };
 }
