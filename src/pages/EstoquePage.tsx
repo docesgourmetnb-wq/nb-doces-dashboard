@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { getProdutoNomeBase } from '@/domain/produtos';
 
 type InsumoFormErrors = Partial<Record<
   'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'consumo_medio' | 'preco_unitario',
@@ -256,11 +257,23 @@ function InsumosTab() {
 
 function MassasTab() {
   const { massas, loading, addMassa, updateQuantidade, deleteMassa } = useEstoqueMassas();
+  const { brigadeiros } = useBrigadeiros();
   const [sabor, setSabor] = useState('');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [actionMassa, setActionMassa] = useState<EstoqueMassa | null>(null);
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
   const [actionValue, setActionValue] = useState('');
+
+  const saboresDisponiveis = Array.from(
+    new Set(
+      brigadeiros
+        .filter(b => b.ativo)
+        .map(b => getProdutoNomeBase(b.nome))
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+  const saboresCadastrados = new Set(massas.map(m => m.sabor.toLowerCase()));
+  const saboresParaCadastro = saboresDisponiveis.filter(s => !saboresCadastrados.has(s.toLowerCase()));
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
 
@@ -307,9 +320,22 @@ function MassasTab() {
             <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label htmlFor="estoque-massa-sabor">Sabor da Massa</Label>
-                <Input id="estoque-massa-sabor" value={sabor} onChange={(e) => setSabor(e.target.value)} placeholder="Ex: Chocolate ao Leite" />
+                <select
+                  id="estoque-massa-sabor"
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={sabor}
+                  onChange={(e) => setSabor(e.target.value)}
+                >
+                   <option value="">Selecione um produto...</option>
+                   {saboresParaCadastro.map(s => (
+                     <option key={s} value={s}>{s}</option>
+                   ))}
+                </select>
+                {saboresParaCadastro.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Todos os produtos ativos já possuem massa cadastrada.</p>
+                )}
               </div>
-              <Button onClick={handleRegister} className="w-full">Registrar</Button>
+              <Button onClick={handleRegister} className="w-full" disabled={!sabor}>Registrar</Button>
             </div>
           </DialogContent>
         </Dialog>
