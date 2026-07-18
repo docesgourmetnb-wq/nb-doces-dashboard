@@ -83,6 +83,16 @@ const urgencyClass = {
   hoje: 'bg-warning/15 text-warning border-warning/25',
   proximo: 'bg-muted text-muted-foreground border-border',
 } as const;
+const agendaActionLabel = {
+  cobrar_saldo: 'Cobrar saldo',
+  separar_entrega: 'Separar entrega',
+  produzir: 'Produzir',
+} as const;
+const agendaActionClass = {
+  cobrar_saldo: 'border-warning/25 bg-warning/15 text-warning',
+  separar_entrega: 'border-success/25 bg-success/15 text-success',
+  produzir: 'border-info/25 bg-info/15 text-info',
+} as const;
 
 export function DashboardPage() {
   const currentYear = new Date().getFullYear();
@@ -213,11 +223,9 @@ export function DashboardPage() {
                         <p className="text-xs text-muted-foreground">
                           {ENTREGA_LABELS[pedido.tipo_entrega as keyof typeof ENTREGA_LABELS]} • {getPedidoStatusLabel(pedido.status)} • {getPedidoFinanceiroStatusLabel(pedido.status_financeiro)}
                         </p>
-                        {pedido.bloqueadoPorSaldo && (
-                          <span className="inline-flex rounded-full border border-warning/25 bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-                            Quitar antes de entregar
-                          </span>
-                        )}
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${agendaActionClass[pedido.acao]}`}>
+                          {agendaActionLabel[pedido.acao]}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
