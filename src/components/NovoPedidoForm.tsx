@@ -49,6 +49,8 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   
   const [clienteId, setClienteId] = useState('');
   const [clienteNovo, setClienteNovo] = useState('');
+  const [clienteNovoTelefone, setClienteNovoTelefone] = useState('');
+  const [clienteNovoEmail, setClienteNovoEmail] = useState('');
   const [modoCliente, setModoCliente] = useState<'existente' | 'novo'>('existente');
   const [dataPedido, setDataPedido] = useState<Date>(new Date());
   const [tipoPedido, setTipoPedido] = useState<Pedido['tipo_pedido']>('encomenda');
@@ -149,8 +151,8 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
       if (modoCliente === 'novo') {
         const novoCliente = await addCliente({
           nome: clienteNome,
-          email: null,
-          telefone: null,
+          email: clienteNovoEmail.trim() || null,
+          telefone: clienteNovoTelefone.trim() || null,
         });
         if (!novoCliente) return;
         pedidoClienteId = novoCliente.id;
@@ -188,6 +190,8 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const resetForm = () => {
     setClienteId('');
     setClienteNovo('');
+    setClienteNovoTelefone('');
+    setClienteNovoEmail('');
     setModoCliente('existente');
     setDataPedido(new Date());
     setTipoPedido('encomenda');
@@ -258,12 +262,35 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 </SelectContent>
               </Select>
             ) : (
-              <Input
-                id="pedido-cliente-novo"
-                value={clienteNovo}
-                onChange={(e) => setClienteNovo(e.target.value)}
-                placeholder="Nome do novo cliente"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2 sm:col-span-2">
+                  <Input
+                    id="pedido-cliente-novo"
+                    value={clienteNovo}
+                    onChange={(e) => setClienteNovo(e.target.value)}
+                    placeholder="Nome do novo cliente"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pedido-cliente-novo-telefone">Telefone</Label>
+                  <Input
+                    id="pedido-cliente-novo-telefone"
+                    value={clienteNovoTelefone}
+                    onChange={(e) => setClienteNovoTelefone(e.target.value)}
+                    placeholder="WhatsApp ou telefone"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pedido-cliente-novo-email">E-mail</Label>
+                  <Input
+                    id="pedido-cliente-novo-email"
+                    type="email"
+                    value={clienteNovoEmail}
+                    onChange={(e) => setClienteNovoEmail(e.target.value)}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+              </div>
             )}
           </div>
 
