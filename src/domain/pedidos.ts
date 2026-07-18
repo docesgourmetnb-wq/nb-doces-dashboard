@@ -63,6 +63,18 @@ export function calculateNextPedidoValorPago(valorPagoAtual: number, saldoRestan
   return valorPagoAtual + valorRecebido;
 }
 
+export function getPedidoStatusUpdateErrorMessage(message: string) {
+  if (message.includes('Estoque pronto insuficiente')) {
+    return `${message}. Produza ou registre entrada no estoque de Produtos Finais antes de marcar como entregue.`;
+  }
+
+  if (message.includes('saldo pendente') || message.includes('Saldo pendente')) {
+    return 'Este pedido ainda possui saldo pendente. Registre o pagamento antes de marcar como entregue.';
+  }
+
+  return message || 'Erro inesperado';
+}
+
 export const PAGAMENTO_LABELS: Record<string, string> = {
   'pix': 'PIX',
   'cartao': 'Cartão',

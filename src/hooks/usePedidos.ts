@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import {
+  getPedidoStatusUpdateErrorMessage,
   type CanalVenda,
   type EntregaTipo,
   type PedidoFinanceiroStatus,
@@ -218,7 +219,7 @@ export function usePedidos() {
     } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar status',
-        description: getErrorMessage(error),
+        description: getPedidoStatusUpdateErrorMessage(getErrorMessage(error)),
         variant: 'destructive',
       });
     }
