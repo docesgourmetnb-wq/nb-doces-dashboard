@@ -65,8 +65,15 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const [quantidade, setQuantidade] = useState(1);
 
   const valorTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.preco_unitario), 0);
-  const valorPagoNumber = Number(valorPago || 0);
-  const valorPagoValido = Number.isFinite(valorPagoNumber) && valorPagoNumber >= 0 && valorPagoNumber <= valorTotal;
+  const valorPagoNormalizado = valorPago.trim().replace(',', '.');
+  const valorPagoNumber = valorPagoNormalizado === '' ? 0 : Number(valorPagoNormalizado);
+  const valorPagoEhNumero = Number.isFinite(valorPagoNumber);
+  const valorPagoValido = valorPagoEhNumero && valorPagoNumber >= 0 && valorPagoNumber <= valorTotal;
+  const valorPagoError = !valorPagoEhNumero || valorPagoNumber < 0
+    ? 'Informe um valor válido. Use 0, 4,00 ou 4.00.'
+    : valorPagoNumber > valorTotal
+      ? 'O valor pago não pode ser maior que o total do pedido.'
+      : null;
   const enderecoEntregaValido = tipoEntrega !== 'entrega' || enderecoEntrega.trim().length > 0;
 
   const clienteNome = modoCliente === 'existente' 
@@ -405,18 +412,18 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
               <Label htmlFor="pedido-valor-pago">Valor pago</Label>
               <Input
                 id="pedido-valor-pago"
-                type="number"
-                min="0"
-                max={valorTotal}
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={valorPago}
                 onChange={(e) => setValorPago(e.target.value)}
-                placeholder={valorTotal > 0 ? `Sugestão: R$ ${(valorTotal / 2).toFixed(2)}` : '0.00'}
-                aria-invalid={!valorPagoValido}
-                aria-describedby={!valorPagoValido ? 'pedido-valor-pago-error' : undefined}
+                placeholder={valorTotal > 0 ? `Opcional. Sugestão: R$ ${(valorTotal / 2).toFixed(2)}` : 'Opcional'}
+                aria-invalid={Boolean(valorPagoError)}
+                aria-describedby={valorPagoError ? 'pedido-valor-pago-error' : 'pedido-valor-pago-help'}
               />
-              {!valorPagoValido && (
-                <p id="pedido-valor-pago-error" className="text-xs text-destructive">Informe um valor entre R$ 0,00 e o total do pedido.</p>
+              {valorPagoError ? (
+                <p id="pedido-valor-pago-error" className="text-xs text-destructive">{valorPagoError}</p>
+              ) : (
+                <p id="pedido-valor-pago-help" className="text-xs text-muted-foreground">Deixe em branco se ainda não houve pagamento.</p>
               )}
             </div>
             <div className="sm:col-span-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
