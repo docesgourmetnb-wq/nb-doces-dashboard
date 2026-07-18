@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet, History } from 'lucide-react';
 import { Transacao } from '@/hooks/useTransacoes';
 import { usePaginatedTransacoes } from '@/hooks/usePaginatedTransacoes';
 import { useFinancialSummary } from '@/hooks/useFinancialSummary';
@@ -63,6 +63,7 @@ export function FinanceiroPage() {
   const totalEntradas = summary.totalEntradas;
   const totalSaidas = summary.totalSaidas;
   const lucroBruto = summary.lucroBruto;
+  const totalHistorico = summary.totalHistorico;
 
   const handleAddTransacao = async () => {
     const valor = Number(formData.valor);
@@ -230,7 +231,7 @@ export function FinanceiroPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -267,6 +268,20 @@ export function FinanceiroPage() {
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
               <TrendingUp className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Histórico comercial</p>
+              <p className="text-2xl font-display font-semibold text-foreground mt-1">
+                R$ {totalHistorico.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Pedidos entregues até 31/07/2026</p>
+            </div>
+            <div className="p-3 bg-accent/50 rounded-lg">
+              <History className="w-6 h-6 text-accent-foreground" />
             </div>
           </div>
         </div>
