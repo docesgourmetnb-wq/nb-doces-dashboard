@@ -4,12 +4,18 @@ import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Recipiente } from './useRecipientes';
+import { getMassaValidadeInfo } from '@/domain/massasCongeladas';
 
 type MassaCongeladaRow = Tables<'massas_congeladas'>;
 type RecipienteRow = Tables<'recipientes'>;
 type MassaCongeladaWithRecipiente = MassaCongeladaRow & {
   recipiente?: RecipienteRow | null;
 };
+
+function getTodayKey() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+}
 
 export interface MassaCongelada {
   id: string;
@@ -210,12 +216,9 @@ export function useMassasCongeladas() {
   // Computed values
   const estoqueAtual = massas.filter(m => m.status !== 'consumido');
   const totalPesoEstoque = estoqueAtual.reduce((sum, m) => sum + m.peso_massa, 0);
-  const massasProximasValidade = estoqueAtual.filter(m => {
-    const validade = new Date(m.validade);
-    const hoje = new Date();
-    const diasRestantes = Math.ceil((validade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-    return diasRestantes <= 7 && diasRestantes >= 0;
-  });
+  const todayKey = getTodayKey();
+  const massasProximasValidade = estoqueAtual.filter(m => getMassaValidadeInfo(m.validade, todayKey).status === 'proxima');
+  const massasVencidas = estoqueAtual.filter(m => getMassaValidadeInfo(m.validade, todayKey).status === 'vencida');
 
   return {
     massas,
@@ -229,5 +232,6 @@ export function useMassasCongeladas() {
     estoqueAtual,
     totalPesoEstoque,
     massasProximasValidade,
+    massasVencidas,
   };
 }
