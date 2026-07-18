@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   derivePedidoFinanceiroStatus,
   calculateNextPedidoValorPago,
+  getPedidoStatusUpdateErrorMessage,
   getPedidoStatusBadgeClass,
   getPedidoFinanceiroStatusLabel,
   getPedidoStatusLabel,
@@ -58,4 +59,18 @@ test('calculateNextPedidoValorPago rejects invalid received amounts', () => {
   assert.equal(calculateNextPedidoValorPago(40, 60, -10), null);
   assert.equal(calculateNextPedidoValorPago(40, 60, 70), null);
   assert.equal(calculateNextPedidoValorPago(40, 60, Number.NaN), null);
+});
+
+test('getPedidoStatusUpdateErrorMessage explains insufficient final stock', () => {
+  assert.equal(
+    getPedidoStatusUpdateErrorMessage('Estoque pronto insuficiente para Brulée 30g. Necessário: 12, disponível: 4'),
+    'Estoque pronto insuficiente para Brulée 30g. Necessário: 12, disponível: 4. Produza ou registre entrada no estoque de Produtos Finais antes de marcar como entregue.',
+  );
+});
+
+test('getPedidoStatusUpdateErrorMessage explains pending balance', () => {
+  assert.equal(
+    getPedidoStatusUpdateErrorMessage('Este pedido ainda possui saldo pendente'),
+    'Este pedido ainda possui saldo pendente. Registre o pagamento antes de marcar como entregue.',
+  );
 });
