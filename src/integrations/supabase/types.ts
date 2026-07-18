@@ -254,49 +254,73 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_reason: string | null
+          canal_venda: string
           cliente: string
           cliente_id: string | null
           created_at: string
           data: string
+          data_entrega: string
+          endereco_entrega: string | null
           forma_pagamento: string
           id: string
           observacoes: string | null
+          saldo_restante: number | null
           status: string
+          status_financeiro: string
+          status_operacional: string
+          tipo_entrega: string
           tipo_pedido: string
           updated_at: string
           user_id: string
+          valor_pago: number
           valor_total: number
         }
         Insert: {
           archived_at?: string | null
           archived_reason?: string | null
+          canal_venda?: string
           cliente: string
           cliente_id?: string | null
           created_at?: string
           data?: string
+          data_entrega?: string
+          endereco_entrega?: string | null
           forma_pagamento?: string
           id?: string
           observacoes?: string | null
+          saldo_restante?: number | null
           status?: string
+          status_financeiro?: string
+          status_operacional?: string
+          tipo_entrega?: string
           tipo_pedido?: string
           updated_at?: string
           user_id: string
+          valor_pago?: number
           valor_total?: number
         }
         Update: {
           archived_at?: string | null
           archived_reason?: string | null
+          canal_venda?: string
           cliente?: string
           cliente_id?: string | null
           created_at?: string
           data?: string
+          data_entrega?: string
+          endereco_entrega?: string | null
           forma_pagamento?: string
           id?: string
           observacoes?: string | null
+          saldo_restante?: number | null
           status?: string
+          status_financeiro?: string
+          status_operacional?: string
+          tipo_entrega?: string
           tipo_pedido?: string
           updated_at?: string
           user_id?: string
+          valor_pago?: number
           valor_total?: number
         }
         Relationships: [
@@ -645,7 +669,124 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_pedido_with_items: {
+        Args: {
+          p_canal_venda?: string
+          p_cliente: string
+          p_cliente_id: string
+          p_data: string
+          p_data_entrega?: string
+          p_endereco_entrega?: string
+          p_forma_pagamento: string
+          p_itens?: Json
+          p_observacoes: string
+          p_status: string
+          p_tipo_entrega?: string
+          p_tipo_pedido: string
+          p_valor_pago?: number
+          p_valor_total: number
+        }
+        Returns: {
+          archived_at: string | null
+          archived_reason: string | null
+          canal_venda: string
+          cliente: string
+          cliente_id: string | null
+          created_at: string
+          data: string
+          data_entrega: string
+          endereco_entrega: string | null
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          saldo_restante: number | null
+          status: string
+          status_financeiro: string
+          status_operacional: string
+          tipo_entrega: string
+          tipo_pedido: string
+          updated_at: string
+          user_id: string
+          valor_pago: number
+          valor_total: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pedidos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      derive_pedido_financial_status: {
+        Args: { p_valor_pago: number; p_valor_total: number }
+        Returns: string
+      }
+      update_pedido_payment: {
+        Args: { p_pedido_id: string; p_valor_pago: number }
+        Returns: {
+          archived_at: string | null
+          archived_reason: string | null
+          canal_venda: string
+          cliente: string
+          cliente_id: string | null
+          created_at: string
+          data: string
+          data_entrega: string
+          endereco_entrega: string | null
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          saldo_restante: number | null
+          status: string
+          status_financeiro: string
+          status_operacional: string
+          tipo_entrega: string
+          tipo_pedido: string
+          updated_at: string
+          user_id: string
+          valor_pago: number
+          valor_total: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pedidos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_pedido_status: {
+        Args: { p_pedido_id: string; p_status: string }
+        Returns: {
+          archived_at: string | null
+          archived_reason: string | null
+          canal_venda: string
+          cliente: string
+          cliente_id: string | null
+          created_at: string
+          data: string
+          data_entrega: string
+          endereco_entrega: string | null
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          saldo_restante: number | null
+          status: string
+          status_financeiro: string
+          status_operacional: string
+          tipo_entrega: string
+          tipo_pedido: string
+          updated_at: string
+          user_id: string
+          valor_pago: number
+          valor_total: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pedidos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
