@@ -205,7 +205,7 @@ export function usePedidos() {
         return;
       }
 
-      const updateStatusRpc = supabase.rpc as unknown as UpdatePedidoStatusRpc;
+      const updateStatusRpc = supabase.rpc.bind(supabase) as unknown as UpdatePedidoStatusRpc;
       const { error } = await updateStatusRpc('update_pedido_status', {
         p_pedido_id: id,
         p_status: status,
@@ -226,7 +226,7 @@ export function usePedidos() {
 
   const updatePedidoPayment = async (id: string, valorPago: number) => {
     try {
-      const updatePaymentRpc = supabase.rpc as unknown as UpdatePedidoPaymentRpc;
+      const updatePaymentRpc = supabase.rpc.bind(supabase) as unknown as UpdatePedidoPaymentRpc;
       const { error } = await updatePaymentRpc('update_pedido_payment', {
         p_pedido_id: id,
         p_valor_pago: valorPago,
@@ -249,7 +249,7 @@ export function usePedidos() {
     if (!user) return undefined;
     
     try {
-      const createPedidoRpc = supabase.rpc as unknown as CreatePedidoWithItemsRpc;
+      const createPedidoRpc = supabase.rpc.bind(supabase) as unknown as CreatePedidoWithItemsRpc;
       const { data: novoPedido, error } = await createPedidoRpc('create_pedido_with_items', {
         p_cliente: pedido.cliente,
         p_cliente_id: pedido.cliente_id || null,
