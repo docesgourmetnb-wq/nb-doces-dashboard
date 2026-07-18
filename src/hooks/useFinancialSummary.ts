@@ -19,11 +19,45 @@ type FinancialSummaryRpc = (
   fn: 'get_financial_summary',
 ) => Promise<{ data: FinancialSummaryRow[] | null; error: { message: string } | null }>;
 
+interface TransacaoSummaryRow {
+  tipo: string;
+  valor: number | string | null;
+}
+
 const emptySummary: FinancialSummary = {
   totalEntradas: 0,
   totalSaidas: 0,
   lucroBruto: 0,
 };
+
+function toNumber(value: number | string | null | undefined) {
+  return Number(value ?? 0);
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+  }
+  return 'Erro inesperado';
+}
+
+function buildSummaryFromRows(rows: TransacaoSummaryRow[]): FinancialSummary {
+  const totalEntradas = rows
+    .filter((row) => row.tipo === 'entrada')
+    .reduce((total, row) => total + toNumber(row.valor), 0);
+
+  const totalSaidas = rows
+    .filter((row) => row.tipo === 'saida')
+    .reduce((total, row) => total + toNumber(row.valor), 0);
+
+  return {
+    totalEntradas,
+    totalSaidas,
+    lucroBruto: totalEntradas - totalSaidas,
+  };
+}
 
 export function useFinancialSummary() {
   const [summary, setSummary] = useState<FinancialSummary>(emptySummary);
@@ -42,19 +76,26 @@ export function useFinancialSummary() {
     try {
       const rpc = supabase.rpc.bind(supabase) as unknown as FinancialSummaryRpc;
       const { data, error } = await rpc('get_financial_summary');
-      if (error) throw error;
+      if (error) {
+        const { data: transacoes, error: transacoesError } = await supabase
+          .from('transacoes')
+          .select('tipo, valor');
+
+        if (transacoesError) throw transacoesError;
+        setSummary(buildSummaryFromRows((transacoes || []) as TransacaoSummaryRow[]));
+        return;
+      }
 
       const row = Array.isArray(data) ? data[0] : null;
       setSummary({
-        totalEntradas: Number(row?.total_entradas ?? 0),
-        totalSaidas: Number(row?.total_saidas ?? 0),
-        lucroBruto: Number(row?.lucro_bruto ?? 0),
+        totalEntradas: toNumber(row?.total_entradas),
+        totalSaidas: toNumber(row?.total_saidas),
+        lucroBruto: toNumber(row?.lucro_bruto),
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erro inesperado';
       toast({
         title: 'Erro ao carregar resumo financeiro',
-        description: message,
+        description: getErrorMessage(error),
         variant: 'destructive',
       });
     } finally {
