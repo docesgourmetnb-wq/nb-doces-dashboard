@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildOrderAgenda,
+  getAgendaAction,
   isPedidoNaAgenda,
 } from './orderAgenda.ts';
 
@@ -12,6 +13,13 @@ test('isPedidoNaAgenda excludes delivered and canceled orders', () => {
   assert.equal(isPedidoNaAgenda('pronto'), true);
   assert.equal(isPedidoNaAgenda('entregue'), false);
   assert.equal(isPedidoNaAgenda('cancelado'), false);
+});
+
+test('getAgendaAction classifies the next operational action', () => {
+  assert.equal(getAgendaAction('pronto', 50), 'cobrar_saldo');
+  assert.equal(getAgendaAction('pronto', 0), 'separar_entrega');
+  assert.equal(getAgendaAction('confirmado', 0), 'produzir');
+  assert.equal(getAgendaAction('em-producao', 0), 'produzir');
 });
 
 test('buildOrderAgenda sorts open orders and labels urgency', () => {
@@ -90,8 +98,9 @@ test('buildOrderAgenda flags ready orders with remaining balance', () => {
   assert.deepEqual(result.map((pedido) => ({
     id: pedido.id,
     bloqueadoPorSaldo: pedido.bloqueadoPorSaldo,
+    acao: pedido.acao,
   })), [
-    { id: 'pedido-1', bloqueadoPorSaldo: true },
-    { id: 'pedido-2', bloqueadoPorSaldo: false },
+    { id: 'pedido-1', bloqueadoPorSaldo: true, acao: 'cobrar_saldo' },
+    { id: 'pedido-2', bloqueadoPorSaldo: false, acao: 'produzir' },
   ]);
 });
