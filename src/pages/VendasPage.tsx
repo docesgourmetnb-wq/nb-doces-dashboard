@@ -22,6 +22,7 @@ import {
   ENTREGA_LABELS,
   PAGAMENTO_LABELS,
 } from '@/domain/pedidos';
+import { FINANCIAL_CONTROL_START_LABEL, isHistoricalFinancialOrder } from '@/domain/financeiro';
 import {
   Dialog,
   DialogContent,
@@ -118,6 +119,8 @@ export function VendasPage() {
     setPaymentAmount('');
     refetch();
   };
+
+  const getIsHistoricalFinancialOrder = (pedido: Pedido) => isHistoricalFinancialOrder(pedido.data_entrega);
 
   if (loading) {
     return (
@@ -244,6 +247,11 @@ export function VendasPage() {
                   <span className="font-medium">R$ {paymentPedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
+              {isHistoricalFinancialOrder(paymentPedido.data_entrega) && (
+                <div className="rounded-lg border border-accent bg-accent/30 p-3 text-sm text-accent-foreground">
+                  Este pedido é histórico. O pagamento será registrado no pedido, mas não entrará no financeiro oficial iniciado em {FINANCIAL_CONTROL_START_LABEL}.
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="pedido-pagamento-valor">Valor recebido</Label>
                 <Input
@@ -314,6 +322,9 @@ export function VendasPage() {
                         {pedido.archived_at && (
                           <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Arquivado</span>
                         )}
+                        {getIsHistoricalFinancialOrder(pedido) && (
+                          <span className="ml-2 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">Histórico</span>
+                        )}
                       </td>
                       <td className="p-4 text-muted-foreground">
                         <div className="space-y-1">
@@ -337,6 +348,9 @@ export function VendasPage() {
                             {getPedidoFinanceiroStatusLabel(pedido.status_financeiro)}
                           </span>
                           <p className="text-xs text-muted-foreground">{PAGAMENTO_LABELS[pedido.forma_pagamento]}</p>
+                          {getIsHistoricalFinancialOrder(pedido) && (
+                            <p className="text-xs text-muted-foreground">Fora do financeiro oficial</p>
+                          )}
                           {pedido.saldo_restante > 0 && (
                             <p className="text-xs text-warning">Saldo: R$ {pedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                           )}
@@ -390,6 +404,11 @@ export function VendasPage() {
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4 py-4">
+                                {getIsHistoricalFinancialOrder(pedido) && (
+                                  <div className="rounded-lg border border-accent bg-accent/30 p-3 text-sm text-accent-foreground">
+                                    Pedido histórico: não compõe o financeiro oficial iniciado em {FINANCIAL_CONTROL_START_LABEL}.
+                                  </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                   <div>
                                     <p className="text-muted-foreground">Cliente</p>
