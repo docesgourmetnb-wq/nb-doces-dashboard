@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from '@/domain/produtos';
+import { formatCurrencyBRL } from '@/lib/utils';
 
 type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
 type TamanhoFilter = 'todos' | '25g' | '30g';
@@ -377,11 +378,11 @@ export function ProdutosPage() {
                 <div className="grid grid-cols-3 gap-2 pt-4 border-t border-border">
                   <div>
                     <p className="text-xs text-muted-foreground">Venda</p>
-                    <p className="font-semibold text-success">R$ {brigadeiro.preco_venda.toFixed(2)}</p>
+                    <p className="font-semibold text-success">{formatCurrencyBRL(brigadeiro.preco_venda)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Custo</p>
-                    <p className="font-medium">R$ {brigadeiro.custo_unitario.toFixed(2)}</p>
+                    <p className="font-medium">{formatCurrencyBRL(brigadeiro.custo_unitario)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Margem</p>
