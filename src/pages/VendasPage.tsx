@@ -85,6 +85,14 @@ export function VendasPage() {
     refetch();
   };
 
+  const handleArchiveAsTest = async () => {
+    if (!showArchiveReasonModal) return;
+    await archivePedido(showArchiveReasonModal.id, 'Pedido de teste');
+    setShowArchiveReasonModal(null);
+    setArchiveReason('');
+    refetch();
+  };
+
   const handleStatusChange = async (id: string, status: Pedido['status']) => {
     await updatePedidoStatus(id, status);
     refetch();
@@ -205,7 +213,7 @@ export function VendasPage() {
             <DialogTitle>Arquivar Pedido</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            O pedido de <strong>{showArchiveReasonModal && getClienteDisplayName(showArchiveReasonModal)}</strong> será arquivado. Isso não afeta o financeiro.
+            O pedido de <strong>{showArchiveReasonModal && getClienteDisplayName(showArchiveReasonModal)}</strong> será arquivado. Pedidos arquivados saem das listagens principais e dos indicadores.
           </p>
           <Label htmlFor="vendas-motivo-arquivamento" className="sr-only">Motivo do arquivamento</Label>
           <Textarea
@@ -216,6 +224,7 @@ export function VendasPage() {
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowArchiveReasonModal(null); setArchiveReason(''); }}>Cancelar</Button>
+            <Button variant="secondary" onClick={handleArchiveAsTest}>Arquivar como teste</Button>
             <Button onClick={handleArchive}>Arquivar</Button>
           </DialogFooter>
         </DialogContent>
