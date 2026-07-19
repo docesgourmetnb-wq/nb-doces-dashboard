@@ -36,7 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrencyBRL } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
   onSuccess?: () => void;
@@ -465,8 +465,8 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                       const tamanho = getProdutoTamanho(b.nome);
                       const nomeBase = getProdutoNomeBase(b.nome);
                       const label = tamanho
-                        ? `${nomeBase} • ${tamanho} • R$ ${b.preco_venda.toFixed(2)}`
-                        : `${b.nome} • R$ ${b.preco_venda.toFixed(2)}`;
+                        ? `${nomeBase} • ${tamanho} • ${formatCurrencyBRL(b.preco_venda)}`
+                        : `${b.nome} • ${formatCurrencyBRL(b.preco_venda)}`;
 
                       return (
                         <SelectItem key={b.id} value={b.id}>
@@ -501,12 +501,12 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                     <div className="flex-1">
                       <p className="font-medium">{item.brigadeiro_nome}</p>
                       <p className="text-sm text-muted-foreground">
-                        {item.quantidade} x R$ {item.preco_unitario.toFixed(2)}
+                        {item.quantidade} x {formatCurrencyBRL(item.preco_unitario)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="font-semibold">
-                        R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
+                        {formatCurrencyBRL(item.quantidade * item.preco_unitario)}
                       </p>
                       <button
                         type="button"
@@ -522,7 +522,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 <div className="flex justify-between items-center pt-3 border-t border-border mt-3">
                   <span className="font-medium">Total do Pedido</span>
                   <span className="text-xl font-display font-semibold text-primary">
-                    R$ {valorTotal.toFixed(2)}
+                    {formatCurrencyBRL(valorTotal)}
                   </span>
                 </div>
               </div>
@@ -553,7 +553,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 inputMode="decimal"
                 value={valorPago}
                 onChange={(e) => setValorPago(e.target.value)}
-                placeholder={valorTotal > 0 ? `Opcional. Sugestão: R$ ${(valorTotal / 2).toFixed(2)}` : 'Opcional'}
+                placeholder={valorTotal > 0 ? `Opcional. Sugestão: ${formatCurrencyBRL(valorTotal / 2)}` : 'Opcional'}
                 aria-invalid={Boolean(valorPagoError)}
                 aria-describedby={valorPagoError ? 'pedido-valor-pago-error' : 'pedido-valor-pago-help'}
               />
@@ -566,7 +566,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
             <div className="sm:col-span-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Saldo restante</span>
-                <span className="font-medium">R$ {Math.max(valorTotal - (valorPagoValido ? valorPagoNumber : 0), 0).toFixed(2)}</span>
+                <span className="font-medium">{formatCurrencyBRL(Math.max(valorTotal - (valorPagoValido ? valorPagoNumber : 0), 0))}</span>
               </div>
             </div>
           </div>

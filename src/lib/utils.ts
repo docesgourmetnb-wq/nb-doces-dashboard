@@ -19,3 +19,7 @@ export function parseLocalDate(date: string) {
 export function formatLocalDate(date: string, pattern: string, options?: Parameters<typeof format>[2]) {
   return format(parseLocalDate(date), pattern, options);
 }
+
+export function formatCurrencyBRL(value: number) {
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+}
