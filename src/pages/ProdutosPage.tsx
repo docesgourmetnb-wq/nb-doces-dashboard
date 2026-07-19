@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useBrigadeiros, Brigadeiro } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
@@ -11,40 +11,52 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 
 type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
+type TamanhoFilter = 'todos' | '25g' | '30g';
+
+const tamanhoFilters: Array<{ value: TamanhoFilter; label: string }> = [
+  { value: 'todos', label: 'Todos' },
+  { value: '25g', label: '25g' },
+  { value: '30g', label: '30g' },
+];
+
+function getTamanhoSortValue(tamanho: string | null) {
+  return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
+}
 
 export function ProdutosPage() {
   const { brigadeiros, loading, addBrigadeiro, updateBrigadeiro, deleteBrigadeiro } = useBrigadeiros();
   const [search, setSearch] = useState('');
+  const [tamanhoFilter, setTamanhoFilter] = useState<TamanhoFilter>('todos');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBrigadeiro, setEditingBrigadeiro] = useState<Brigadeiro | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
-    tipo: 'tradicional' as Brigadeiro['tipo'],
+    tipo: 'gourmet' as Brigadeiro['tipo'],
     preco_venda: '',
     custo_unitario: '',
     descricao: '',
   });
 
-  const filteredBrigadeiros = brigadeiros.filter((b) =>
-    b.nome.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredBrigadeiros = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
 
-  const tipoLabels = {
-    tradicional: { label: 'Tradicional', class: 'bg-primary/10 text-primary' },
-    gourmet: { label: 'Gourmet', class: 'bg-accent/20 text-accent-foreground' },
-    premium: { label: 'Premium', class: 'bg-warning/20 text-warning' },
-  };
+    return brigadeiros
+      .filter((brigadeiro) => {
+        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        const matchesSearch = !searchTerm || brigadeiro.nome.toLowerCase().includes(searchTerm);
+        const matchesTamanho = tamanhoFilter === 'todos' || tamanho === tamanhoFilter;
+        return matchesSearch && matchesTamanho;
+      })
+      .sort((a, b) => {
+        const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
+        if (nomeBaseCompare !== 0) return nomeBaseCompare;
+        return getTamanhoSortValue(getProdutoTamanho(a.nome)) - getTamanhoSortValue(getProdutoTamanho(b.nome));
+      });
+  }, [brigadeiros, search, tamanhoFilter]);
 
   const handleOpenDialog = (brigadeiro?: Brigadeiro) => {
     if (brigadeiro) {
@@ -60,7 +72,7 @@ export function ProdutosPage() {
       setEditingBrigadeiro(null);
       setFormData({
         nome: '',
-        tipo: 'tradicional',
+        tipo: 'gourmet',
         preco_venda: '',
         custo_unitario: '',
         descricao: '',
@@ -170,22 +182,6 @@ export function ProdutosPage() {
                 />
                 {formErrors.nome && <p id="produto-nome-error" className="text-xs text-destructive">{formErrors.nome}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="produto-tipo">Tipo</Label>
-                <Select
-                  value={formData.tipo}
-                  onValueChange={(value: Brigadeiro['tipo']) => setFormData({ ...formData, tipo: value })}
-                >
-                  <SelectTrigger id="produto-tipo">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tradicional">Tradicional</SelectItem>
-                    <SelectItem value="gourmet">Gourmet</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="produto-preco-venda">Preço de Venda (R$)</Label>
@@ -249,17 +245,33 @@ export function ProdutosPage() {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Label htmlFor="produto-busca" className="sr-only">Buscar brigadeiros</Label>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-        <Input
-          id="produto-busca"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar brigadeiros..."
-          className="pl-10"
-        />
+      {/* Search and filters */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Label htmlFor="produto-busca" className="sr-only">Buscar brigadeiros</Label>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <Input
+            id="produto-busca"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar brigadeiros..."
+            className="pl-10"
+          />
+        </div>
+        <div className="flex w-full sm:w-auto rounded-lg border border-border bg-muted/40 p-1">
+          {tamanhoFilters.map((filter) => (
+            <Button
+              key={filter.value}
+              type="button"
+              size="sm"
+              variant={tamanhoFilter === filter.value ? 'default' : 'ghost'}
+              className="flex-1 sm:flex-none px-4"
+              onClick={() => setTamanhoFilter(filter.value)}
+            >
+              {filter.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Products Grid */}
@@ -275,57 +287,63 @@ export function ProdutosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredBrigadeiros.map((brigadeiro) => (
-            <div
-              key={brigadeiro.id}
-              className="bg-card border border-border rounded-xl p-5 card-hover shadow-sm"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <span className={cn(
-                  "px-2 py-1 rounded-full text-xs font-medium",
-                  tipoLabels[brigadeiro.tipo].class
-                )}>
-                  {tipoLabels[brigadeiro.tipo].label}
-                </span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleOpenDialog(brigadeiro)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors"
-                    aria-label={`Editar ${brigadeiro.nome}`}
-                  >
-                    <Pencil size={16} className="text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(brigadeiro.id)}
-                    className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
-                    aria-label={`Excluir ${brigadeiro.nome}`}
-                  >
-                    <Trash2 size={16} className="text-destructive" />
-                  </button>
+          {filteredBrigadeiros.map((brigadeiro) => {
+            const tamanho = getProdutoTamanho(brigadeiro.nome);
+            const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+
+            return (
+              <div
+                key={brigadeiro.id}
+                className="bg-card border border-border rounded-xl p-5 card-hover shadow-sm"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  {tamanho ? (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                      {tamanho}
+                    </span>
+                  ) : (
+                    <span aria-hidden="true" />
+                  )}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleOpenDialog(brigadeiro)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      aria-label={`Editar ${brigadeiro.nome}`}
+                    >
+                      <Pencil size={16} className="text-muted-foreground" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(brigadeiro.id)}
+                      className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                      aria-label={`Excluir ${brigadeiro.nome}`}
+                    >
+                      <Trash2 size={16} className="text-destructive" />
+                    </button>
+                  </div>
+                </div>
+              
+                <h3 className="font-display font-semibold text-lg mb-1">{nomeBase}</h3>
+                {brigadeiro.descricao && (
+                  <p className="text-sm text-muted-foreground mb-4">{brigadeiro.descricao}</p>
+                )}
+              
+                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-border">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Venda</p>
+                    <p className="font-semibold text-success">R$ {brigadeiro.preco_venda.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Custo</p>
+                    <p className="font-medium">R$ {brigadeiro.custo_unitario.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Margem</p>
+                    <p className="font-medium text-accent">{brigadeiro.margem_lucro?.toFixed(1) || 0}%</p>
+                  </div>
                 </div>
               </div>
-              
-              <h3 className="font-display font-semibold text-lg mb-1">{brigadeiro.nome}</h3>
-              {brigadeiro.descricao && (
-                <p className="text-sm text-muted-foreground mb-4">{brigadeiro.descricao}</p>
-              )}
-              
-              <div className="grid grid-cols-3 gap-2 pt-4 border-t border-border">
-                <div>
-                  <p className="text-xs text-muted-foreground">Venda</p>
-                  <p className="font-semibold text-success">R$ {brigadeiro.preco_venda.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Custo</p>
-                  <p className="font-medium">R$ {brigadeiro.custo_unitario.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Margem</p>
-                  <p className="font-medium text-accent">{brigadeiro.margem_lucro?.toFixed(1) || 0}%</p>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
