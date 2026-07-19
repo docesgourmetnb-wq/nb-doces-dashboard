@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn, formatLocalDate } from '@/lib/utils';
+import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -251,15 +251,15 @@ export function VendasPage() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Total</span>
-                  <span>R$ {paymentPedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span>{formatCurrencyBRL(paymentPedido.valor_total)}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Pago</span>
-                  <span>R$ {paymentPedido.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span>{formatCurrencyBRL(paymentPedido.valor_pago)}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Saldo</span>
-                  <span className="font-medium">R$ {paymentPedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span className="font-medium">{formatCurrencyBRL(paymentPedido.saldo_restante)}</span>
                 </div>
               </div>
               {isHistoricalFinancialOrder(paymentPedido.data_entrega) && (
@@ -355,7 +355,7 @@ export function VendasPage() {
                         </span>
                       </td>
                       <td className="p-4 font-semibold">
-                        R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {formatCurrencyBRL(pedido.valor_total)}
                       </td>
                       <td className="p-4">
                         <div className="space-y-1">
@@ -367,7 +367,7 @@ export function VendasPage() {
                             <p className="text-xs text-muted-foreground">Fora do financeiro oficial</p>
                           )}
                           {pedido.saldo_restante > 0 && (
-                            <p className="text-xs text-warning">Saldo: R$ {pedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            <p className="text-xs text-warning">Saldo: {formatCurrencyBRL(pedido.saldo_restante)}</p>
                           )}
                           {pedido.saldo_restante > 0 && !pedido.archived_at && (
                             <Button
@@ -463,8 +463,8 @@ export function VendasPage() {
                                       {pedido.itens.map((item, index) => {
                                         const produtoBase = getProdutoNomeBase(item.brigadeiro_nome);
                                         const produtoTamanho = getProdutoTamanho(item.brigadeiro_nome);
-                                        const precoUnitario = item.preco_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                                        const subtotal = (item.quantidade * item.preco_unitario).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                                        const precoUnitario = formatCurrencyBRL(item.preco_unitario);
+                                        const subtotal = formatCurrencyBRL(item.quantidade * item.preco_unitario);
 
                                         return (
                                           <div key={`${item.brigadeiro_id || item.brigadeiro_nome}-${index}`} className="flex justify-between items-center gap-4 p-3 bg-muted/50 rounded-lg">
@@ -478,11 +478,11 @@ export function VendasPage() {
                                                 )}
                                               </div>
                                               <p className="text-sm text-muted-foreground">
-                                                {item.quantidade} x R$ {precoUnitario}
+                                                {item.quantidade} x {precoUnitario}
                                               </p>
                                             </div>
                                             <p className="shrink-0 font-semibold">
-                                              R$ {subtotal}
+                                              {subtotal}
                                             </p>
                                           </div>
                                         );
@@ -494,10 +494,10 @@ export function VendasPage() {
                                   <div className="space-y-1">
                                     <span className="font-medium">Pagamento</span>
                                     <p className="text-sm text-muted-foreground">
-                                      Pago: R$ {pedido.valor_pago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                      Pago: {formatCurrencyBRL(pedido.valor_pago)}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                      Saldo: R$ {pedido.saldo_restante.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                      Saldo: {formatCurrencyBRL(pedido.saldo_restante)}
                                     </p>
                                     {pedido.saldo_restante > 0 && !pedido.archived_at && (
                                       <Button
@@ -514,7 +514,7 @@ export function VendasPage() {
                                   <div className="text-right">
                                     <p className="text-sm text-muted-foreground">Total</p>
                                     <span className="text-2xl font-display font-semibold text-primary">
-                                      R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                      {formatCurrencyBRL(pedido.valor_total)}
                                     </span>
                                   </div>
                                 </div>
