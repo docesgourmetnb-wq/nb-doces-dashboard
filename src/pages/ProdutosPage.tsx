@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp } from 'lucide-react';
 import { useBrigadeiros, Brigadeiro } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from '@/domain/produtos';
 
 type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
 type TamanhoFilter = 'todos' | '25g' | '30g';
@@ -57,6 +57,7 @@ export function ProdutosPage() {
         return getTamanhoSortValue(getProdutoTamanho(a.nome)) - getTamanhoSortValue(getProdutoTamanho(b.nome));
       });
   }, [brigadeiros, search, tamanhoFilter]);
+  const produtosResumo = useMemo(() => summarizeProdutos(brigadeiros), [brigadeiros]);
 
   const handleOpenDialog = (brigadeiro?: Brigadeiro) => {
     if (brigadeiro) {
@@ -243,6 +244,52 @@ export function ProdutosPage() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase text-muted-foreground">Produtos ativos</p>
+              <p className="mt-2 font-display text-3xl font-semibold text-foreground">{produtosResumo.total}</p>
+              <p className="text-sm text-muted-foreground">Brigadeiros cadastrados</p>
+            </div>
+            <div className="rounded-xl bg-primary/10 p-3 text-primary">
+              <Package size={22} aria-hidden="true" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase text-muted-foreground">Tamanhos</p>
+              <p className="mt-2 font-display text-3xl font-semibold text-foreground">
+                {produtosResumo.total25g} / {produtosResumo.total30g}
+              </p>
+              <p className="text-sm text-muted-foreground">25g / 30g</p>
+              {produtosResumo.semTamanho > 0 && (
+                <p className="mt-1 text-xs text-warning">{produtosResumo.semTamanho} sem tamanho definido</p>
+              )}
+            </div>
+            <div className="rounded-xl bg-accent/20 p-3 text-accent">
+              <Scale size={22} aria-hidden="true" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase text-muted-foreground">Margem média</p>
+              <p className="mt-2 font-display text-3xl font-semibold text-foreground">
+                {produtosResumo.margemMedia.toFixed(1)}%
+              </p>
+              <p className="text-sm text-muted-foreground">Com base no preço e custo</p>
+            </div>
+            <div className="rounded-xl bg-success/10 p-3 text-success">
+              <TrendingUp size={22} aria-hidden="true" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Search and filters */}
