@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, Trash2, Loader2, UserPlus, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -35,10 +35,23 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
+import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { cn } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
   onSuccess?: () => void;
+}
+
+type TamanhoProdutoFilter = 'todos' | '25g' | '30g';
+
+const tamanhoProdutoFilters: Array<{ value: TamanhoProdutoFilter; label: string }> = [
+  { value: 'todos', label: 'Todos' },
+  { value: '25g', label: '25g' },
+  { value: '30g', label: '30g' },
+];
+
+function getTamanhoSortValue(tamanho: string | null) {
+  return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
 
 export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
@@ -65,7 +78,21 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   
   // For adding new item
   const [selectedBrigadeiro, setSelectedBrigadeiro] = useState('');
+  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<TamanhoProdutoFilter>('todos');
   const [quantidade, setQuantidade] = useState(1);
+
+  const produtosDisponiveis = useMemo(() => {
+    return brigadeiros
+      .filter((brigadeiro) => {
+        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
+      })
+      .sort((a, b) => {
+        const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
+        if (nomeBaseCompare !== 0) return nomeBaseCompare;
+        return getTamanhoSortValue(getProdutoTamanho(a.nome)) - getTamanhoSortValue(getProdutoTamanho(b.nome));
+      });
+  }, [brigadeiros, tamanhoProdutoFilter]);
 
   const selectedBrigadeiroData = brigadeiros.find(b => b.id === selectedBrigadeiro) || null;
   const itemPendente: ItemPedido | null = selectedBrigadeiroData && quantidade > 0
@@ -216,6 +243,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     setObservacoes('');
     setItens([]);
     setSelectedBrigadeiro('');
+    setTamanhoProdutoFilter('todos');
     setQuantidade(1);
   };
 
@@ -405,17 +433,48 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
           {/* Add Items */}
           <div className="space-y-4">
             <Label htmlFor="pedido-produto">Adicionar Itens *</Label>
+            <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
+              {tamanhoProdutoFilters.map((filter) => (
+                <Button
+                  key={filter.value}
+                  type="button"
+                  size="sm"
+                  variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
+                  className="flex-1 sm:flex-none px-4"
+                  onClick={() => {
+                    setTamanhoProdutoFilter(filter.value);
+                    setSelectedBrigadeiro('');
+                  }}
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Select value={selectedBrigadeiro} onValueChange={setSelectedBrigadeiro}>
                 <SelectTrigger id="pedido-produto" className="flex-1">
                   <SelectValue placeholder="Selecione um produto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {brigadeiros.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.nome} - R$ {b.preco_venda.toFixed(2)}
-                    </SelectItem>
-                  ))}
+                  {produtosDisponiveis.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      Nenhum produto nesse tamanho
+                    </div>
+                  ) : (
+                    produtosDisponiveis.map((b) => {
+                      const tamanho = getProdutoTamanho(b.nome);
+                      const nomeBase = getProdutoNomeBase(b.nome);
+                      const label = tamanho
+                        ? `${nomeBase} • ${tamanho} • R$ ${b.preco_venda.toFixed(2)}`
+                        : `${b.nome} • R$ ${b.preco_venda.toFixed(2)}`;
+
+                      return (
+                        <SelectItem key={b.id} value={b.id}>
+                          {label}
+                        </SelectItem>
+                      );
+                    })
+                  )}
                 </SelectContent>
               </Select>
               <Input
