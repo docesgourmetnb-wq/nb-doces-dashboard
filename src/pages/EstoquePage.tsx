@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrencyBRL } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
@@ -230,7 +230,7 @@ function InsumosTab() {
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <p className="text-sm text-muted-foreground">Valor do Estoque</p>
-          <p className="text-2xl font-display font-semibold mt-1">R$ {valorTotalEstoque.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-display font-semibold mt-1">{formatCurrencyBRL(valorTotalEstoque)}</p>
         </div>
       </div>
 
@@ -265,7 +265,7 @@ function InsumosTab() {
                   <span>Mín: {insumo.quantidade_minima}</span>
                 </div>
                 <Progress value={progressValue} className="h-2 mb-4" />
-                <p className="text-sm text-muted-foreground">R$ {insumo.preco_unitario?.toFixed(2) || '0.00'} / un</p>
+                <p className="text-sm text-muted-foreground">{formatCurrencyBRL(insumo.preco_unitario || 0)} / un</p>
               </button>
             );
           })}
@@ -363,7 +363,7 @@ function MassasTab() {
 
       <div className="bg-card border border-border p-4 rounded-xl flex items-center justify-between mb-6 shadow-sm">
          <span className="text-muted-foreground font-medium">Estoque Total de Massas</span>
-         <span className="text-2xl font-display font-bold">{(totalGeral/1000).toFixed(2)} kg</span>
+         <span className="text-2xl font-display font-bold">{(totalGeral / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kg</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
