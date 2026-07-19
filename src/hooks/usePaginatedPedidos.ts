@@ -24,7 +24,12 @@ export function usePaginatedPedidos() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const fetchPedidos = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setPedidos([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       // Count query
