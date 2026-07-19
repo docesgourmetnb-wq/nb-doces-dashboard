@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from 'lucide-react';
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
 import {
@@ -11,6 +11,7 @@ import {
 import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { supabase } from '@/integrations/supabase/client';
 import { suggestProductionIntegration } from '@/domain/producaoIntegrada';
+import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -56,6 +57,26 @@ const typeLabel: Record<string, string> = {
   produto_final: 'Produto final',
 };
 
+type TamanhoProdutoFilter = 'todos' | '25g' | '30g';
+
+const tamanhoProdutoFilters: Array<{ value: TamanhoProdutoFilter; label: string }> = [
+  { value: 'todos', label: 'Todos' },
+  { value: '25g', label: '25g' },
+  { value: '30g', label: '30g' },
+];
+
+function getTamanhoSortValue(tamanho: string | null) {
+  return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
+}
+
+function sortByProdutoNomeETamanho<T extends { nome?: string | null | undefined }>(a: T, b: T) {
+  const nomeA = a.nome || '';
+  const nomeB = b.nome || '';
+  const nomeBaseCompare = getProdutoNomeBase(nomeA).localeCompare(getProdutoNomeBase(nomeB), 'pt-BR');
+  if (nomeBaseCompare !== 0) return nomeBaseCompare;
+  return getTamanhoSortValue(getProdutoTamanho(nomeA)) - getTamanhoSortValue(getProdutoTamanho(nomeB));
+}
+
 export function ProducaoPage() {
   const {
     producao, loading, showDeleted, setShowDeleted,
@@ -67,6 +88,7 @@ export function ProducaoPage() {
   const [loadingIntegrationOptions, setLoadingIntegrationOptions] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<TamanhoProdutoFilter>('todos');
   const [formData, setFormData] = useState({
     data: format(new Date(), 'yyyy-MM-dd'),
     brigadeiro_id: '',
@@ -101,6 +123,14 @@ export function ProducaoPage() {
   const quantidadeProducaoValida = Number.isInteger(quantidadeProducao) && quantidadeProducao > 0;
   const quantidadeEdicao = Number(editData.quantidade);
   const quantidadeEdicaoValida = Number.isInteger(quantidadeEdicao) && quantidadeEdicao > 0;
+  const brigadeirosDisponiveis = useMemo(() => {
+    return brigadeiros
+      .filter((brigadeiro) => {
+        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
+      })
+      .sort(sortByProdutoNomeETamanho);
+  }, [brigadeiros, tamanhoProdutoFilter]);
 
   useEffect(() => {
     let mounted = true;
@@ -236,6 +266,7 @@ export function ProducaoPage() {
       recipe_version_id: '',
       output_item_id: '',
     });
+    setTamanhoProdutoFilter('todos');
   };
 
   const openEdit = (item: ProducaoDiaria) => {
@@ -308,7 +339,10 @@ export function ProducaoPage() {
           <h1 className="font-display text-3xl font-semibold text-foreground">Produção</h1>
           <p className="text-muted-foreground mt-1">Planejamento e controle de produção</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setTamanhoProdutoFilter('todos');
+        }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus size={18} />
@@ -325,11 +359,44 @@ export function ProducaoPage() {
                 <Input id="producao-data" type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="producao-sabor">Sabor</Label>
+                <Label htmlFor="producao-sabor">Produto</Label>
+                <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
+                  {tamanhoProdutoFilters.map((filter) => (
+                    <Button
+                      key={filter.value}
+                      type="button"
+                      size="sm"
+                      variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
+                      className="flex-1 sm:flex-none px-4"
+                      onClick={() => {
+                        setTamanhoProdutoFilter(filter.value);
+                        setFormData({ ...formData, brigadeiro_id: '' });
+                      }}
+                    >
+                      {filter.label}
+                    </Button>
+                  ))}
+                </div>
                 <Select value={formData.brigadeiro_id} onValueChange={(v) => setFormData({ ...formData, brigadeiro_id: v })}>
-                  <SelectTrigger id="producao-sabor"><SelectValue placeholder="Selecione o sabor" /></SelectTrigger>
+                  <SelectTrigger id="producao-sabor"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                   <SelectContent>
-                    {brigadeiros.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
+                    {brigadeirosDisponiveis.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Nenhum produto nesse tamanho
+                      </div>
+                    ) : (
+                      brigadeirosDisponiveis.map((brigadeiro) => {
+                        const tamanho = getProdutoTamanho(brigadeiro.nome);
+                        const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+                        const label = tamanho ? `${nomeBase} • ${tamanho}` : brigadeiro.nome;
+
+                        return (
+                          <SelectItem key={brigadeiro.id} value={brigadeiro.id}>
+                            {label}
+                          </SelectItem>
+                        );
+                      })
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -555,13 +622,21 @@ export function ProducaoPage() {
               <div className="divide-y divide-border">
                 {(producaoByDate[dateKey] || []).map((item) => {
                   const isDeleted = !!item.deleted_at;
+                  const produtoBase = getProdutoNomeBase(item.brigadeiro_nome);
+                  const produtoTamanho = getProdutoTamanho(item.brigadeiro_nome);
+
                   return (
                     <div key={item.id} className={cn("p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4", isDeleted && "opacity-50")}>
                       <div className="flex-1">
-                        <h4 className="font-medium">
-                          {item.brigadeiro_nome}
-                          {isDeleted && <span className="ml-2 text-xs text-destructive font-normal">(Cancelada)</span>}
-                        </h4>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {produtoTamanho && (
+                            <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                              {produtoTamanho}
+                            </span>
+                          )}
+                          <h4 className="font-medium">{produtoBase}</h4>
+                          {isDeleted && <span className="text-xs text-destructive font-normal">(Cancelada)</span>}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {item.quantidade} unidades • Custo: R$ {item.custo_total.toFixed(2)}
                         </p>
