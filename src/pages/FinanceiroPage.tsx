@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { cn, formatLocalDate } from '@/lib/utils';
+import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -111,7 +111,7 @@ export function FinanceiroPage() {
     { categoria: 'Saídas', valor: totalSaidas },
   ];
   const chartDescription = chartData
-    .map(item => `${item.categoria}: R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+    .map(item => `${item.categoria}: ${formatCurrencyBRL(item.valor)}`)
     .join('; ');
 
   if (loading || loadingSummary) {
@@ -237,7 +237,7 @@ export function FinanceiroPage() {
             <div>
               <p className="text-sm text-muted-foreground">Total Entradas</p>
               <p className="text-2xl font-display font-semibold text-success mt-1">
-                R$ {totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatCurrencyBRL(totalEntradas)}
               </p>
             </div>
             <div className="p-3 bg-success/10 rounded-lg">
@@ -250,7 +250,7 @@ export function FinanceiroPage() {
             <div>
               <p className="text-sm text-muted-foreground">Total Saídas</p>
               <p className="text-2xl font-display font-semibold text-destructive mt-1">
-                R$ {totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatCurrencyBRL(totalSaidas)}
               </p>
             </div>
             <div className="p-3 bg-destructive/10 rounded-lg">
@@ -263,7 +263,7 @@ export function FinanceiroPage() {
             <div>
               <p className="text-sm text-white/70">Lucro Bruto</p>
               <p className="text-2xl font-display font-semibold mt-1">
-                R$ {lucroBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatCurrencyBRL(lucroBruto)}
               </p>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -276,7 +276,7 @@ export function FinanceiroPage() {
             <div>
               <p className="text-sm text-muted-foreground">Histórico comercial</p>
               <p className="text-2xl font-display font-semibold text-foreground mt-1">
-                R$ {totalHistorico.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatCurrencyBRL(totalHistorico)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Pedidos entregues até 31/07/2026</p>
             </div>
@@ -303,7 +303,7 @@ export function FinanceiroPage() {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                 }}
-                formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
+                formatter={(value: number) => [formatCurrencyBRL(value), '']}
               />
               <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -361,7 +361,7 @@ export function FinanceiroPage() {
                   "font-semibold",
                   transacao.tipo === 'entrada' ? 'text-success' : 'text-destructive'
                 )}>
-                  {transacao.tipo === 'entrada' ? '+' : '-'} R$ {transacao.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {transacao.tipo === 'entrada' ? '+' : '-'} {formatCurrencyBRL(transacao.valor)}
                 </p>
               </div>
             ))}
