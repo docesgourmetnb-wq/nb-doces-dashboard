@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn, formatLocalDate } from '@/lib/utils';
+import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 import { getPedidoStatusLabel, getPedidoStatusBadgeClass } from '@/domain/pedidos';
 import {
   getClientePedidoStats,
@@ -341,11 +341,11 @@ export function ClientesPage() {
                     <span className="text-muted-foreground">{stats.totalPedidos} pedidos</span>
                   </div>
                   <div className="text-sm font-medium text-primary">
-                    R$ {stats.totalComercial.toFixed(2)}
+                    {formatCurrencyBRL(stats.totalComercial)}
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Oficial: R$ {stats.totalFinanceiroOficial.toFixed(2)} desde {FINANCIAL_CONTROL_START_LABEL}
+                  Oficial: {formatCurrencyBRL(stats.totalFinanceiroOficial)} desde {FINANCIAL_CONTROL_START_LABEL}
                 </p>
                 {stats.totalPedidosHistoricos > 0 && (
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -396,13 +396,13 @@ export function ClientesPage() {
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Total comercial</p>
                     <p className="font-semibold text-primary">
-                      R$ {getClienteStats(viewingCliente).totalComercial.toFixed(2)}
+                      {formatCurrencyBRL(getClienteStats(viewingCliente).totalComercial)}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Financeiro oficial</p>
                     <p className="font-semibold text-primary">
-                      R$ {getClienteStats(viewingCliente).totalFinanceiroOficial.toFixed(2)}
+                      {formatCurrencyBRL(getClienteStats(viewingCliente).totalFinanceiroOficial)}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -457,7 +457,7 @@ export function ClientesPage() {
                               {pedido.tipo_pedido.replace('-', ' ')}
                             </span>
                             <span className="font-semibold">
-                              R$ {pedido.valor_total.toFixed(2)}
+                              {formatCurrencyBRL(pedido.valor_total)}
                             </span>
                           </div>
                         </div>
