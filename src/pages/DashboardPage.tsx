@@ -47,6 +47,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatLocalDate } from '@/lib/utils';
+import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import {
   ENTREGA_LABELS,
   getPedidoFinanceiroStatusLabel,
@@ -267,18 +268,32 @@ export function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productionDemand.slice(0, 8).map((item) => (
-                  <TableRow key={item.nome}>
-                    <TableCell className="font-medium">{item.nome}</TableCell>
-                    <TableCell className="text-right tabular-nums">{item.quantidadePedido} un.</TableCell>
-                    <TableCell className="text-right tabular-nums">{item.estoqueDisponivel} un.</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">{item.quantidade} un.</TableCell>
-                    <TableCell className="text-right tabular-nums">{item.pedidos}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatLocalDate(item.proximaEntrega, 'dd/MM/yyyy')}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {productionDemand.slice(0, 8).map((item) => {
+                  const produtoBase = getProdutoNomeBase(item.nome);
+                  const produtoTamanho = getProdutoTamanho(item.nome);
+
+                  return (
+                    <TableRow key={item.brigadeiroId || item.nome}>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {produtoTamanho && (
+                            <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                              {produtoTamanho}
+                            </span>
+                          )}
+                          <span className="font-medium">{produtoBase}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{item.quantidadePedido} un.</TableCell>
+                      <TableCell className="text-right tabular-nums">{item.estoqueDisponivel} un.</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{item.quantidade} un.</TableCell>
+                      <TableCell className="text-right tabular-nums">{item.pedidos}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatLocalDate(item.proximaEntrega, 'dd/MM/yyyy')}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (

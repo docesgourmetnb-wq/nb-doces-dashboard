@@ -117,6 +117,45 @@ test('aggregateProductionDemand can match stock by normalized name without ids',
   assert.equal(result[0]?.quantidade, 15);
 });
 
+test('aggregateProductionDemand keeps different product sizes separated', () => {
+  const result = aggregateProductionDemand([
+    {
+      id: 'pedido-1',
+      cliente: 'Juliana',
+      data_entrega: '2026-07-20',
+      status: 'confirmado',
+      itens: [
+        { brigadeiro_id: 'brulee-25g', brigadeiro_nome: 'Brulée 25g', quantidade: 30 },
+        { brigadeiro_id: 'brulee-30g', brigadeiro_nome: 'Brulée 30g', quantidade: 20 },
+      ],
+    },
+  ], [
+    { brigadeiro_id: 'brulee-25g', nome: 'Brulée 25g', quantidade: 10 },
+    { brigadeiro_id: 'brulee-30g', nome: 'Brulée 30g', quantidade: 4 },
+  ]);
+
+  assert.deepEqual(result, [
+    {
+      brigadeiroId: 'brulee-25g',
+      nome: 'Brulée 25g',
+      quantidade: 20,
+      quantidadePedido: 30,
+      estoqueDisponivel: 10,
+      pedidos: 1,
+      proximaEntrega: '2026-07-20',
+    },
+    {
+      brigadeiroId: 'brulee-30g',
+      nome: 'Brulée 30g',
+      quantidade: 16,
+      quantidadePedido: 20,
+      estoqueDisponivel: 4,
+      pedidos: 1,
+      proximaEntrega: '2026-07-20',
+    },
+  ]);
+});
+
 test('summarizeProductionDemand reports demand covered by ready stock', () => {
   const result = summarizeProductionDemand([
     {
