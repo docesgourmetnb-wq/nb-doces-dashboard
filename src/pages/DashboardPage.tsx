@@ -46,7 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatLocalDate } from '@/lib/utils';
+import { formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 import {
   ENTREGA_LABELS,
   getPedidoFinanceiroStatusLabel,
@@ -70,7 +70,6 @@ const MESES = [
   { value: '12', label: 'Dezembro' },
 ];
 
-const formatBRL = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 const chartColor = (index: number) => COLORS[index % COLORS.length] || '#95A5A6';
 const urgencyLabel = {
   atrasado: 'Atrasado',
@@ -142,7 +141,7 @@ export function DashboardPage() {
     { categoria: 'Lucro', valor: summary.lucroPeriodo },
   ];
   const resumoFinanceiroDescricao = resumoFinanceiroData
-    .map(item => `${item.categoria}: ${formatBRL(item.valor)}`)
+    .map(item => `${item.categoria}: ${formatCurrencyBRL(item.valor)}`)
     .join('; ');
   const totalSaboresVendidos = saboresMaisVendidos.reduce((s, i) => s + i.quantidade, 0);
   const saboresMaisVendidosDescricao = saboresMaisVendidos
@@ -236,7 +235,7 @@ export function DashboardPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{pedido.itens_total} un.</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatBRL(pedido.saldo_restante)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrencyBRL(pedido.saldo_restante)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -290,10 +289,10 @@ export function DashboardPage() {
       <div>
         <h2 className="text-lg font-medium text-muted-foreground mb-3">Financeiro de {mesLabel} de {selectedYear}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard title="Receita do mês" value={formatBRL(summary.vendasPeriodo)} subtitle="Entradas do período" icon={DollarSign} variant="primary" />
-          <StatCard title="Despesas" value={formatBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
-          <StatCard title="Lucro" value={formatBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
-          <StatCard title="Ticket Médio" value={formatBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
+          <StatCard title="Receita do mês" value={formatCurrencyBRL(summary.vendasPeriodo)} subtitle="Entradas do período" icon={DollarSign} variant="primary" />
+          <StatCard title="Despesas" value={formatCurrencyBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
+          <StatCard title="Lucro" value={formatCurrencyBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
+          <StatCard title="Ticket Médio" value={formatCurrencyBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
         </div>
       </div>
 
@@ -318,7 +317,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="categoria" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$${v.toLocaleString('pt-BR')}`} />
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} formatter={(value: number) => [formatBRL(value), 'Valor']} />
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} formatter={(value: number) => [formatCurrencyBRL(value), 'Valor']} />
                 <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -383,7 +382,7 @@ export function DashboardPage() {
                   <TableRow key={i}>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell className="text-right tabular-nums">{p.quantidade}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatBRL(p.receita)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrencyBRL(p.receita)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -412,7 +411,7 @@ export function DashboardPage() {
                   <TableRow key={i}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell className="text-right tabular-nums">{c.pedidos}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatBRL(c.valor)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrencyBRL(c.valor)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
