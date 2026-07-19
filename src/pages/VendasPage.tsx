@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn, formatLocalDate } from '@/lib/utils';
+import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -459,19 +460,33 @@ export function VendasPage() {
                                   <div>
                                     <p className="text-muted-foreground text-sm mb-2">Itens</p>
                                     <div className="space-y-2">
-                                      {pedido.itens.map((item, index) => (
-                                        <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                                          <div>
-                                            <p className="font-medium">{item.brigadeiro_nome}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                              {item.quantidade} x R$ {item.preco_unitario.toFixed(2)}
+                                      {pedido.itens.map((item, index) => {
+                                        const produtoBase = getProdutoNomeBase(item.brigadeiro_nome);
+                                        const produtoTamanho = getProdutoTamanho(item.brigadeiro_nome);
+                                        const precoUnitario = item.preco_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                                        const subtotal = (item.quantidade * item.preco_unitario).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+                                        return (
+                                          <div key={`${item.brigadeiro_id || item.brigadeiro_nome}-${index}`} className="flex justify-between items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                                            <div className="min-w-0">
+                                              <div className="flex flex-wrap items-center gap-2">
+                                                <p className="font-medium">{produtoBase}</p>
+                                                {produtoTamanho && (
+                                                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                                                    {produtoTamanho}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <p className="text-sm text-muted-foreground">
+                                                {item.quantidade} x R$ {precoUnitario}
+                                              </p>
+                                            </div>
+                                            <p className="shrink-0 font-semibold">
+                                              R$ {subtotal}
                                             </p>
                                           </div>
-                                          <p className="font-semibold">
-                                            R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
-                                          </p>
-                                        </div>
-                                      ))}
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 )}
