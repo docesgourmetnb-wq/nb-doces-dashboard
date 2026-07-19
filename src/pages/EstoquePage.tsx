@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
 import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
@@ -18,12 +18,32 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { getProdutoNomeBase } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 
 type InsumoFormErrors = Partial<Record<
   'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'consumo_medio' | 'preco_unitario',
   string
 >>;
+
+type TamanhoProdutoFilter = 'todos' | '25g' | '30g';
+
+const tamanhoProdutoFilters: Array<{ value: TamanhoProdutoFilter; label: string }> = [
+  { value: 'todos', label: 'Todos' },
+  { value: '25g', label: '25g' },
+  { value: '30g', label: '30g' },
+];
+
+function getTamanhoSortValue(tamanho: string | null) {
+  return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
+}
+
+function sortByProdutoNomeETamanho<T extends { nome?: string | null | undefined }>(a: T, b: T) {
+  const nomeA = a.nome || '';
+  const nomeB = b.nome || '';
+  const nomeBaseCompare = getProdutoNomeBase(nomeA).localeCompare(getProdutoNomeBase(nomeB), 'pt-BR');
+  if (nomeBaseCompare !== 0) return nomeBaseCompare;
+  return getTamanhoSortValue(getProdutoTamanho(nomeA)) - getTamanhoSortValue(getProdutoTamanho(nomeB));
+}
 
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo } = useInsumos();
@@ -406,10 +426,29 @@ function ProdutosTab() {
   const { produtos, loading, addProduto, updateQuantidade, deleteProduto } = useEstoqueProdutos();
   const { brigadeiros } = useBrigadeiros();
   const [brigadeiroId, setBrigadeiroId] = useState('');
+  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<TamanhoProdutoFilter>('todos');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [actionProduto, setActionProduto] = useState<EstoqueProduto | null>(null);
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
   const [actionValue, setActionValue] = useState('');
+
+  // Filtrar quais brigadeiros ainda nao tem estoque cadastrado
+  const availableBrigadeiros = useMemo(() => {
+    return brigadeiros
+      .filter((brigadeiro) => !produtos.some((produto) => produto.brigadeiro_id === brigadeiro.id))
+      .filter((brigadeiro) => {
+        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
+      })
+      .sort(sortByProdutoNomeETamanho);
+  }, [brigadeiros, produtos, tamanhoProdutoFilter]);
+
+  const produtosOrdenados = useMemo(() => {
+    return [...produtos].sort((a, b) => sortByProdutoNomeETamanho(
+      { nome: a.brigadeiro?.nome },
+      { nome: b.brigadeiro?.nome },
+    ));
+  }, [produtos]);
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
 
@@ -418,6 +457,7 @@ function ProdutosTab() {
     const brig = availableBrigadeiros.find(b => b.id === brigadeiroId) || brigadeiros.find(b => b.id === brigadeiroId);
     await addProduto(brigadeiroId, 0, brig?.nome || 'Produto Sem Nome');
     setBrigadeiroId('');
+    setTamanhoProdutoFilter('todos');
     setIsRegisterOpen(false);
   };
 
@@ -442,9 +482,6 @@ function ProdutosTab() {
     await deleteProduto(produto.id);
   };
 
-  // Filtrar quais brigadeiros ainda nao tem estoque cadastrado
-  const availableBrigadeiros = brigadeiros.filter(b => !produtos.some(p => p.brigadeiro_id === b.id));
-
   const totalUnidades = produtos.reduce((acc, p) => acc + p.quantidade_un, 0);
 
   return (
@@ -454,19 +491,51 @@ function ProdutosTab() {
            <h2 className="text-xl font-display font-semibold">Produtos Finais (Prontos)</h2>
            <p className="text-muted-foreground text-sm">Controle de brigadeiros já enrolados e prontos para entrega</p>
         </div>
-        <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+        <Dialog open={isRegisterOpen} onOpenChange={(open) => {
+          setIsRegisterOpen(open);
+          if (!open) {
+            setBrigadeiroId('');
+            setTamanhoProdutoFilter('todos');
+          }
+        }}>
           <DialogTrigger asChild><Button><Plus size={18} className="mr-2" /> Novo Produto no Estoque</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Acompanhar Novo Produto</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
+              <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
+                {tamanhoProdutoFilters.map((filter) => (
+                  <Button
+                    key={filter.value}
+                    type="button"
+                    size="sm"
+                    variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
+                    className="flex-1 sm:flex-none px-4"
+                    onClick={() => {
+                      setTamanhoProdutoFilter(filter.value);
+                      setBrigadeiroId('');
+                    }}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="estoque-produto-base">Produto Base</Label>
                 <select id="estoque-produto-base" className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" value={brigadeiroId} onChange={e => setBrigadeiroId(e.target.value)}>
                    <option value="">Selecione um produto...</option>
-                   {availableBrigadeiros.map(b => (
-                     <option key={b.id} value={b.id}>{b.nome}</option>
-                   ))}
+                   {availableBrigadeiros.map((brigadeiro) => {
+                     const tamanho = getProdutoTamanho(brigadeiro.nome);
+                     const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+                     const label = tamanho ? `${nomeBase} • ${tamanho}` : brigadeiro.nome;
+
+                     return (
+                       <option key={brigadeiro.id} value={brigadeiro.id}>{label}</option>
+                     );
+                   })}
                 </select>
+                {availableBrigadeiros.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Todos os produtos desse tamanho já estão no controle de estoque.</p>
+                )}
               </div>
               <Button onClick={handleRegister} className="w-full" disabled={!brigadeiroId}>Cadastrar Produto</Button>
             </div>
@@ -480,10 +549,22 @@ function ProdutosTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {produtos.map(produto => (
+        {produtosOrdenados.map(produto => {
+          const produtoNome = produto.brigadeiro?.nome || 'Carregando...';
+          const produtoBase = getProdutoNomeBase(produtoNome);
+          const produtoTamanho = getProdutoTamanho(produtoNome);
+
+          return (
           <div key={produto.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
              <div className="flex items-start justify-between gap-2 mb-4">
-               <h3 className="font-display font-semibold text-lg">{produto.brigadeiro?.nome || 'Carregando...'}</h3>
+               <div className="space-y-2">
+                 {produtoTamanho && (
+                   <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                     {produtoTamanho}
+                   </span>
+                 )}
+                 <h3 className="font-display font-semibold text-lg">{produtoBase}</h3>
+               </div>
                <Button
                  variant="ghost"
                  size="icon"
@@ -509,7 +590,8 @@ function ProdutosTab() {
                 </Button>
              </div>
           </div>
-        ))}
+          );
+        })}
         {produtos.length === 0 && (
           <div className="col-span-full py-12 text-center text-muted-foreground">Nenhum produto cadastrado no controle. Clique em Novo Produto para começar.</div>
         )}
