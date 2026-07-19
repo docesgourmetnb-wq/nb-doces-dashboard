@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { cn, formatLocalDate, parseLocalDate } from '@/lib/utils';
+import { cn, formatCurrencyBRL, formatLocalDate, parseLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -489,7 +489,7 @@ export function ProducaoPage() {
               {formData.brigadeiro_id && quantidadeProducaoValida && (
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm font-medium">
-                    Custo estimado: R$ {(quantidadeProducao * (brigadeiros.find(b => b.id === formData.brigadeiro_id)?.custo_unitario || 0)).toFixed(2)}
+                    Custo estimado: {formatCurrencyBRL(quantidadeProducao * (brigadeiros.find(b => b.id === formData.brigadeiro_id)?.custo_unitario || 0))}
                   </p>
                 </div>
               )}
@@ -519,7 +519,7 @@ export function ProducaoPage() {
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <p className="text-sm text-muted-foreground">Custo Total Hoje</p>
-          <p className="text-3xl font-display font-semibold mt-1">R$ {totalCustoHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+          <p className="text-3xl font-display font-semibold mt-1">{formatCurrencyBRL(totalCustoHoje)}</p>
         </div>
       </div>
 
@@ -638,7 +638,7 @@ export function ProducaoPage() {
                           {isDeleted && <span className="text-xs text-destructive font-normal">(Cancelada)</span>}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {item.quantidade} unidades • Custo: R$ {item.custo_total.toFixed(2)}
+                          {item.quantidade} unidades • Custo: {formatCurrencyBRL(item.custo_total)}
                         </p>
                         {isDeleted && item.deleted_reason && (
                           <p className="text-xs text-muted-foreground mt-1">Motivo: {item.deleted_reason}</p>
