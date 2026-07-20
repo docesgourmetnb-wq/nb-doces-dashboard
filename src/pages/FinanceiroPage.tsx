@@ -293,7 +293,7 @@ export function FinanceiroPage() {
 
       {/* Chart */}
       <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-        <h3 className="font-display font-semibold text-lg mb-4">Fluxo Financeiro</h3>
+        <h2 className="font-display font-semibold text-lg mb-4">Fluxo Financeiro</h2>
         <p className="sr-only">{chartDescription}</p>
         <div className="h-[300px]" aria-hidden="true">
           <ResponsiveContainer width="100%" height="100%">
@@ -318,7 +318,7 @@ export function FinanceiroPage() {
       {/* Transactions List */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h3 className="font-display font-semibold">Transações Recentes</h3>
+          <h2 className="font-display font-semibold">Transações Recentes</h2>
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
             <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filtrar transações por tipo">
               <SelectValue />
