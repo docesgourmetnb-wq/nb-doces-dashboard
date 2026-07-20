@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { toFiniteNumber } from '@/domain/numeros';
 
 export interface DashboardClientRank {
   nome: string;
@@ -70,8 +71,6 @@ const emptySummary: DashboardSummary = {
   saboresMaisVendidos: [],
 };
 
-const toNumber = (value: number | string | null | undefined) => Number(value ?? 0);
-
 function normalizeArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
@@ -100,15 +99,15 @@ export function useDashboardSummary(year: number, month: number) {
 
       const row = data?.[0];
       setSummary({
-        vendasPeriodo: toNumber(row?.vendas_periodo),
-        despesasPeriodo: toNumber(row?.despesas_periodo),
-        lucroPeriodo: toNumber(row?.lucro_periodo),
-        vendasAno: toNumber(row?.vendas_ano),
-        vendasTotal: toNumber(row?.vendas_total),
-        pedidosPeriodo: toNumber(row?.pedidos_periodo),
-        pedidosEntregues: toNumber(row?.pedidos_entregues),
-        ticketMedio: toNumber(row?.ticket_medio),
-        taxaConversao: toNumber(row?.taxa_conversao),
+        vendasPeriodo: toFiniteNumber(row?.vendas_periodo),
+        despesasPeriodo: toFiniteNumber(row?.despesas_periodo),
+        lucroPeriodo: toFiniteNumber(row?.lucro_periodo),
+        vendasAno: toFiniteNumber(row?.vendas_ano),
+        vendasTotal: toFiniteNumber(row?.vendas_total),
+        pedidosPeriodo: toFiniteNumber(row?.pedidos_periodo),
+        pedidosEntregues: toFiniteNumber(row?.pedidos_entregues),
+        ticketMedio: toFiniteNumber(row?.ticket_medio),
+        taxaConversao: toFiniteNumber(row?.taxa_conversao),
         topClientes: normalizeArray<DashboardClientRank>(row?.top_clientes),
         topProdutos: normalizeArray<DashboardProductRank>(row?.top_produtos),
         saboresMaisVendidos: normalizeArray<DashboardFlavorRank>(row?.sabores_mais_vendidos),

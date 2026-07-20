@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDecimalInput, parseIntegerInput } from './numeros.ts';
+import { parseDecimalInput, parseIntegerInput, toFiniteNumber } from './numeros.ts';
 
 test('parseDecimalInput accepts dot decimal values', () => {
   assert.equal(parseDecimalInput('35.50'), 35.5);
@@ -28,4 +28,14 @@ test('parseIntegerInput rejects fractional values', () => {
 
 test('parseIntegerInput rejects empty values', () => {
   assert.equal(Number.isNaN(parseIntegerInput('')), true);
+});
+
+test('toFiniteNumber preserves finite numeric values', () => {
+  assert.equal(toFiniteNumber(12.5), 12.5);
+  assert.equal(toFiniteNumber('35.50'), 35.5);
+});
+
+test('toFiniteNumber uses fallback for invalid values', () => {
+  assert.equal(toFiniteNumber('valor invalido'), 0);
+  assert.equal(toFiniteNumber(Number.NaN, 7), 7);
 });
