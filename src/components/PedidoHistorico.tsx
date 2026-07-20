@@ -45,14 +45,21 @@ export function PedidoHistorico({ pedidoId }: { pedidoId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    fetchLogs('pedido', pedidoId, 10).then((data) => {
-      if (!cancelled) {
-        setLogs(data);
-        setLoading(false);
+
+    async function loadLogs() {
+      setLoading(true);
+      try {
+        const data = await fetchLogs('pedido', pedidoId, 10);
+        if (!cancelled) setLogs(data);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    });
-    return () => { cancelled = true; };
+    }
+
+    loadLogs();
+    return () => {
+      cancelled = true;
+    };
   }, [pedidoId, fetchLogs]);
 
   if (loading) {
