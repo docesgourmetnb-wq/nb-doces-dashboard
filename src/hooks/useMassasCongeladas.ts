@@ -60,27 +60,30 @@ export function useMassasCongeladas() {
     }
     
     setLoading(true);
-    const { data, error } = await supabase
-      .from('massas_congeladas')
-      .select(`
-        *,
-        recipiente:recipientes(*)
-      `)
-      .order('data_producao', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('massas_congeladas')
+        .select(`
+          *,
+          recipiente:recipientes(*)
+        `)
+        .order('data_producao', { ascending: true });
 
-    if (error) {
-      if (import.meta.env.DEV) console.error('Error fetching massas:', error);
-      toast({
-        title: 'Erro ao carregar massas',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      // Calculate peso_massa for each item
-      const massasComPeso = (data || []).map(withPesoMassa);
-      setMassas(massasComPeso);
+      if (error) {
+        if (import.meta.env.DEV) console.error('Error fetching massas:', error);
+        toast({
+          title: 'Erro ao carregar massas',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        // Calculate peso_massa for each item
+        const massasComPeso = (data || []).map(withPesoMassa);
+        setMassas(massasComPeso);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
