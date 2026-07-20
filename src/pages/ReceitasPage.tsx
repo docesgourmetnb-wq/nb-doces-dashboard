@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { parseDecimalInput } from '@/domain/numeros';
+import { summarizeRecipeMass } from '@/domain/receitas';
 
 const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
 type Uom = (typeof UOM_OPTIONS)[number];
@@ -154,7 +155,6 @@ export function ReceitasPage() {
   const [newRecipe, setNewRecipe] = useState({ nome: '' });
   const [savingRecipe, setSavingRecipe] = useState(false);
   const [newVersion, setNewVersion] = useState({
-    peso_total_massa_g: '',
     peso_unitario_base_g: '20',
     status: 'draft' as RecipeVersionRow['status'],
   });
@@ -230,7 +230,7 @@ export function ReceitasPage() {
   const loadComponents = useCallback(async () => {
     if (!selectedVersionId) {
       setComponents([]);
-      return;
+      return [];
     }
     const { data, error } = await supabase
       .from('recipe_components')
@@ -239,9 +239,11 @@ export function ReceitasPage() {
       .order('sort_order');
     if (error) {
       toast({ title: 'Erro ao carregar componentes', description: error.message, variant: 'destructive' });
-      return;
+      return [];
     }
-    setComponents((data || []).map(toRecipeComponentRow));
+    const list = (data || []).map(toRecipeComponentRow);
+    setComponents(list);
+    return list;
   }, [selectedVersionId, toast]);
 
   useEffect(() => { loadBase(); }, [loadBase]);
@@ -250,6 +252,7 @@ export function ReceitasPage() {
 
   const selectedRecipe = useMemo(() => recipes.find((r) => r.id === selectedRecipeId), [recipes, selectedRecipeId]);
   const selectedVersion = useMemo(() => versions.find((v) => v.id === selectedVersionId), [versions, selectedVersionId]);
+  const selectedVersionMass = useMemo(() => summarizeRecipeMass(components), [components]);
 
   /** Insumos disponíveis vêm direto do Estoque (tabela `insumos`). */
   const insumosStock = useMemo(
@@ -289,12 +292,7 @@ export function ReceitasPage() {
 
   const addVersion = async () => {
     if (!user || !selectedRecipeId) return;
-    const pesoTotal = parseDecimalInput(newVersion.peso_total_massa_g);
     const pesoUnit = parseDecimalInput(newVersion.peso_unitario_base_g);
-    if (!pesoTotal || pesoTotal <= 0) {
-      toast({ title: 'Informe o peso total da massa (g).', variant: 'destructive' });
-      return;
-    }
     if (!pesoUnit || pesoUnit <= 0) {
       toast({ title: 'Informe o peso unitário base (g).', variant: 'destructive' });
       return;
@@ -306,8 +304,8 @@ export function ReceitasPage() {
       recipe_id: selectedRecipeId,
       version_no: nextVersion,
       status: newVersion.status,
-      yield_qty: pesoTotal, // compatibilidade
-      peso_total_massa_g: pesoTotal,
+      yield_qty: 1, // atualizado automaticamente após inserir os insumos
+      peso_total_massa_g: null,
       peso_unitario_base_g: pesoUnit,
     };
 
@@ -316,10 +314,40 @@ export function ReceitasPage() {
       toast({ title: 'Erro ao criar versão', description: error.message, variant: 'destructive' });
       return;
     }
-    setNewVersion({ peso_total_massa_g: '', peso_unitario_base_g: '20', status: 'draft' });
+    setNewVersion({ peso_unitario_base_g: '20', status: 'draft' });
     await loadVersions();
     toast({ title: 'Versão criada' });
   };
+
+  const syncVersionMass = useCallback(
+    async (versionId: string, nextComponents: RecipeComponentRow[]) => {
+      const mass = summarizeRecipeMass(nextComponents);
+      const pesoTotal = mass.totalGrams > 0 ? mass.totalGrams : null;
+      const updates: RecipeVersionUpdate = {
+        peso_total_massa_g: pesoTotal,
+        yield_qty: pesoTotal ?? 1,
+      };
+
+      const { error } = await supabase.from('recipe_versions').update(updates).eq('id', versionId);
+      if (error) {
+        toast({ title: 'Erro ao recalcular peso da receita', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      setVersions((current) =>
+        current.map((version) =>
+          version.id === versionId
+            ? {
+                ...version,
+                peso_total_massa_g: pesoTotal,
+                yield_qty: pesoTotal ?? 1,
+              }
+            : version,
+        ),
+      );
+    },
+    [toast],
+  );
 
   const addComponent = async () => {
     if (!user || !selectedVersionId || !newComponent.stock_item_id) return;
@@ -371,7 +399,8 @@ export function ReceitasPage() {
       return;
     }
     setNewComponent({ stock_item_id: '', qty_per_batch: '', uom: 'g' });
-    await loadComponents();
+    const nextComponents = await loadComponents();
+    await syncVersionMass(selectedVersionId, nextComponents);
     toast({ title: 'Insumo adicionado' });
   };
 
@@ -446,12 +475,14 @@ export function ReceitasPage() {
   };
 
   const doDeleteComponent = async (id: string) => {
+    if (!selectedVersionId) return;
     const { error } = await supabase.from('recipe_components').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro ao remover insumo', description: error.message, variant: 'destructive' });
       return;
     }
-    await loadComponents();
+    const nextComponents = await loadComponents();
+    await syncVersionMass(selectedVersionId, nextComponents);
     toast({ title: 'Insumo removido' });
   };
 
@@ -478,7 +509,7 @@ export function ReceitasPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">Receitas</h1>
         <p className="text-muted-foreground mt-1">
-          Cadastre a massa, seu peso total e os insumos. O rendimento é calculado automaticamente.
+          Cadastre a massa e seus insumos. O peso total e o rendimento são calculados automaticamente.
         </p>
       </div>
 
@@ -542,18 +573,7 @@ export function ReceitasPage() {
 
           <div className="rounded-lg border border-dashed border-border p-4 space-y-3 bg-muted/30">
             <p className="text-sm font-medium">Nova versão</p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div>
-                <Label htmlFor="receita-versao-peso-total" className="text-xs">Peso total da massa (g)</Label>
-                <Input
-                  id="receita-versao-peso-total"
-                  type="text"
-                  inputMode="decimal"
-                  value={newVersion.peso_total_massa_g}
-                  onChange={(e) => setNewVersion((p) => ({ ...p, peso_total_massa_g: e.target.value }))}
-                  placeholder="Ex: 500,5"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <Label htmlFor="receita-versao-peso-unitario" className="text-xs">Peso unitário base (g)</Label>
                 <Input
@@ -587,13 +607,13 @@ export function ReceitasPage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Padrão: 20g por brigadeiro (receitas com cobertura). Tradicionais ficam em ~25g.
+              O peso total da massa será preenchido automaticamente após adicionar os insumos da versão. Padrão: 20g por brigadeiro (receitas com cobertura). Tradicionais ficam em ~25g.
             </p>
           </div>
 
           <div className="space-y-2">
             {versions.map((v) => {
-              const pt = Number(v.peso_total_massa_g ?? v.yield_qty ?? 0);
+              const pt = Number(v.peso_total_massa_g ?? 0);
               const pu = Number(v.peso_unitario_base_g ?? 20);
               const rendimento = pu > 0 ? Math.floor(pt / pu) : 0;
               const isSelected = selectedVersionId === v.id;
@@ -626,14 +646,26 @@ export function ReceitasPage() {
                         </span>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                        <span><span className="text-muted-foreground">Massa:</span> <strong>{pt} g</strong></span>
+                        <span>
+                          <span className="text-muted-foreground">Massa:</span>{' '}
+                          <strong>{pt > 0 ? `${pt} g` : 'aguardando insumos'}</strong>
+                        </span>
                         <span><span className="text-muted-foreground">Unitário:</span> <strong>{pu} g</strong></span>
-                        <span><span className="text-muted-foreground">Rendimento:</span> <strong>≈ {rendimento} brigadeiros</strong></span>
+                        <span>
+                          <span className="text-muted-foreground">Rendimento:</span>{' '}
+                          <strong>{pt > 0 ? `≈ ${rendimento} brigadeiros` : '—'}</strong>
+                        </span>
                       </div>
                     </button>
                     <div className="flex items-center gap-2">
                       {v.status !== 'active' && (
-                        <Button variant="outline" size="sm" onClick={() => setVersionActive(v.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setVersionActive(v.id)}
+                          disabled={pt <= 0}
+                          title={pt <= 0 ? 'Adicione insumos para calcular o peso antes de ativar' : undefined}
+                        >
                           Definir ativa
                         </Button>
                       )}
@@ -662,9 +694,38 @@ export function ReceitasPage() {
           <div>
             <h2 className="font-semibold">Insumos da versão</h2>
             <p className="text-sm text-muted-foreground">
-              Quantidades para produzir os <strong>{selectedVersion.peso_total_massa_g ?? selectedVersion.yield_qty} g</strong> de massa desta versão.
+              Informe as quantidades da receita. O peso total considera automaticamente insumos em g, kg, ml e l.
             </p>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">Peso total calculado</p>
+              <p className="mt-1 font-display text-2xl font-semibold">
+                {selectedVersionMass.totalGrams > 0 ? `${selectedVersionMass.totalGrams} g` : '—'}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">Peso unitário base</p>
+              <p className="mt-1 font-display text-2xl font-semibold">
+                {selectedVersion.peso_unitario_base_g ?? 20} g
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">Rendimento estimado</p>
+              <p className="mt-1 font-display text-2xl font-semibold">
+                {selectedVersionMass.totalGrams > 0
+                  ? `≈ ${Math.floor(selectedVersionMass.totalGrams / Number(selectedVersion.peso_unitario_base_g ?? 20))}`
+                  : '—'}
+              </p>
+            </div>
+          </div>
+
+          {selectedVersionMass.ignoredComponents > 0 && (
+            <p className="text-xs text-warning">
+              {selectedVersionMass.ignoredComponents} insumo(s) em unidade não conversível ficaram fora do peso total.
+            </p>
+          )}
 
           <div className="rounded-lg border border-dashed border-border p-4 bg-muted/30 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             <div className="md:col-span-6">
