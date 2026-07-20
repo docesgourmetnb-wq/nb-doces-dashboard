@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useBrigadeiros, Brigadeiro } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,9 @@ export function ProdutosPage() {
   }, [brigadeiros, search, tamanhoFilter]);
   const produtosResumo = useMemo(() => summarizeProdutos(brigadeiros), [brigadeiros]);
   const primeiroSaborSemPar = produtosResumo.saboresSemPar[0];
+  const saboresSemParPorNome = useMemo(() => {
+    return new Map(produtosResumo.saboresSemPar.map((produto) => [produto.nomeBase, produto]));
+  }, [produtosResumo.saboresSemPar]);
 
   const handleOpenDialog = (brigadeiro?: Brigadeiro) => {
     if (brigadeiro) {
@@ -344,6 +347,7 @@ export function ProdutosPage() {
           {filteredBrigadeiros.map((brigadeiro) => {
             const tamanho = getProdutoTamanho(brigadeiro.nome);
             const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+            const produtoSemPar = saboresSemParPorNome.get(nomeBase);
 
             return (
               <div
@@ -377,6 +381,12 @@ export function ProdutosPage() {
                 </div>
               
                 <h3 className="font-display font-semibold text-lg mb-1">{nomeBase}</h3>
+                {produtoSemPar && (
+                  <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">
+                    <AlertTriangle size={13} aria-hidden="true" />
+                    Sem {produtoSemPar.faltando.join('/')}
+                  </div>
+                )}
                 {brigadeiro.descricao && (
                   <p className="text-sm text-muted-foreground mb-4">{brigadeiro.descricao}</p>
                 )}
