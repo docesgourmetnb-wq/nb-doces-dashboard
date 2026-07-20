@@ -52,6 +52,20 @@ interface OutputItemOption {
   unidadeBase: string;
 }
 
+type RecipeVersionOptionRow = {
+  id: string;
+  version_no: number;
+  yield_qty: number | string;
+  recipes?: { nome?: string; tipo?: string } | null;
+};
+
+type StockItemOptionRow = {
+  id: string;
+  nome: string;
+  tipo: string;
+  unidade_base: string;
+};
+
 const typeLabel: Record<string, string> = {
   consumo: 'Consumo',
   massa_base: 'Massa base',
@@ -139,60 +153,44 @@ export function ProducaoPage() {
     async function fetchIntegrationOptions() {
       setLoadingIntegrationOptions(true);
 
-      const [versionsResult, stockItemsResult] = await Promise.all([
-        supabase
-          .from('recipe_versions')
-          .select('id,version_no,yield_qty,recipes(nome,tipo)')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('stock_items')
-          .select('id,nome,tipo,unidade_base')
-          .in('tipo', ['massa_base', 'produto_final'])
-          .eq('ativo', true)
-          .order('nome', { ascending: true }),
-      ]);
+      try {
+        const [versionsResult, stockItemsResult] = await Promise.all([
+          supabase
+            .from('recipe_versions')
+            .select('id,version_no,yield_qty,recipes(nome,tipo)')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('stock_items')
+            .select('id,nome,tipo,unidade_base')
+            .in('tipo', ['massa_base', 'produto_final'])
+            .eq('ativo', true)
+            .order('nome', { ascending: true }),
+        ]);
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (!versionsResult.error) {
-        setRecipeOptions(((versionsResult.data || []) as unknown[]).map((row) => {
-          const item = row as {
-            id: string;
-            version_no: number;
-            yield_qty: number | string;
-            recipes?: { nome?: string; tipo?: string } | null;
-          };
-
-          return {
+        if (!versionsResult.error) {
+          setRecipeOptions(((versionsResult.data || []) as RecipeVersionOptionRow[]).map((item) => ({
             id: item.id,
             recipeName: item.recipes?.nome || 'Receita sem nome',
             recipeType: item.recipes?.tipo || 'receita',
             versionNo: item.version_no,
             yieldQty: Number(item.yield_qty || 0),
-          };
-        }));
-      }
+          })));
+        }
 
-      if (!stockItemsResult.error) {
-        setOutputItemOptions(((stockItemsResult.data || []) as unknown[]).map((row) => {
-          const item = row as {
-            id: string;
-            nome: string;
-            tipo: string;
-            unidade_base: string;
-          };
-
-          return {
+        if (!stockItemsResult.error) {
+          setOutputItemOptions(((stockItemsResult.data || []) as StockItemOptionRow[]).map((item) => ({
             id: item.id,
             nome: item.nome,
             tipo: item.tipo,
             unidadeBase: item.unidade_base,
-          };
-        }));
+          })));
+        }
+      } finally {
+        if (mounted) setLoadingIntegrationOptions(false);
       }
-
-      setLoadingIntegrationOptions(false);
     }
 
     fetchIntegrationOptions();
