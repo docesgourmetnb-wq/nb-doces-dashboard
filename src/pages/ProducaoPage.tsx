@@ -247,27 +247,30 @@ export function ProducaoPage() {
     };
 
     setSaving(true);
-    const novaProducao = await addProducao({
-      data: formData.data,
-      brigadeiro_id: brigadeiro.id,
-      brigadeiro_nome: brigadeiro.nome,
-      quantidade: quantidadeProducao,
-      custo_total: 0,
-      status: formData.integrar_estoque ? 'concluido' : 'planejado',
-    }, integrationOptions);
-    setSaving(false);
-    if (!novaProducao) return;
+    try {
+      const novaProducao = await addProducao({
+        data: formData.data,
+        brigadeiro_id: brigadeiro.id,
+        brigadeiro_nome: brigadeiro.nome,
+        quantidade: quantidadeProducao,
+        custo_total: 0,
+        status: formData.integrar_estoque ? 'concluido' : 'planejado',
+      }, integrationOptions);
+      if (!novaProducao) return;
 
-    setIsDialogOpen(false);
-    setFormData({
-      data: format(new Date(), 'yyyy-MM-dd'),
-      brigadeiro_id: '',
-      quantidade: '',
-      integrar_estoque: false,
-      recipe_version_id: '',
-      output_item_id: '',
-    });
-    setTamanhoProdutoFilter('todos');
+      setIsDialogOpen(false);
+      setFormData({
+        data: format(new Date(), 'yyyy-MM-dd'),
+        brigadeiro_id: '',
+        quantidade: '',
+        integrar_estoque: false,
+        recipe_version_id: '',
+        output_item_id: '',
+      });
+      setTamanhoProdutoFilter('todos');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openEdit = (item: ProducaoDiaria) => {
@@ -289,29 +292,35 @@ export function ProducaoPage() {
 
   const handleEdit = async () => {
     if (!editItem) return;
-    setSaving(true);
     const updates: Partial<Pick<ProducaoDiaria, 'data' | 'quantidade' | 'status'>> = {};
     if (editData.data) updates.data = editData.data;
     if (editData.quantidade) {
       if (!quantidadeEdicaoValida) {
-        setSaving(false);
         return;
       }
       updates.quantidade = quantidadeEdicao;
     }
     if (editData.status) updates.status = editData.status;
-    await updateProducao(editItem.id, updates);
-    setSaving(false);
-    setEditItem(null);
+
+    setSaving(true);
+    try {
+      await updateProducao(editItem.id, updates);
+      setEditItem(null);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = async () => {
     if (!cancelItem) return;
     setSaving(true);
-    await cancelProducao(cancelItem.id, cancelReason);
-    setSaving(false);
-    setCancelItem(null);
-    setCancelReason('');
+    try {
+      await cancelProducao(cancelItem.id, cancelReason);
+      setCancelItem(null);
+      setCancelReason('');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Group by date
