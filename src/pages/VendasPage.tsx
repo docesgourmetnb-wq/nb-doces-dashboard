@@ -23,6 +23,7 @@ import {
   PAGAMENTO_LABELS,
 } from '@/domain/pedidos';
 import { FINANCIAL_CONTROL_START_LABEL, isHistoricalFinancialOrder } from '@/domain/financeiro';
+import { parseDecimalInput } from '@/domain/numeros';
 import {
   Dialog,
   DialogContent,
@@ -109,7 +110,7 @@ export function VendasPage() {
     refetch();
   };
 
-  const parsedPaymentAmount = Number(paymentAmount.trim().replace(',', '.'));
+  const parsedPaymentAmount = parseDecimalInput(paymentAmount);
   const nextValorPago = paymentPedido
     ? calculateNextPedidoValorPago(paymentPedido.valor_pago, paymentPedido.saldo_restante, parsedPaymentAmount)
     : null;
