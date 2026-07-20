@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { parseDecimalInput } from '@/domain/numeros';
 
 type InsumoFormErrors = Partial<Record<
   'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'consumo_medio' | 'preco_unitario',
@@ -90,10 +91,10 @@ function InsumosTab() {
   };
 
   const handleSave = async () => {
-    const quantidadeAtual = Number(formData.quantidade_atual);
-    const quantidadeMinima = Number(formData.quantidade_minima);
-    const consumoMedio = Number(formData.consumo_medio);
-    const precoUnitario = Number(formData.preco_unitario);
+    const quantidadeAtual = parseDecimalInput(formData.quantidade_atual);
+    const quantidadeMinima = parseDecimalInput(formData.quantidade_minima);
+    const consumoMedio = parseDecimalInput(formData.consumo_medio);
+    const precoUnitario = parseDecimalInput(formData.preco_unitario);
     const errors: InsumoFormErrors = {};
 
     if (!formData.nome.trim()) errors.nome = 'Informe o nome do insumo';
@@ -178,36 +179,36 @@ function InsumosTab() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="insumo-quantidade-atual">Quantidade Atual</Label>
-                  <Input id="insumo-quantidade-atual" type="number" step="0.1" min="0" value={formData.quantidade_atual} onChange={(e) => {
+                  <Input id="insumo-quantidade-atual" type="text" inputMode="decimal" value={formData.quantidade_atual} onChange={(e) => {
                     setFormData({ ...formData, quantidade_atual: e.target.value });
                     if (formErrors.quantidade_atual) setFormErrors({ ...formErrors, quantidade_atual: '' });
-                  }} aria-invalid={!!formErrors.quantidade_atual} aria-describedby={formErrors.quantidade_atual ? 'insumo-quantidade-atual-error' : undefined} />
+                  }} placeholder="Ex: 12,5" aria-invalid={!!formErrors.quantidade_atual} aria-describedby={formErrors.quantidade_atual ? 'insumo-quantidade-atual-error' : undefined} />
                   {formErrors.quantidade_atual && <p id="insumo-quantidade-atual-error" className="text-xs text-destructive">{formErrors.quantidade_atual}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-quantidade-minima">Quantidade Mínima</Label>
-                  <Input id="insumo-quantidade-minima" type="number" step="0.1" min="0" value={formData.quantidade_minima} onChange={(e) => {
+                  <Input id="insumo-quantidade-minima" type="text" inputMode="decimal" value={formData.quantidade_minima} onChange={(e) => {
                     setFormData({ ...formData, quantidade_minima: e.target.value });
                     if (formErrors.quantidade_minima) setFormErrors({ ...formErrors, quantidade_minima: '' });
-                  }} aria-invalid={!!formErrors.quantidade_minima} aria-describedby={formErrors.quantidade_minima ? 'insumo-quantidade-minima-error' : undefined} />
+                  }} placeholder="Ex: 2,5" aria-invalid={!!formErrors.quantidade_minima} aria-describedby={formErrors.quantidade_minima ? 'insumo-quantidade-minima-error' : undefined} />
                   {formErrors.quantidade_minima && <p id="insumo-quantidade-minima-error" className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="insumo-consumo-medio">Consumo Médio/Sem.</Label>
-                  <Input id="insumo-consumo-medio" type="number" step="0.1" min="0" value={formData.consumo_medio} onChange={(e) => {
+                  <Input id="insumo-consumo-medio" type="text" inputMode="decimal" value={formData.consumo_medio} onChange={(e) => {
                     setFormData({ ...formData, consumo_medio: e.target.value });
                     if (formErrors.consumo_medio) setFormErrors({ ...formErrors, consumo_medio: '' });
-                  }} aria-invalid={!!formErrors.consumo_medio} aria-describedby={formErrors.consumo_medio ? 'insumo-consumo-medio-error' : undefined} />
+                  }} placeholder="Ex: 1,5" aria-invalid={!!formErrors.consumo_medio} aria-describedby={formErrors.consumo_medio ? 'insumo-consumo-medio-error' : undefined} />
                   {formErrors.consumo_medio && <p id="insumo-consumo-medio-error" className="text-xs text-destructive">{formErrors.consumo_medio}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-preco-unitario">Preço Unitário (R$)</Label>
-                  <Input id="insumo-preco-unitario" type="number" step="0.01" min="0" value={formData.preco_unitario} onChange={(e) => {
+                  <Input id="insumo-preco-unitario" type="text" inputMode="decimal" value={formData.preco_unitario} onChange={(e) => {
                     setFormData({ ...formData, preco_unitario: e.target.value });
                     if (formErrors.preco_unitario) setFormErrors({ ...formErrors, preco_unitario: '' });
-                  }} aria-invalid={!!formErrors.preco_unitario} aria-describedby={formErrors.preco_unitario ? 'insumo-preco-unitario-error' : undefined} />
+                  }} placeholder="Ex: 8,90" aria-invalid={!!formErrors.preco_unitario} aria-describedby={formErrors.preco_unitario ? 'insumo-preco-unitario-error' : undefined} />
                   {formErrors.preco_unitario && <p id="insumo-preco-unitario-error" className="text-xs text-destructive">{formErrors.preco_unitario}</p>}
                 </div>
               </div>
@@ -306,7 +307,7 @@ function MassasTab() {
 
   const handleAction = async () => {
     if (!actionMassa || !actionValue) return;
-    const val = Number(actionValue);
+    const val = parseDecimalInput(actionValue);
     if (!Number.isFinite(val) || val <= 0) {
       toast({ title: 'Valor inválido', variant: 'destructive' });
       return;
@@ -410,7 +411,7 @@ function MassasTab() {
             <p className="text-sm text-muted-foreground">Massa: <strong>{actionMassa?.sabor}</strong></p>
             <div className="space-y-2">
               <Label htmlFor="estoque-massa-quantidade">Quantidade (Gramas g)</Label>
-              <Input id="estoque-massa-quantidade" type="number" min="0.1" step="0.1" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 500" />
+              <Input id="estoque-massa-quantidade" type="text" inputMode="decimal" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 500,5" />
             </div>
             <Button onClick={handleAction} className="w-full" variant={actionType === 'add' ? 'default' : 'destructive'}>
               Confirmar {actionType === 'add' ? 'Entrada' : 'Saída'}
