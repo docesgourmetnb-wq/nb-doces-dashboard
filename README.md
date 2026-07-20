@@ -19,7 +19,7 @@ Dashboard web para gestão da NB Doces Gourmet, com módulos de vendas, clientes
 
 ## Configuração local
 
-1. Instale as dependências:
+1. Instale as dependências, caso ainda não exista `node_modules`:
 
 ```sh
 npm ci
@@ -42,16 +42,31 @@ Opcionalmente, configure:
 
 ```sh
 VITE_SUPABASE_PROJECT_ID=
-VITE_ENABLE_SIGNUP=false
 ```
 
-4. Inicie o ambiente de desenvolvimento:
+O arquivo `.env` é ignorado pelo Git e não deve ser enviado para o GitHub.
+
+4. Inicie o sistema localmente no Mac:
 
 ```sh
-npm run dev
+npm run dev:local
 ```
 
+5. Abra no navegador:
+
+```sh
+open http://127.0.0.1:8080/
+```
+
+Enquanto o comando `npm run dev:local` estiver rodando, o sistema fica disponível nesse endereço. Para parar, pressione `Ctrl + C` no terminal.
+
 ## Scripts
+
+```sh
+npm run dev:local
+```
+
+Inicia o sistema em `http://127.0.0.1:8080/`, sem depender do preview do Lovable.
 
 ```sh
 npm test
