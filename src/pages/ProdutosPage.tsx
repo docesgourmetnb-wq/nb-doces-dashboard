@@ -126,27 +126,29 @@ export function ProdutosPage() {
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
-
-    if (editingBrigadeiro) {
-      await updateBrigadeiro(editingBrigadeiro.id, {
-        nome: formData.nome.trim(),
-        tipo: formData.tipo,
-        preco_venda,
-        custo_unitario,
-        descricao: formData.descricao.trim() || null,
-      });
-    } else {
-      await addBrigadeiro({
-        nome: formData.nome.trim(),
-        tipo: formData.tipo,
-        preco_venda,
-        custo_unitario,
-        descricao: formData.descricao.trim() || null,
-        ativo: true,
-      });
+    try {
+      if (editingBrigadeiro) {
+        await updateBrigadeiro(editingBrigadeiro.id, {
+          nome: formData.nome.trim(),
+          tipo: formData.tipo,
+          preco_venda,
+          custo_unitario,
+          descricao: formData.descricao.trim() || null,
+        });
+      } else {
+        await addBrigadeiro({
+          nome: formData.nome.trim(),
+          tipo: formData.tipo,
+          preco_venda,
+          custo_unitario,
+          descricao: formData.descricao.trim() || null,
+          ativo: true,
+        });
+      }
+      setIsDialogOpen(false);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setIsDialogOpen(false);
   };
 
   if (loading) {
