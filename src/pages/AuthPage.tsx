@@ -4,13 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracteres');
-const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
+type AuthMode = 'login' | 'forgot';
 type AuthFormErrors = { email?: string; password?: string };
 
 function clearAuthError(errors: AuthFormErrors, key: keyof AuthFormErrors) {
@@ -20,15 +20,14 @@ function clearAuthError(errors: AuthFormErrors, key: keyof AuthFormErrors) {
 }
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<AuthFormErrors>({});
   const [resetEmailSent, setResetEmailSent] = useState(false);
   
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -87,70 +86,34 @@ export default function AuthPage() {
     setLoading(true);
     
     try {
-      if (mode === 'login') {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: 'Erro no login',
-              description: 'Email ou senha incorretos',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Erro no login',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
-        } else {
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
           toast({
-            title: 'Bem-vindo!',
-            description: 'Login realizado com sucesso',
-          });
-          navigate('/');
-        }
-      } else {
-        if (!signupEnabled) {
-          toast({
-            title: 'Cadastro desativado',
-            description: 'Solicite acesso ao administrador.',
+            title: 'Erro no login',
+            description: 'Email ou senha incorretos',
             variant: 'destructive',
           });
-          return;
-        }
-
-        const { error } = await signUp(email, password, nome);
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              title: 'Usuário já existe',
-              description: 'Este email já está cadastrado. Tente fazer login.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Erro no cadastro',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
         } else {
           toast({
-            title: 'Conta criada!',
-            description: 'Cadastro realizado com sucesso',
+            title: 'Erro no login',
+            description: error.message,
+            variant: 'destructive',
           });
-          navigate('/');
         }
+      } else {
+        toast({
+          title: 'Bem-vindo!',
+          description: 'Login realizado com sucesso',
+        });
+        navigate('/');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const switchMode = (newMode: 'login' | 'signup' | 'forgot') => {
-    if (newMode === 'signup' && !signupEnabled) return;
-
+  const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
     setErrors({});
     setResetEmailSent(false);
@@ -255,7 +218,7 @@ export default function AuthPage() {
     );
   }
 
-  // Login / Signup form
+  // Login form
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
       <div className="w-full max-w-md">
@@ -270,27 +233,10 @@ export default function AuthPage() {
         {/* Card */}
         <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
           <h2 className="font-display text-2xl font-semibold text-center mb-6">
-            {mode === 'login' ? 'Entrar' : 'Criar Conta'}
+            Entrar
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    id="nome"
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Seu nome"
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -317,15 +263,13 @@ export default function AuthPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                {mode === 'login' && (
-                  <button
-                    type="button"
-                    onClick={() => switchMode('forgot')}
-                    className="text-xs text-primary hover:underline underline-offset-4"
-                  >
-                    Esqueceu a senha?
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  className="text-xs text-primary hover:underline underline-offset-4"
+                >
+                  Esqueceu a senha?
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -349,26 +293,13 @@ export default function AuthPage() {
             </div>
 
             <Button type="submit" className="w-full gap-2" disabled={loading}>
-              {loading ? 'Carregando...' : (mode === 'login' ? 'Entrar' : 'Criar Conta')}
+              {loading ? 'Carregando...' : 'Entrar'}
               <ArrowRight size={18} />
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            {mode === 'login' && !signupEnabled ? (
-              <p className="text-sm text-muted-foreground">Cadastro somente por convite do administrador.</p>
-            ) : (
-              <button
-                type="button"
-                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {mode === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
-                <span className="font-medium text-primary underline-offset-4 hover:underline">
-                  {mode === 'login' ? 'Criar conta' : 'Fazer login'}
-                </span>
-              </button>
-            )}
+            <p className="text-sm text-muted-foreground">Acesso restrito a contas autorizadas.</p>
           </div>
         </div>
       </div>

@@ -3,7 +3,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContext, AuthProfile } from '@/hooks/useAuth';
 
-const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === 'true';
 const devAutoLoginEnabled =
   import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
 const devAutoEmail = import.meta.env.VITE_DEV_AUTH_EMAIL;
@@ -141,25 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return profile.permissions[moduleId] === true;
   }, [profile, user]);
 
-  const signUp = async (email: string, password: string, nome?: string) => {
-    if (!signupEnabled) {
-      return { error: new Error('Cadastro desativado. Solicite acesso ao administrador.') };
-    }
-
-    const redirectUrl = `${window.location.origin}/`;
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          nome: nome || email.split('@')[0],
-        },
-      },
-    });
-
-    return { error: error as Error | null };
+  const signUp = async () => {
+    return { error: new Error('Cadastro público desativado. Solicite acesso ao administrador.') };
   };
 
   const signIn = async (email: string, password: string) => {
