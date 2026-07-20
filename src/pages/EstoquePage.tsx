@@ -13,6 +13,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -284,6 +294,7 @@ function MassasTab() {
   const [actionMassa, setActionMassa] = useState<EstoqueMassa | null>(null);
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
   const [actionValue, setActionValue] = useState('');
+  const [deleteMassaConfirm, setDeleteMassaConfirm] = useState<EstoqueMassa | null>(null);
 
   const saboresDisponiveis = Array.from(
     new Set(
@@ -319,10 +330,10 @@ function MassasTab() {
     setActionValue('');
   };
 
-  const handleDelete = async (massa: EstoqueMassa) => {
-    const confirmDelete = window.confirm(`Remover o sabor "${massa.sabor}" do estoque de massas base?`);
-    if (!confirmDelete) return;
-    await deleteMassa(massa.id);
+  const handleConfirmDelete = async () => {
+    if (!deleteMassaConfirm) return;
+    await deleteMassa(deleteMassaConfirm.id);
+    setDeleteMassaConfirm(null);
   };
 
   const totalGeral = massas.reduce((acc, m) => acc + m.quantidade_g, 0);
@@ -376,7 +387,7 @@ function MassasTab() {
                  variant="ghost"
                  size="icon"
                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                 onClick={() => handleDelete(massa)}
+                 onClick={() => setDeleteMassaConfirm(massa)}
                  aria-label={`Excluir massa ${massa.sabor}`}
                >
                  <Trash2 className="w-4 h-4" />
@@ -419,6 +430,26 @@ function MassasTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteMassaConfirm} onOpenChange={(open) => !open && setDeleteMassaConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover massa base?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover {deleteMassaConfirm?.sabor} do estoque de massas base? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -432,6 +463,7 @@ function ProdutosTab() {
   const [actionProduto, setActionProduto] = useState<EstoqueProduto | null>(null);
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
   const [actionValue, setActionValue] = useState('');
+  const [deleteProdutoConfirm, setDeleteProdutoConfirm] = useState<EstoqueProduto | null>(null);
 
   // Filtrar quais brigadeiros ainda nao tem estoque cadastrado
   const availableBrigadeiros = useMemo(() => {
@@ -476,11 +508,10 @@ function ProdutosTab() {
     setActionValue('');
   };
 
-  const handleDelete = async (produto: EstoqueProduto) => {
-    const nomeProduto = produto.brigadeiro?.nome || 'este produto';
-    const confirmDelete = window.confirm(`Remover "${nomeProduto}" do estoque de produtos finais?`);
-    if (!confirmDelete) return;
-    await deleteProduto(produto.id);
+  const handleConfirmDelete = async () => {
+    if (!deleteProdutoConfirm) return;
+    await deleteProduto(deleteProdutoConfirm.id);
+    setDeleteProdutoConfirm(null);
   };
 
   const totalUnidades = produtos.reduce((acc, p) => acc + p.quantidade_un, 0);
@@ -570,7 +601,7 @@ function ProdutosTab() {
                  variant="ghost"
                  size="icon"
                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                 onClick={() => handleDelete(produto)}
+                 onClick={() => setDeleteProdutoConfirm(produto)}
                  aria-label={`Excluir produto ${produto.brigadeiro?.nome || ''}`}
                >
                  <Trash2 className="w-4 h-4" />
@@ -614,6 +645,26 @@ function ProdutosTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteProdutoConfirm} onOpenChange={(open) => !open && setDeleteProdutoConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover produto final?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover {deleteProdutoConfirm?.brigadeiro?.nome || 'este produto'} do estoque de produtos finais? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
