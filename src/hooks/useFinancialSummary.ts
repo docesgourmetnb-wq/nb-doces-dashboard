@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { FINANCIAL_CONTROL_START_DATE } from '@/domain/financeiro';
+import { toFiniteNumber } from '@/domain/numeros';
 
 interface FinancialSummary {
   totalEntradas: number;
@@ -38,10 +39,6 @@ const emptySummary: FinancialSummary = {
   totalHistorico: 0,
 };
 
-function toNumber(value: number | string | null | undefined) {
-  return Number(value ?? 0);
-}
-
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === 'object' && 'message' in error) {
@@ -54,11 +51,11 @@ function getErrorMessage(error: unknown) {
 function buildSummaryFromRows(rows: TransacaoSummaryRow[]): FinancialSummary {
   const totalEntradas = rows
     .filter((row) => row.tipo === 'entrada')
-    .reduce((total, row) => total + toNumber(row.valor), 0);
+    .reduce((total, row) => total + toFiniteNumber(row.valor), 0);
 
   const totalSaidas = rows
     .filter((row) => row.tipo === 'saida')
-    .reduce((total, row) => total + toNumber(row.valor), 0);
+    .reduce((total, row) => total + toFiniteNumber(row.valor), 0);
 
   return {
     totalEntradas,
@@ -70,8 +67,8 @@ function buildSummaryFromRows(rows: TransacaoSummaryRow[]): FinancialSummary {
 
 function buildHistoricalTotalFromRows(rows: PedidoHistoricoSummaryRow[]) {
   return rows.reduce((total, row) => {
-    const valorPago = toNumber(row.valor_pago);
-    return total + (valorPago > 0 ? valorPago : toNumber(row.valor_total));
+    const valorPago = toFiniteNumber(row.valor_pago);
+    return total + (valorPago > 0 ? valorPago : toFiniteNumber(row.valor_total));
   }, 0);
 }
 
@@ -119,9 +116,9 @@ export function useFinancialSummary() {
 
       const row = Array.isArray(data) ? data[0] : null;
       setSummary({
-        totalEntradas: toNumber(row?.total_entradas),
-        totalSaidas: toNumber(row?.total_saidas),
-        lucroBruto: toNumber(row?.lucro_bruto),
+        totalEntradas: toFiniteNumber(row?.total_entradas),
+        totalSaidas: toFiniteNumber(row?.total_saidas),
+        lucroBruto: toFiniteNumber(row?.lucro_bruto),
         totalHistorico,
       });
     } catch (error: unknown) {
