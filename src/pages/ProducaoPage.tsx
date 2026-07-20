@@ -12,6 +12,7 @@ import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { supabase } from '@/integrations/supabase/client';
 import { suggestProductionIntegration } from '@/domain/producaoIntegrada';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { parseIntegerInput } from '@/domain/numeros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -119,9 +120,9 @@ export function ProducaoPage() {
   const activeProducao = producao.filter(p => !p.deleted_at);
   const totalUnidadesHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.quantidade, 0);
   const totalCustoHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.custo_total, 0);
-  const quantidadeProducao = Number(formData.quantidade);
+  const quantidadeProducao = parseIntegerInput(formData.quantidade);
   const quantidadeProducaoValida = Number.isInteger(quantidadeProducao) && quantidadeProducao > 0;
-  const quantidadeEdicao = Number(editData.quantidade);
+  const quantidadeEdicao = parseIntegerInput(editData.quantidade);
   const quantidadeEdicaoValida = Number.isInteger(quantidadeEdicao) && quantidadeEdicao > 0;
   const brigadeirosDisponiveis = useMemo(() => {
     return brigadeiros
@@ -402,7 +403,7 @@ export function ProducaoPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="producao-quantidade">Quantidade</Label>
-                <Input id="producao-quantidade" type="number" min="1" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} placeholder="Ex: 50" />
+                <Input id="producao-quantidade" type="number" min="1" step="1" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} placeholder="Ex: 50" />
               </div>
               <div className="rounded-lg border border-border p-3 space-y-3">
                 <div className="flex items-center gap-2">
@@ -559,7 +560,7 @@ export function ProducaoPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="producao-edit-quantidade">Quantidade</Label>
-              <Input id="producao-edit-quantidade" type="number" min="1" value={editData.quantidade} onChange={(e) => setEditData({ ...editData, quantidade: e.target.value })} />
+              <Input id="producao-edit-quantidade" type="number" min="1" step="1" value={editData.quantidade} onChange={(e) => setEditData({ ...editData, quantidade: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="producao-edit-status">Status</Label>
