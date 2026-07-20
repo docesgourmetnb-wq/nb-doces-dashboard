@@ -28,22 +28,25 @@ export function useRecipientes() {
     }
     
     setLoading(true);
-    const { data, error } = await supabase
-      .from('recipientes')
-      .select('*')
-      .order('codigo', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('recipientes')
+        .select('*')
+        .order('codigo', { ascending: true });
 
-    if (error) {
-      if (import.meta.env.DEV) console.error('Error fetching recipientes:', error);
-      toast({
-        title: 'Erro ao carregar recipientes',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      setRecipientes(data as Recipiente[]);
+      if (error) {
+        if (import.meta.env.DEV) console.error('Error fetching recipientes:', error);
+        toast({
+          title: 'Erro ao carregar recipientes',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        setRecipientes(data as Recipiente[]);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
