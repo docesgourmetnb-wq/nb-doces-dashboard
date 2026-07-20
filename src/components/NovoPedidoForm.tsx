@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
@@ -120,8 +121,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     return [...updated, itemPendente];
   })() : itens;
   const valorTotal = itensDoPedido.reduce((acc, item) => acc + (item.quantidade * item.preco_unitario), 0);
-  const valorPagoNormalizado = valorPago.trim().replace(',', '.');
-  const valorPagoNumber = valorPagoNormalizado === '' ? 0 : Number(valorPagoNormalizado);
+  const valorPagoNumber = valorPago.trim() === '' ? 0 : parseDecimalInput(valorPago);
   const valorPagoEhNumero = Number.isFinite(valorPagoNumber);
   const valorPagoValido = valorPagoEhNumero && valorPagoNumber >= 0 && valorPagoNumber <= valorTotal;
   const valorPagoError = !valorPagoEhNumero || valorPagoNumber < 0
@@ -482,8 +482,12 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                 aria-label="Quantidade do produto"
                 type="number"
                 min={1}
+                step={1}
                 value={quantidade}
-                onChange={(e) => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const parsedQuantidade = parseIntegerInput(e.target.value);
+                  setQuantidade(Number.isFinite(parsedQuantidade) && parsedQuantidade > 0 ? parsedQuantidade : 1);
+                }}
                 className="w-24"
                 placeholder="Qtd"
               />
