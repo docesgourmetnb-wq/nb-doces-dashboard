@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 
 import { getPedidoStatusLabel } from '@/domain/pedidos';
 import type { Json } from '@/integrations/supabase/types';
+import { formatCurrencyBRL } from '@/lib/utils';
 
 function isMetadataRecord(metadata: Json): metadata is { [key: string]: Json | undefined } {
   return !!metadata && typeof metadata === 'object' && !Array.isArray(metadata);
@@ -29,7 +30,7 @@ function formatMeta(entry: AuditLogEntry): string | null {
     case 'estorno_created': {
       const valor = m['valor'];
       return typeof valor === 'number'
-        ? `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        ? formatCurrencyBRL(valor)
         : null;
     }
     default:
