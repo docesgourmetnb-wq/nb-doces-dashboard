@@ -85,26 +85,29 @@ export function FinanceiroPage() {
     }
 
     setSaving(true);
-    const newTransacao = await addTransacao({
-      tipo: formData.tipo,
-      categoria: formData.categoria.trim(),
-      descricao: formData.descricao.trim(),
-      valor,
-      data: formData.data,
-    });
-    await refetchSummary();
-    setSaving(false);
-    if (!newTransacao) return;
+    try {
+      const newTransacao = await addTransacao({
+        tipo: formData.tipo,
+        categoria: formData.categoria.trim(),
+        descricao: formData.descricao.trim(),
+        valor,
+        data: formData.data,
+      });
+      await refetchSummary();
+      if (!newTransacao) return;
 
-    setIsDialogOpen(false);
-    setFormData({
-      tipo: 'entrada',
-      categoria: '',
-      descricao: '',
-      valor: '',
-      data: format(new Date(), 'yyyy-MM-dd'),
-    });
-    setFormErrors({});
+      setIsDialogOpen(false);
+      setFormData({
+        tipo: 'entrada',
+        categoria: '',
+        descricao: '',
+        valor: '',
+        data: format(new Date(), 'yyyy-MM-dd'),
+      });
+      setFormErrors({});
+    } finally {
+      setSaving(false);
+    }
   };
 
   const chartData = [
