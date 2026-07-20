@@ -195,9 +195,9 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" /> Agenda de Entregas
-          </h3>
+          </h2>
           {loadingOrderAgenda ? (
             <div className="py-8 flex justify-center">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -246,9 +246,9 @@ export function DashboardPage() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <Factory className="h-5 w-5 text-primary" /> Produção Pendente
-          </h3>
+          </h2>
           {loadingProductionDemand ? (
             <div className="py-8 flex justify-center">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -309,7 +309,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Financial Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4">Resumo Financeiro - {mesLabel}/{selectedYear}</h3>
+          <h2 className="font-display font-semibold text-lg mb-4">Resumo Financeiro - {mesLabel}/{selectedYear}</h2>
           <p className="sr-only">{resumoFinanceiroDescricao}</p>
           <div className="h-[300px]" aria-hidden="true">
             <ResponsiveContainer width="100%" height="100%">
@@ -326,7 +326,7 @@ export function DashboardPage() {
 
         {/* Flavors Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h3>
+          <h2 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h2>
           {saboresMaisVendidos.length > 0 ? (
             <div className="flex flex-col lg:flex-row gap-4">
               <p className="sr-only">Total vendido no período: {totalSaboresVendidos} unidades. {saboresMaisVendidosDescricao}</p>
@@ -365,9 +365,9 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Produtos */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <Cookie className="h-5 w-5 text-primary" /> Top Produtos (Entregues)
-          </h3>
+          </h2>
           {summary.topProdutos.length > 0 ? (
             <Table>
               <TableHeader>
@@ -394,9 +394,9 @@ export function DashboardPage() {
 
         {/* Top Clientes */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" /> Top Clientes (Entregues)
-          </h3>
+          </h2>
           {summary.topClientes.length > 0 ? (
             <Table>
               <TableHeader>
