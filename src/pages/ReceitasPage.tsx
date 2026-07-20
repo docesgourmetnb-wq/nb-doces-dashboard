@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { parseDecimalInput } from '@/domain/numeros';
 
 const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
 type Uom = (typeof UOM_OPTIONS)[number];
@@ -285,8 +286,8 @@ export function ReceitasPage() {
 
   const addVersion = async () => {
     if (!user || !selectedRecipeId) return;
-    const pesoTotal = parseFloat(newVersion.peso_total_massa_g);
-    const pesoUnit = parseFloat(newVersion.peso_unitario_base_g);
+    const pesoTotal = parseDecimalInput(newVersion.peso_total_massa_g);
+    const pesoUnit = parseDecimalInput(newVersion.peso_unitario_base_g);
     if (!pesoTotal || pesoTotal <= 0) {
       toast({ title: 'Informe o peso total da massa (g).', variant: 'destructive' });
       return;
@@ -319,7 +320,7 @@ export function ReceitasPage() {
 
   const addComponent = async () => {
     if (!user || !selectedVersionId || !newComponent.stock_item_id) return;
-    const qty = parseFloat(newComponent.qty_per_batch);
+    const qty = parseDecimalInput(newComponent.qty_per_batch);
     if (!qty || qty <= 0) return;
 
     const insumo = insumosEstoque.find((i) => i.id === newComponent.stock_item_id);
@@ -543,20 +544,22 @@ export function ReceitasPage() {
                 <Label htmlFor="receita-versao-peso-total" className="text-xs">Peso total da massa (g)</Label>
                 <Input
                   id="receita-versao-peso-total"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={newVersion.peso_total_massa_g}
                   onChange={(e) => setNewVersion((p) => ({ ...p, peso_total_massa_g: e.target.value }))}
-                  placeholder="Ex: 500"
+                  placeholder="Ex: 500,5"
                 />
               </div>
               <div>
                 <Label htmlFor="receita-versao-peso-unitario" className="text-xs">Peso unitário base (g)</Label>
                 <Input
                   id="receita-versao-peso-unitario"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={newVersion.peso_unitario_base_g}
                   onChange={(e) => setNewVersion((p) => ({ ...p, peso_unitario_base_g: e.target.value }))}
-                  placeholder="20"
+                  placeholder="Ex: 20,5"
                 />
               </div>
               <div>
@@ -684,10 +687,11 @@ export function ReceitasPage() {
               <Label htmlFor="receita-componente-quantidade" className="text-xs">Quantidade</Label>
               <Input
                 id="receita-componente-quantidade"
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={newComponent.qty_per_batch}
                 onChange={(e) => setNewComponent((p) => ({ ...p, qty_per_batch: e.target.value }))}
-                placeholder="Ex: 395"
+                placeholder="Ex: 395,5"
               />
             </div>
             <div className="md:col-span-2">
