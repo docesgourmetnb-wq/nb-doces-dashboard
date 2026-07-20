@@ -118,27 +118,30 @@ function InsumosTab() {
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
-    if (editingInsumo) {
-      await updateInsumo(editingInsumo.id, {
-        nome: formData.nome.trim(),
-        unidade: formData.unidade.trim(),
-        quantidade_atual: quantidadeAtual,
-        quantidade_minima: quantidadeMinima,
-        consumo_medio: consumoMedio,
-        preco_unitario: precoUnitario,
-      });
-    } else {
-      await addInsumo({
-        nome: formData.nome.trim(),
-        unidade: formData.unidade.trim(),
-        quantidade_atual: quantidadeAtual,
-        quantidade_minima: quantidadeMinima,
-        consumo_medio: consumoMedio,
-        preco_unitario: precoUnitario,
-      });
+    try {
+      if (editingInsumo) {
+        await updateInsumo(editingInsumo.id, {
+          nome: formData.nome.trim(),
+          unidade: formData.unidade.trim(),
+          quantidade_atual: quantidadeAtual,
+          quantidade_minima: quantidadeMinima,
+          consumo_medio: consumoMedio,
+          preco_unitario: precoUnitario,
+        });
+      } else {
+        await addInsumo({
+          nome: formData.nome.trim(),
+          unidade: formData.unidade.trim(),
+          quantidade_atual: quantidadeAtual,
+          quantidade_minima: quantidadeMinima,
+          consumo_medio: consumoMedio,
+          preco_unitario: precoUnitario,
+        });
+      }
+      setIsDialogOpen(false);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setIsDialogOpen(false);
   };
 
   const getStockStatus = (insumo: Insumo) => {
