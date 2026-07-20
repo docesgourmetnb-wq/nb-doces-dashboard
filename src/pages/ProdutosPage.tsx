@@ -10,6 +10,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from '@/domain/produtos';
 import { parseDecimalInput } from '@/domain/numeros';
@@ -136,12 +147,6 @@ export function ProdutosPage() {
     }
     setSaving(false);
     setIsDialogOpen(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja remover este produto?')) {
-      await deleteBrigadeiro(id);
-    }
   };
 
   if (loading) {
@@ -369,13 +374,33 @@ export function ProdutosPage() {
                     >
                       <Pencil size={16} className="text-muted-foreground" />
                     </button>
-                    <button
-                      onClick={() => handleDelete(brigadeiro.id)}
-                      className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
-                      aria-label={`Excluir ${brigadeiro.nome}`}
-                    >
-                      <Trash2 size={16} className="text-destructive" />
-                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                          aria-label={`Excluir ${brigadeiro.nome}`}
+                        >
+                          <Trash2 size={16} className="text-destructive" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover {brigadeiro.nome}? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteBrigadeiro(brigadeiro.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               
