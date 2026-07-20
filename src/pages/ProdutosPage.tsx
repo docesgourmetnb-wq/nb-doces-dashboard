@@ -308,52 +308,55 @@ export function ProdutosPage() {
         </div>
       </div>
 
-      {/* Search and filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-        <div className="relative w-full max-w-md">
-          <Label htmlFor="produto-busca" className="sr-only">Buscar brigadeiros</Label>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input
-            id="produto-busca"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar brigadeiros..."
-            className="pl-10"
-          />
-        </div>
-        <div className="flex w-full sm:w-auto rounded-lg border border-border bg-muted/40 p-1">
-          {tamanhoFilters.map((filter) => (
-            <Button
-              key={filter.value}
-              type="button"
-              size="sm"
-              variant={tamanhoFilter === filter.value ? 'default' : 'ghost'}
-              className="flex-1 sm:flex-none px-4"
-              onClick={() => setTamanhoFilter(filter.value)}
-            >
-              {filter.label}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <section aria-labelledby="produtos-lista-heading" className="space-y-4">
+        <h2 id="produtos-lista-heading" className="sr-only">Lista de produtos</h2>
 
-      {/* Products Grid */}
-      {filteredBrigadeiros.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Search className="w-8 h-8 text-muted-foreground" />
+        {/* Search and filters */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="relative w-full max-w-md">
+            <Label htmlFor="produto-busca" className="sr-only">Buscar brigadeiros</Label>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+            <Input
+              id="produto-busca"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar brigadeiros..."
+              className="pl-10"
+            />
           </div>
-          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum produto encontrado</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {search ? 'Tente ajustar a busca.' : 'Clique em "Novo Brigadeiro" para adicionar seu primeiro produto.'}
-          </p>
+          <div className="flex w-full sm:w-auto rounded-lg border border-border bg-muted/40 p-1">
+            {tamanhoFilters.map((filter) => (
+              <Button
+                key={filter.value}
+                type="button"
+                size="sm"
+                variant={tamanhoFilter === filter.value ? 'default' : 'ghost'}
+                className="flex-1 sm:flex-none px-4"
+                onClick={() => setTamanhoFilter(filter.value)}
+              >
+                {filter.label}
+              </Button>
+            ))}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredBrigadeiros.map((brigadeiro) => {
-            const tamanho = getProdutoTamanho(brigadeiro.nome);
-            const nomeBase = getProdutoNomeBase(brigadeiro.nome);
-            const produtoSemPar = saboresSemParPorNome.get(nomeBase);
+
+        {/* Products Grid */}
+        {filteredBrigadeiros.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum produto encontrado</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {search ? 'Tente ajustar a busca.' : 'Clique em "Novo Brigadeiro" para adicionar seu primeiro produto.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredBrigadeiros.map((brigadeiro) => {
+              const tamanho = getProdutoTamanho(brigadeiro.nome);
+              const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+              const produtoSemPar = saboresSemParPorNome.get(nomeBase);
 
             return (
               <div
@@ -433,9 +436,10 @@ export function ProdutosPage() {
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

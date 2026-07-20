@@ -228,39 +228,42 @@ export function ClientesPage() {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Label htmlFor="cliente-busca" className="sr-only">Buscar clientes</Label>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-        <Input
-          id="cliente-busca"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, email ou telefone..."
-          className="pl-10"
-        />
-      </div>
+      <section aria-labelledby="clientes-lista-heading" className="space-y-4">
+        <h2 id="clientes-lista-heading" className="sr-only">Lista de clientes</h2>
 
-      {/* Clients Grid */}
-      {filteredClientes.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <User className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum cliente encontrado</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {search ? 'Tente ajustar a busca.' : 'Cadastre seu primeiro cliente para começar.'}
-          </p>
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Label htmlFor="cliente-busca" className="sr-only">Buscar clientes</Label>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <Input
+            id="cliente-busca"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome, email ou telefone..."
+            className="pl-10"
+          />
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClientes.map((cliente) => {
-            const stats = getClienteStats(cliente);
-            return (
-              <div
-                key={cliente.id}
-                className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
-              >
+
+        {/* Clients Grid */}
+        {filteredClientes.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <User className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum cliente encontrado</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {search ? 'Tente ajustar a busca.' : 'Cadastre seu primeiro cliente para começar.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredClientes.map((cliente) => {
+              const stats = getClienteStats(cliente);
+              return (
+                <div
+                  key={cliente.id}
+                  className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -357,11 +360,12 @@ export function ClientesPage() {
                     {stats.totalPedidosSemVinculo} pedido(s) antigo(s) com mesmo nome sem vínculo ao cadastro.
                   </p>
                 )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* Client Detail Dialog with Order History */}
       <Dialog open={!!viewingCliente} onOpenChange={(open) => !open && setViewingCliente(null)}>
