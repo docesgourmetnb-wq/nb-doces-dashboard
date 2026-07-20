@@ -35,6 +35,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate } from '@/domain/financeiro';
+import { parseDecimalInput } from '@/domain/numeros';
 
 type TransacaoFormErrors = Partial<Record<'categoria' | 'descricao' | 'valor' | 'data', string>>;
 
@@ -66,7 +67,7 @@ export function FinanceiroPage() {
   const totalHistorico = summary.totalHistorico;
 
   const handleAddTransacao = async () => {
-    const valor = Number(formData.valor);
+    const valor = parseDecimalInput(formData.valor);
     const errors: TransacaoFormErrors = {};
 
     if (!formData.categoria.trim()) errors.categoria = 'Informe uma categoria';
@@ -192,14 +193,14 @@ export function FinanceiroPage() {
                   <Label htmlFor="transacao-valor">Valor (R$)</Label>
                   <Input
                     id="transacao-valor"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.valor}
                     onChange={(e) => {
                       setFormData({ ...formData, valor: e.target.value });
                       if (formErrors.valor) setFormErrors({ ...formErrors, valor: '' });
                     }}
+                    placeholder="Ex: 35,50"
                     aria-invalid={!!formErrors.valor}
                     aria-describedby={formErrors.valor ? 'transacao-valor-error' : undefined}
                   />
