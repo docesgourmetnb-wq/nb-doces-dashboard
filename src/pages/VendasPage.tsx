@@ -156,41 +156,44 @@ export function VendasPage() {
         <NovoPedidoForm onSuccess={refetch} />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Label htmlFor="vendas-busca" className="sr-only">Buscar pedidos por cliente</Label>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input
-            id="vendas-busca"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por cliente..."
-            className="pl-10"
-          />
+      <section aria-labelledby="vendas-lista-heading" className="space-y-4">
+        <h2 id="vendas-lista-heading" className="sr-only">Lista de pedidos</h2>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Label htmlFor="vendas-busca" className="sr-only">Buscar pedidos por cliente</Label>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+            <Input
+              id="vendas-busca"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por cliente..."
+              className="pl-10"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar pedidos por status">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              {PEDIDO_STATUSES.map(s => (
+                <SelectItem key={s} value={s}>{getPedidoStatusLabel(s)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="showArchived"
+              checked={showArchived}
+              onCheckedChange={(checked) => setShowArchived(!!checked)}
+            />
+            <Label htmlFor="showArchived" className="text-sm text-muted-foreground cursor-pointer">
+              Mostrar arquivados
+            </Label>
+          </div>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filtrar pedidos por status">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os status</SelectItem>
-            {PEDIDO_STATUSES.map(s => (
-              <SelectItem key={s} value={s}>{getPedidoStatusLabel(s)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="showArchived"
-            checked={showArchived}
-            onCheckedChange={(checked) => setShowArchived(!!checked)}
-          />
-          <Label htmlFor="showArchived" className="text-sm text-muted-foreground cursor-pointer">
-            Mostrar arquivados
-          </Label>
-        </div>
-      </div>
 
       {/* Extra confirmation modal for archiving active pedidos */}
       <Dialog open={!!archiveConfirmPedido} onOpenChange={(open) => { if (!open) setArchiveConfirmPedido(null); }}>
@@ -297,23 +300,23 @@ export function VendasPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Orders Table */}
-      {filteredPedidos.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+        {/* Orders Table */}
+        {filteredPedidos.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum pedido encontrado</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {search || statusFilter !== 'todos'
+                ? 'Tente ajustar os filtros de busca.'
+                : 'Crie seu primeiro pedido para começar a gerenciar suas vendas.'}
+            </p>
+            {!search && statusFilter === 'todos' && <NovoPedidoForm onSuccess={refetch} />}
           </div>
-          <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum pedido encontrado</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {search || statusFilter !== 'todos'
-              ? 'Tente ajustar os filtros de busca.'
-              : 'Crie seu primeiro pedido para começar a gerenciar suas vendas.'}
-          </p>
-          {!search && statusFilter === 'todos' && <NovoPedidoForm onSuccess={refetch} />}
-        </div>
-      ) : (
-        <>
-          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+        ) : (
+          <>
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-muted/50">
@@ -566,10 +569,11 @@ export function VendasPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-          <PaginationControls page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
-        </>
-      )}
+            </div>
+            <PaginationControls page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
+          </>
+        )}
+      </section>
     </div>
   );
 }
