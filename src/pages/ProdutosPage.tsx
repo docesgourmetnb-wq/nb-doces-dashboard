@@ -59,6 +59,7 @@ export function ProdutosPage() {
       });
   }, [brigadeiros, search, tamanhoFilter]);
   const produtosResumo = useMemo(() => summarizeProdutos(brigadeiros), [brigadeiros]);
+  const primeiroSaborSemPar = produtosResumo.saboresSemPar[0];
 
   const handleOpenDialog = (brigadeiro?: Brigadeiro) => {
     if (brigadeiro) {
@@ -270,6 +271,11 @@ export function ProdutosPage() {
               <p className="text-sm text-muted-foreground">25g / 30g</p>
               {produtosResumo.semTamanho > 0 && (
                 <p className="mt-1 text-xs text-warning">{produtosResumo.semTamanho} sem tamanho definido</p>
+              )}
+              {primeiroSaborSemPar && (
+                <p className="mt-1 text-xs text-warning">
+                  {produtosResumo.saboresSemPar.length} sabor(es) sem par. Ex: {primeiroSaborSemPar.nomeBase} sem {primeiroSaborSemPar.faltando.join('/')}
+                </p>
               )}
             </div>
             <div className="rounded-xl bg-accent/20 p-3 text-accent">

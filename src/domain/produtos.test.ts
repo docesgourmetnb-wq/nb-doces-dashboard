@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from './produtos.ts';
+import { findProdutosSemParDeTamanho, getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from './produtos.ts';
 
 test('getProdutoNomeBase removes gram suffix from product names', () => {
   assert.equal(getProdutoNomeBase('Brulée 30g'), 'Brulée');
@@ -30,6 +30,9 @@ test('summarizeProdutos counts products by commercial size', () => {
     total30g: 1,
     semTamanho: 1,
     margemMedia: 58.5,
+    saboresSemPar: [
+      { nomeBase: 'Pistache', faltando: ['30g'] },
+    ],
   });
 });
 
@@ -40,5 +43,19 @@ test('summarizeProdutos handles empty product lists', () => {
     total30g: 0,
     semTamanho: 0,
     margemMedia: 0,
+    saboresSemPar: [],
   });
+});
+
+test('findProdutosSemParDeTamanho reports flavors missing 25g or 30g pair', () => {
+  assert.deepEqual(findProdutosSemParDeTamanho([
+    { nome: 'Branquinho 25g' },
+    { nome: 'Branquinho 30g' },
+    { nome: 'Brulée 30g' },
+    { nome: 'Pistache 25g' },
+    { nome: 'Combo sortido' },
+  ]), [
+    { nomeBase: 'Brulée', faltando: ['25g'] },
+    { nomeBase: 'Pistache', faltando: ['30g'] },
+  ]);
 });

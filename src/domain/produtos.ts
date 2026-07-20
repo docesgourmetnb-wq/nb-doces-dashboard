@@ -20,6 +20,7 @@ export interface ProdutoResumo {
   total30g: number;
   semTamanho: number;
   margemMedia: number;
+  saboresSemPar: ProdutoSemPar[];
 }
 
 export function summarizeProdutos(produtos: ProdutoResumoInput[]): ProdutoResumo {
@@ -40,5 +41,36 @@ export function summarizeProdutos(produtos: ProdutoResumoInput[]): ProdutoResumo
     total30g,
     semTamanho,
     margemMedia,
+    saboresSemPar: findProdutosSemParDeTamanho(produtos),
   };
+}
+
+export interface ProdutoSemPar {
+  nomeBase: string;
+  faltando: Array<'25g' | '30g'>;
+}
+
+export function findProdutosSemParDeTamanho(produtos: ProdutoResumoInput[]): ProdutoSemPar[] {
+  const tamanhosPorSabor = new Map<string, Set<string>>();
+
+  for (const produto of produtos) {
+    const nomeBase = getProdutoNomeBase(produto.nome);
+    const tamanho = getProdutoTamanho(produto.nome);
+    if (!nomeBase || !tamanho) continue;
+
+    if (!tamanhosPorSabor.has(nomeBase)) {
+      tamanhosPorSabor.set(nomeBase, new Set());
+    }
+    tamanhosPorSabor.get(nomeBase)?.add(tamanho);
+  }
+
+  return Array.from(tamanhosPorSabor.entries())
+    .map(([nomeBase, tamanhos]) => {
+      const faltando: Array<'25g' | '30g'> = [];
+      if (!tamanhos.has('25g')) faltando.push('25g');
+      if (!tamanhos.has('30g')) faltando.push('30g');
+      return { nomeBase, faltando };
+    })
+    .filter((produto) => produto.faltando.length > 0)
+    .sort((a, b) => a.nomeBase.localeCompare(b.nomeBase, 'pt-BR'));
 }
