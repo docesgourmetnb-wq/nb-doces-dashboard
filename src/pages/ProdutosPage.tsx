@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from '@/domain/produtos';
+import { parseDecimalInput } from '@/domain/numeros';
 import { formatCurrencyBRL } from '@/lib/utils';
 
 type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
@@ -88,8 +89,8 @@ export function ProdutosPage() {
   };
 
   const [formErrors, setFormErrors] = useState<ProdutoFormErrors>({});
-  const precoVendaNumber = Number(formData.preco_venda);
-  const custoUnitarioNumber = Number(formData.custo_unitario);
+  const precoVendaNumber = parseDecimalInput(formData.preco_venda);
+  const custoUnitarioNumber = parseDecimalInput(formData.custo_unitario);
   const canShowMargin =
     Number.isFinite(precoVendaNumber) &&
     Number.isFinite(custoUnitarioNumber) &&
@@ -98,8 +99,8 @@ export function ProdutosPage() {
 
   const handleSave = async () => {
     const errors: ProdutoFormErrors = {};
-    const preco_venda = Number(formData.preco_venda);
-    const custo_unitario = Number(formData.custo_unitario);
+    const preco_venda = parseDecimalInput(formData.preco_venda);
+    const custo_unitario = parseDecimalInput(formData.custo_unitario);
 
     if (!formData.nome.trim()) {
       errors.nome = 'Informe o nome do produto';
@@ -193,15 +194,14 @@ export function ProdutosPage() {
                   <Label htmlFor="produto-preco-venda">Preço de Venda (R$)</Label>
                   <Input
                     id="produto-preco-venda"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.preco_venda}
                     onChange={(e) => {
                       setFormData({ ...formData, preco_venda: e.target.value });
                       if (formErrors.preco_venda) setFormErrors({ ...formErrors, preco_venda: '' });
                     }}
-                    placeholder="5.00"
+                    placeholder="Ex: 3,50"
                     aria-invalid={!!formErrors.preco_venda}
                     aria-describedby={formErrors.preco_venda ? 'produto-preco-venda-error' : undefined}
                   />
@@ -211,15 +211,14 @@ export function ProdutosPage() {
                   <Label htmlFor="produto-custo-unitario">Custo Unitário (R$)</Label>
                   <Input
                     id="produto-custo-unitario"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.custo_unitario}
                     onChange={(e) => {
                       setFormData({ ...formData, custo_unitario: e.target.value });
                       if (formErrors.custo_unitario) setFormErrors({ ...formErrors, custo_unitario: '' });
                     }}
-                    placeholder="1.80"
+                    placeholder="Ex: 0,93"
                     aria-invalid={!!formErrors.custo_unitario}
                     aria-describedby={formErrors.custo_unitario ? 'produto-custo-unitario-error' : undefined}
                   />
