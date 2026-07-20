@@ -170,36 +170,39 @@ export function ReceitasPage() {
       return;
     }
     setLoading(true);
-    const [recipesRes, stockRes, insumosRes] = await Promise.all([
-      supabase
-        .from('recipes')
-        .select('id,nome,tipo,ativo,deleted_at')
-        .is('deleted_at', null)
-        .order('nome'),
-      supabase.from('stock_items').select('id,nome,unidade_base,tipo').order('nome'),
-      supabase
-        .from('insumos')
-        .select('id,nome,unidade')
-        .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
-        .order('nome'),
-    ]);
+    try {
+      const [recipesRes, stockRes, insumosRes] = await Promise.all([
+        supabase
+          .from('recipes')
+          .select('id,nome,tipo,ativo,deleted_at')
+          .is('deleted_at', null)
+          .order('nome'),
+        supabase.from('stock_items').select('id,nome,unidade_base,tipo').order('nome'),
+        supabase
+          .from('insumos')
+          .select('id,nome,unidade')
+          .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
+          .order('nome'),
+      ]);
 
-    if (recipesRes.error || stockRes.error || insumosRes.error) {
-      toast({
-        title: 'Erro ao carregar receitas',
-        description:
-          recipesRes.error?.message ||
-          stockRes.error?.message ||
-          insumosRes.error?.message ||
-          'Falha desconhecida.',
-        variant: 'destructive',
-      });
-    } else {
-      setRecipes((recipesRes.data || []).map(toRecipeRow));
-      setStockItems((stockRes.data || []).map(toStockItemRow));
-      setInsumosEstoque((insumosRes.data || []).map(toInsumoRow));
+      if (recipesRes.error || stockRes.error || insumosRes.error) {
+        toast({
+          title: 'Erro ao carregar receitas',
+          description:
+            recipesRes.error?.message ||
+            stockRes.error?.message ||
+            insumosRes.error?.message ||
+            'Falha desconhecida.',
+          variant: 'destructive',
+        });
+      } else {
+        setRecipes((recipesRes.data || []).map(toRecipeRow));
+        setStockItems((stockRes.data || []).map(toStockItemRow));
+        setInsumosEstoque((insumosRes.data || []).map(toInsumoRow));
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [toast, user]);
 
   const loadVersions = useCallback(async () => {
