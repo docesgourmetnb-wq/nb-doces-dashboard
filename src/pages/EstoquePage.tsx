@@ -19,7 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
-import { parseDecimalInput } from '@/domain/numeros';
+import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 
 type InsumoFormErrors = Partial<Record<
   'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'consumo_medio' | 'preco_unitario',
@@ -464,7 +464,7 @@ function ProdutosTab() {
 
   const handleAction = async () => {
     if (!actionProduto || !actionValue) return;
-    const val = Number(actionValue);
+    const val = parseIntegerInput(actionValue);
     if (!Number.isInteger(val) || val <= 0) {
       toast({ title: 'Valor inválido', variant: 'destructive' });
       return;
@@ -606,7 +606,7 @@ function ProdutosTab() {
             <p className="text-sm text-muted-foreground">Produto: <strong>{actionProduto?.brigadeiro?.nome}</strong></p>
             <div className="space-y-2">
               <Label htmlFor="estoque-produto-quantidade">Quantidade (Unidades)</Label>
-              <Input id="estoque-produto-quantidade" type="number" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 50" />
+              <Input id="estoque-produto-quantidade" type="number" min="1" step="1" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 50" />
             </div>
             <Button onClick={handleAction} className="w-full" variant={actionType === 'add' ? 'default' : 'destructive'}>
               Confirmar {actionType === 'add' ? 'Entrada' : 'Saída'}
