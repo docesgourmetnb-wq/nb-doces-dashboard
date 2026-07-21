@@ -136,7 +136,7 @@ export function DashboardPage() {
 
   const mesLabel = MESES.find(m => m.value === selectedMonth)?.label || '';
   const resumoFinanceiroData = [
-    { categoria: 'Entradas', valor: summary.vendasPeriodo },
+    { categoria: 'Recebido', valor: summary.vendasPeriodo },
     { categoria: 'Saídas', valor: summary.despesasPeriodo },
     { categoria: 'Lucro', valor: summary.lucroPeriodo },
   ];
@@ -289,10 +289,10 @@ export function DashboardPage() {
       <div>
         <h2 className="text-lg font-medium text-muted-foreground mb-3">Financeiro de {mesLabel} de {selectedYear}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard title="Receita do mês" value={formatCurrencyBRL(summary.vendasPeriodo)} subtitle="Entradas do período" icon={DollarSign} variant="primary" />
+          <StatCard title="Entradas recebidas" value={formatCurrencyBRL(summary.vendasPeriodo)} subtitle="Dinheiro recebido no período" icon={DollarSign} variant="primary" />
           <StatCard title="Despesas" value={formatCurrencyBRL(summary.despesasPeriodo)} subtitle="Total de saídas" icon={Cookie} variant="default" />
           <StatCard title="Lucro" value={formatCurrencyBRL(summary.lucroPeriodo)} subtitle="Entradas - Saídas" icon={TrendingUp} variant="success" />
-          <StatCard title="Ticket Médio" value={formatCurrencyBRL(summary.ticketMedio)} subtitle="Receita / entregues" icon={BarChart3} variant="default" />
+          <StatCard title="Ticket Médio" value={formatCurrencyBRL(summary.ticketMedio)} subtitle="Valor médio dos entregues" icon={BarChart3} variant="default" />
         </div>
       </div>
 
