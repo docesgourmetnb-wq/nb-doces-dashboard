@@ -16,6 +16,7 @@ interface FinancialSummaryRow {
   total_entradas: number | string | null;
   total_saidas: number | string | null;
   lucro_bruto: number | string | null;
+  total_historico?: number | string | null;
 }
 
 type FinancialSummaryRpc = (
@@ -119,7 +120,7 @@ export function useFinancialSummary() {
         totalEntradas: toFiniteNumber(row?.total_entradas),
         totalSaidas: toFiniteNumber(row?.total_saidas),
         lucroBruto: toFiniteNumber(row?.lucro_bruto),
-        totalHistorico,
+        totalHistorico: toFiniteNumber(row?.total_historico, totalHistorico),
       });
     } catch (error: unknown) {
       toast({
