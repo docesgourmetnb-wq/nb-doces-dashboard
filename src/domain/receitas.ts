@@ -41,3 +41,16 @@ export function summarizeRecipeMass(components: RecipeMassComponent[]) {
     { totalGrams: 0, calculableComponents: 0, ignoredComponents: 0 },
   );
 }
+
+export function calculateRecipeYield(totalGrams: number, unitWeightGrams: number) {
+  if (!Number.isFinite(totalGrams) || !Number.isFinite(unitWeightGrams)) return 0;
+  if (totalGrams <= 0 || unitWeightGrams <= 0) return 0;
+  return Math.floor(totalGrams / unitWeightGrams);
+}
+
+export function calculateCommercialRecipeYields(totalGrams: number) {
+  return {
+    tamanho25g: calculateRecipeYield(totalGrams, 25),
+    tamanho30g: calculateRecipeYield(totalGrams, 30),
+  };
+}

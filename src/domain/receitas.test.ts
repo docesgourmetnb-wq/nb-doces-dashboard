@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { convertRecipeComponentQtyToGrams, summarizeRecipeMass } from './receitas.ts';
+import {
+  calculateCommercialRecipeYields,
+  calculateRecipeYield,
+  convertRecipeComponentQtyToGrams,
+  summarizeRecipeMass,
+} from './receitas.ts';
 
 test('convertRecipeComponentQtyToGrams converts mass and liquid units to grams', () => {
   assert.equal(convertRecipeComponentQtyToGrams(395, 'g'), 395);
@@ -26,4 +31,17 @@ test('summarizeRecipeMass sums calculable components and counts ignored ones', (
   assert.equal(summary.totalGrams, 695);
   assert.equal(summary.calculableComponents, 3);
   assert.equal(summary.ignoredComponents, 1);
+});
+
+test('calculateRecipeYield returns whole units for a total mass and unit size', () => {
+  assert.equal(calculateRecipeYield(510, 25), 20);
+  assert.equal(calculateRecipeYield(510, 30), 17);
+  assert.equal(calculateRecipeYield(0, 25), 0);
+});
+
+test('calculateCommercialRecipeYields returns 25g and 30g yields', () => {
+  assert.deepEqual(calculateCommercialRecipeYields(510), {
+    tamanho25g: 20,
+    tamanho30g: 17,
+  });
 });

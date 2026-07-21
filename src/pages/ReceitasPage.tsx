@@ -18,7 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { parseDecimalInput } from '@/domain/numeros';
-import { summarizeRecipeMass } from '@/domain/receitas';
+import { calculateCommercialRecipeYields, summarizeRecipeMass } from '@/domain/receitas';
 
 const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
 type Uom = (typeof UOM_OPTIONS)[number];
@@ -154,10 +154,7 @@ export function ReceitasPage() {
 
   const [newRecipe, setNewRecipe] = useState({ nome: '' });
   const [savingRecipe, setSavingRecipe] = useState(false);
-  const [newVersion, setNewVersion] = useState({
-    peso_unitario_base_g: '20',
-    status: 'draft' as RecipeVersionRow['status'],
-  });
+  const [savingFormula, setSavingFormula] = useState(false);
   const [newComponent, setNewComponent] = useState({
     stock_item_id: '',
     qty_per_batch: '',
@@ -220,7 +217,13 @@ export function ReceitasPage() {
       toast({ title: 'Erro ao carregar versões', description: error.message, variant: 'destructive' });
       return;
     }
-    const list = (data || []).map(toRecipeVersionRow);
+    const list = (data || [])
+      .map(toRecipeVersionRow)
+      .sort((a, b) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        return b.version_no - a.version_no;
+      });
     setVersions(list);
     if (!list.find((v) => v.id === selectedVersionId)) {
       setSelectedVersionId(list[0]?.id || '');
@@ -253,6 +256,10 @@ export function ReceitasPage() {
   const selectedRecipe = useMemo(() => recipes.find((r) => r.id === selectedRecipeId), [recipes, selectedRecipeId]);
   const selectedVersion = useMemo(() => versions.find((v) => v.id === selectedVersionId), [versions, selectedVersionId]);
   const selectedVersionMass = useMemo(() => summarizeRecipeMass(components), [components]);
+  const selectedVersionYields = useMemo(
+    () => calculateCommercialRecipeYields(selectedVersionMass.totalGrams),
+    [selectedVersionMass.totalGrams],
+  );
 
   /** Insumos disponíveis vêm direto do Estoque (tabela `insumos`). */
   const insumosStock = useMemo(
@@ -290,33 +297,31 @@ export function ReceitasPage() {
     }
   };
 
-  const addVersion = async () => {
+  const addFormula = async () => {
     if (!user || !selectedRecipeId) return;
-    const pesoUnit = parseDecimalInput(newVersion.peso_unitario_base_g);
-    if (!pesoUnit || pesoUnit <= 0) {
-      toast({ title: 'Informe o peso unitário base (g).', variant: 'destructive' });
-      return;
-    }
+    setSavingFormula(true);
 
-    const nextVersion = (versions[0]?.version_no || 0) + 1;
-    const version: RecipeVersionInsert = {
-      user_id: user.id,
-      recipe_id: selectedRecipeId,
-      version_no: nextVersion,
-      status: newVersion.status,
-      yield_qty: 1, // atualizado automaticamente após inserir os insumos
-      peso_total_massa_g: null,
-      peso_unitario_base_g: pesoUnit,
-    };
+    try {
+      const version: RecipeVersionInsert = {
+        user_id: user.id,
+        recipe_id: selectedRecipeId,
+        version_no: 1,
+        status: 'active',
+        yield_qty: 1, // atualizado automaticamente após inserir os insumos
+        peso_total_massa_g: null,
+        peso_unitario_base_g: 25,
+      };
 
-    const { error } = await supabase.from('recipe_versions').insert(version);
-    if (error) {
-      toast({ title: 'Erro ao criar versão', description: error.message, variant: 'destructive' });
-      return;
+      const { error } = await supabase.from('recipe_versions').insert(version);
+      if (error) {
+        toast({ title: 'Erro ao criar ficha da massa', description: error.message, variant: 'destructive' });
+        return;
+      }
+      await loadVersions();
+      toast({ title: 'Ficha da massa criada' });
+    } finally {
+      setSavingFormula(false);
     }
-    setNewVersion({ peso_unitario_base_g: '20', status: 'draft' });
-    await loadVersions();
-    toast({ title: 'Versão criada' });
   };
 
   const syncVersionMass = useCallback(
@@ -404,25 +409,6 @@ export function ReceitasPage() {
     toast({ title: 'Insumo adicionado' });
   };
 
-  const setVersionActive = async (versionId: string) => {
-    if (!selectedRecipeId) return;
-    const archiveActiveVersion: RecipeVersionUpdate = { status: 'archived' };
-    const activateVersion: RecipeVersionUpdate = { status: 'active' };
-
-    await supabase
-      .from('recipe_versions')
-      .update(archiveActiveVersion)
-      .eq('recipe_id', selectedRecipeId)
-      .eq('status', 'active');
-    const { error } = await supabase.from('recipe_versions').update(activateVersion).eq('id', versionId);
-    if (error) {
-      toast({ title: 'Erro ao ativar versão', description: error.message, variant: 'destructive' });
-      return;
-    }
-    await loadVersions();
-    toast({ title: 'Versão ativa atualizada' });
-  };
-
   // ===== Exclusões =====
   const doDeleteRecipe = async (id: string) => {
     const updates: RecipeUpdate = {
@@ -456,7 +442,7 @@ export function ReceitasPage() {
     if (!prodErr && count && count > 0) {
       toast({
         title: 'Não é possível excluir',
-        description: 'Existe produção vinculada a esta versão.',
+        description: 'Existe produção vinculada a esta ficha da massa.',
         variant: 'destructive',
       });
       return;
@@ -466,12 +452,12 @@ export function ReceitasPage() {
     await supabase.from('recipe_components').delete().eq('recipe_version_id', id);
     const { error } = await supabase.from('recipe_versions').delete().eq('id', id);
     if (error) {
-      toast({ title: 'Erro ao excluir versão', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao excluir ficha da massa', description: error.message, variant: 'destructive' });
       return;
     }
     if (selectedVersionId === id) setSelectedVersionId('');
     await loadVersions();
-    toast({ title: 'Versão excluída' });
+    toast({ title: 'Ficha da massa excluída' });
   };
 
   const doDeleteComponent = async (id: string) => {
@@ -564,138 +550,48 @@ export function ReceitasPage() {
         </div>
       </div>
 
-      {/* Versões */}
-      {selectedRecipe && (
+      {/* Ficha da massa */}
+      {selectedRecipe && !selectedVersion && (
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Versões — {selectedRecipe.nome}</h2>
-          </div>
-
-          <div className="rounded-lg border border-dashed border-border p-4 space-y-3 bg-muted/30">
-            <p className="text-sm font-medium">Nova versão</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <Label htmlFor="receita-versao-peso-unitario" className="text-xs">Peso unitário base (g)</Label>
-                <Input
-                  id="receita-versao-peso-unitario"
-                  type="text"
-                  inputMode="decimal"
-                  value={newVersion.peso_unitario_base_g}
-                  onChange={(e) => setNewVersion((p) => ({ ...p, peso_unitario_base_g: e.target.value }))}
-                  placeholder="Ex: 20,5"
-                />
-              </div>
-              <div>
-                <Label htmlFor="receita-versao-status" className="text-xs">Status</Label>
-                <select
-                  id="receita-versao-status"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={newVersion.status}
-                  onChange={(e) =>
-                    setNewVersion((p) => ({ ...p, status: e.target.value as RecipeVersionRow['status'] }))
-                  }
-                >
-                  <option value="draft">Rascunho</option>
-                  <option value="active">Ativa</option>
-                  <option value="archived">Arquivada</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <Button onClick={addVersion} className="w-full">
-                  <Plus className="w-4 h-4 mr-2" /> Criar versão
-                </Button>
-              </div>
+          <h2 className="font-semibold">Ficha da massa — {selectedRecipe.nome}</h2>
+          <div className="rounded-lg border border-dashed border-border p-4 bg-muted/30 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-medium">Nenhuma ficha criada para essa receita.</p>
+              <p className="text-sm text-muted-foreground">
+                Crie a ficha para adicionar os insumos e calcular automaticamente o rendimento em 25g e 30g.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              O peso total da massa será preenchido automaticamente após adicionar os insumos da versão. Padrão: 20g por brigadeiro (receitas com cobertura). Tradicionais ficam em ~25g.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            {versions.map((v) => {
-              const pt = Number(v.peso_total_massa_g ?? 0);
-              const pu = Number(v.peso_unitario_base_g ?? 20);
-              const rendimento = pu > 0 ? Math.floor(pt / pu) : 0;
-              const isSelected = selectedVersionId === v.id;
-              return (
-                <div
-                  key={v.id}
-                  className={`border rounded-lg p-4 transition ${
-                    isSelected ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <button
-                      className="text-left flex-1"
-                      onClick={() => setSelectedVersionId(v.id)}
-                      aria-label={`Selecionar versão ${v.version_no}`}
-                      aria-pressed={isSelected}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">v{v.version_no}</span>
-                        <span
-                          className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                            v.status === 'active'
-                              ? 'bg-primary/15 text-primary'
-                              : v.status === 'draft'
-                              ? 'bg-muted text-muted-foreground'
-                              : 'bg-secondary text-secondary-foreground'
-                          }`}
-                        >
-                          {v.status}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                        <span>
-                          <span className="text-muted-foreground">Massa:</span>{' '}
-                          <strong>{pt > 0 ? `${pt} g` : 'aguardando insumos'}</strong>
-                        </span>
-                        <span><span className="text-muted-foreground">Unitário:</span> <strong>{pu} g</strong></span>
-                        <span>
-                          <span className="text-muted-foreground">Rendimento:</span>{' '}
-                          <strong>{pt > 0 ? `≈ ${rendimento} brigadeiros` : '—'}</strong>
-                        </span>
-                      </div>
-                    </button>
-                    <div className="flex items-center gap-2">
-                      {v.status !== 'active' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setVersionActive(v.id)}
-                          disabled={pt <= 0}
-                          title={pt <= 0 ? 'Adicione insumos para calcular o peso antes de ativar' : undefined}
-                        >
-                          Definir ativa
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => setConfirm({ kind: 'version', id: v.id, label: `v${v.version_no}` })}
-                        aria-label={`Excluir versão ${v.version_no}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {versions.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma versão para essa receita.</p>}
+            <Button onClick={addFormula} disabled={savingFormula}>
+              {savingFormula ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              Criar ficha da massa
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Insumos da versão */}
+      {/* Insumos da massa */}
       {selectedVersion && (
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <div>
-            <h2 className="font-semibold">Insumos da versão</h2>
-            <p className="text-sm text-muted-foreground">
-              Informe as quantidades da receita. O peso total considera automaticamente insumos em g, kg, ml e l.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="font-semibold">
+                  Ficha da massa{selectedRecipe ? ` — ${selectedRecipe.nome}` : ''}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Informe as quantidades da receita. O peso total considera automaticamente insumos em g, kg, ml e l.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => setConfirm({ kind: 'version', id: selectedVersion.id, label: 'ficha da massa' })}
+                aria-label="Excluir ficha da massa"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -706,17 +602,15 @@ export function ReceitasPage() {
               </p>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Peso unitário base</p>
+              <p className="text-xs text-muted-foreground">Rendimento 25g</p>
               <p className="mt-1 font-display text-2xl font-semibold">
-                {selectedVersion.peso_unitario_base_g ?? 20} g
+                {selectedVersionMass.totalGrams > 0 ? `≈ ${selectedVersionYields.tamanho25g}` : '—'}
               </p>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Rendimento estimado</p>
+              <p className="text-xs text-muted-foreground">Rendimento 30g</p>
               <p className="mt-1 font-display text-2xl font-semibold">
-                {selectedVersionMass.totalGrams > 0
-                  ? `≈ ${Math.floor(selectedVersionMass.totalGrams / Number(selectedVersion.peso_unitario_base_g ?? 20))}`
-                  : '—'}
+                {selectedVersionMass.totalGrams > 0 ? `≈ ${selectedVersionYields.tamanho30g}` : '—'}
               </p>
             </div>
           </div>
@@ -829,8 +723,8 @@ export function ReceitasPage() {
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.kind === 'recipe' && `Excluir a receita "${confirm.nome}"? Ela será ocultada da listagem.`}
-              {confirm?.kind === 'version' && `Excluir a versão ${confirm.label}? Os insumos vinculados serão removidos.`}
-              {confirm?.kind === 'component' && `Remover o insumo "${confirm.label}" desta versão?`}
+              {confirm?.kind === 'version' && 'Excluir a ficha da massa? Os insumos vinculados serão removidos.'}
+              {confirm?.kind === 'component' && `Remover o insumo "${confirm.label}" desta massa?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
