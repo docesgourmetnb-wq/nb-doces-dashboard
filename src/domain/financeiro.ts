@@ -8,3 +8,16 @@ export function isFinancialControlDate(date: string) {
 export function isHistoricalFinancialOrder(dataEntrega: string) {
   return !isFinancialControlDate(dataEntrega);
 }
+
+export function isTransactionInFinancialPeriod(transactionDate: string, year: number, month: number) {
+  const monthKey = String(month).padStart(2, '0');
+  return transactionDate.startsWith(`${year}-${monthKey}-`);
+}
+
+export function calculateDeliveredAverageTicket(deliveredValue: number, deliveredOrders: number) {
+  if (!Number.isFinite(deliveredValue) || !Number.isFinite(deliveredOrders) || deliveredOrders <= 0) {
+    return 0;
+  }
+
+  return deliveredValue / deliveredOrders;
+}

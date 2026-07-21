@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  calculateDeliveredAverageTicket,
   FINANCIAL_CONTROL_START_DATE,
+  isTransactionInFinancialPeriod,
   isHistoricalFinancialOrder,
   isFinancialControlDate,
 } from './financeiro.ts';
@@ -17,4 +19,18 @@ test('isFinancialControlDate starts official finance on 2026-08-01', () => {
 test('isHistoricalFinancialOrder marks orders before official finance start', () => {
   assert.equal(isHistoricalFinancialOrder('2026-07-31'), true);
   assert.equal(isHistoricalFinancialOrder('2026-08-01'), false);
+});
+
+test('isTransactionInFinancialPeriod uses transaction date instead of delivery date', () => {
+  const paymentDate = '2026-07-21';
+  const deliveryDate = '2026-08-16';
+
+  assert.equal(isTransactionInFinancialPeriod(paymentDate, 2026, 7), true);
+  assert.equal(isTransactionInFinancialPeriod(paymentDate, 2026, 8), false);
+  assert.equal(isTransactionInFinancialPeriod(deliveryDate, 2026, 7), false);
+});
+
+test('calculateDeliveredAverageTicket uses delivered commercial value', () => {
+  assert.equal(calculateDeliveredAverageTicket(612.5, 2), 306.25);
+  assert.equal(calculateDeliveredAverageTicket(306.25, 0), 0);
 });
