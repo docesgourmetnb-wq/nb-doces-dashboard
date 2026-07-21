@@ -23,6 +23,13 @@ import { calculateCommercialRecipeYields, summarizeRecipeMass } from '@/domain/r
 const UOM_OPTIONS = ['g', 'kg', 'ml', 'l', 'un'] as const;
 type Uom = (typeof UOM_OPTIONS)[number];
 
+const DEFAULT_MASSA_BASE_COMPONENTS = [
+  { nome: 'Leite Condensado', qty_per_batch: 395, uom: 'g' as Uom },
+  { nome: 'Creme de Leite', qty_per_batch: 50, uom: 'g' as Uom },
+  { nome: 'Leite', qty_per_batch: 50, uom: 'ml' as Uom },
+  { nome: 'Manteiga', qty_per_batch: 15, uom: 'g' as Uom },
+] as const;
+
 type RecipeRow = {
   id: string;
   nome: string;
@@ -131,6 +138,14 @@ function toRecipeComponentRow(row: RecipeComponentListTableRow): RecipeComponent
     component_type: row.component_type as RecipeComponentRow['component_type'],
     waste_factor: row.waste_factor,
   };
+}
+
+function normalizeRecipeIngredientName(nome: string) {
+  return nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
 }
 
 type ConfirmState =
@@ -312,13 +327,102 @@ export function ReceitasPage() {
         peso_unitario_base_g: 25,
       };
 
-      const { error } = await supabase.from('recipe_versions').insert(version);
-      if (error) {
-        toast({ title: 'Erro ao criar ficha da massa', description: error.message, variant: 'destructive' });
+      const { data: createdVersion, error: versionError } = await supabase
+        .from('recipe_versions')
+        .insert(version)
+        .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
+        .single();
+      if (versionError || !createdVersion) {
+        toast({ title: 'Erro ao criar ficha da massa', description: versionError?.message, variant: 'destructive' });
         return;
       }
+
+      const nextStockItems = [...stockItems];
+      const missingIngredients: string[] = [];
+      const defaultComponents: RecipeComponentInsert[] = [];
+
+      for (const baseComponent of DEFAULT_MASSA_BASE_COMPONENTS) {
+        const normalizedBaseName = normalizeRecipeIngredientName(baseComponent.nome);
+        const insumo = insumosEstoque.find((item) => normalizeRecipeIngredientName(item.nome) === normalizedBaseName);
+
+        if (!insumo) {
+          missingIngredients.push(baseComponent.nome);
+          continue;
+        }
+
+        let stockItem = nextStockItems.find(
+          (item) =>
+            item.tipo === 'insumo' &&
+            normalizeRecipeIngredientName(item.nome) === normalizeRecipeIngredientName(insumo.nome),
+        );
+
+        if (!stockItem) {
+          const stockItemInsert: StockItemInsert = {
+            user_id: user.id,
+            nome: insumo.nome,
+            unidade_base: insumo.unidade,
+            tipo: 'insumo',
+          };
+
+          const { data: createdStockItem, error: stockError } = await supabase
+            .from('stock_items')
+            .insert(stockItemInsert)
+            .select('id,nome,unidade_base,tipo')
+            .single();
+
+          if (stockError || !createdStockItem) {
+            toast({ title: 'Erro ao vincular base padrão', description: stockError?.message, variant: 'destructive' });
+            return;
+          }
+
+          stockItem = toStockItemRow(createdStockItem);
+          nextStockItems.push(stockItem);
+        }
+
+        defaultComponents.push({
+          user_id: user.id,
+          recipe_version_id: createdVersion.id,
+          stock_item_id: stockItem.id,
+          qty_per_batch: baseComponent.qty_per_batch,
+          uom: baseComponent.uom,
+          component_type: 'base',
+          waste_factor: 0,
+          sort_order: defaultComponents.length,
+        });
+      }
+
+      let nextComponents: RecipeComponentRow[] = [];
+      if (defaultComponents.length > 0) {
+        const { data: createdComponents, error: componentsError } = await supabase
+          .from('recipe_components')
+          .insert(defaultComponents)
+          .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
+          .order('sort_order');
+
+        if (componentsError) {
+          toast({ title: 'Erro ao preencher base padrão', description: componentsError.message, variant: 'destructive' });
+          return;
+        }
+
+        nextComponents = (createdComponents || []).map(toRecipeComponentRow);
+      }
+
+      const createdVersionRow = toRecipeVersionRow(createdVersion);
+      setStockItems(nextStockItems);
+      setSelectedVersionId(createdVersionRow.id);
+      setVersions([createdVersionRow, ...versions]);
+      setComponents(nextComponents);
+      await syncVersionMass(createdVersionRow.id, nextComponents);
       await loadVersions();
-      toast({ title: 'Ficha da massa criada' });
+
+      if (missingIngredients.length > 0) {
+        toast({
+          title: 'Ficha criada com base parcial',
+          description: `Não encontrei no Estoque: ${missingIngredients.join(', ')}.`,
+        });
+      } else {
+        toast({ title: 'Ficha da massa criada com base padrão' });
+      }
     } finally {
       setSavingFormula(false);
     }
@@ -558,7 +662,7 @@ export function ReceitasPage() {
             <div>
               <p className="text-sm font-medium">Nenhuma ficha criada para essa receita.</p>
               <p className="text-sm text-muted-foreground">
-                Crie a ficha para adicionar os insumos e calcular automaticamente o rendimento em 25g e 30g.
+                Crie a ficha com a base padrão e ajuste os insumos quando a massa tiver alguma diferença.
               </p>
             </div>
             <Button onClick={addFormula} disabled={savingFormula}>
