@@ -335,36 +335,42 @@ export function ReceitasPage() {
     setSavingFormula(true);
 
     try {
-      const { data: existingVersions, error: existingVersionsError } = await supabase
-        .from('recipe_versions')
-        .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
-        .eq('recipe_id', selectedRecipeId)
-        .order('version_no', { ascending: false });
+      let formulaVersion = selectedVersion ?? versions[0] ?? null;
 
-      if (existingVersionsError) {
-        toast({
-          title: 'Erro ao verificar ficha da massa',
-          description: existingVersionsError.message,
-          variant: 'destructive',
-        });
-        return;
+      if (!formulaVersion) {
+        const { data: existingVersions, error: existingVersionsError } = await supabase
+          .from('recipe_versions')
+          .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
+          .eq('recipe_id', selectedRecipeId)
+          .order('version_no', { ascending: false });
+
+        if (existingVersionsError) {
+          toast({
+            title: 'Erro ao verificar ficha da massa',
+            description: existingVersionsError.message,
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const existingVersionRows = (existingVersions || [])
+          .map(toRecipeVersionRow)
+          .sort((a, b) => {
+            if (a.status === 'active' && b.status !== 'active') return -1;
+            if (a.status !== 'active' && b.status === 'active') return 1;
+            return b.version_no - a.version_no;
+          });
+
+        formulaVersion = existingVersionRows[0] ?? null;
+        if (existingVersionRows.length > 0) {
+          setVersions(existingVersionRows);
+        }
       }
-
-      const existingVersionRows = (existingVersions || [])
-        .map(toRecipeVersionRow)
-        .sort((a, b) => {
-          if (a.status === 'active' && b.status !== 'active') return -1;
-          if (a.status !== 'active' && b.status === 'active') return 1;
-          return b.version_no - a.version_no;
-        });
-
-      let formulaVersion = existingVersionRows[0] ?? null;
 
       if (formulaVersion) {
         const currentComponents = await fetchComponentsForVersion(formulaVersion.id);
         if (currentComponents === null) return;
 
-        setVersions(existingVersionRows);
         setSelectedVersionId(formulaVersion.id);
 
         if (currentComponents.length > 0) {
@@ -874,7 +880,17 @@ export function ReceitasPage() {
                 {components.length === 0 && (
                   <tr>
                     <td colSpan={4} className="py-6 text-center text-muted-foreground">
-                      Nenhum insumo adicionado.
+                      <div className="flex flex-col items-center gap-3">
+                        <span>Nenhum insumo adicionado.</span>
+                        <Button onClick={addFormula} disabled={savingFormula} size="sm">
+                          {savingFormula ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Plus className="w-4 h-4 mr-2" />
+                          )}
+                          Preencher base padrão
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 )}
