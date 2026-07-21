@@ -337,19 +337,13 @@ export type Database = {
         Row: {
           brigadeiro_id: string | null
           brigadeiro_nome: string
-          consumir_estoque: boolean
           created_at: string
           custo_total: number
           data: string
           deleted_at: string | null
           deleted_reason: string | null
           id: string
-          insumos_consumidos_at: string | null
           quantidade: number
-          observacoes: string | null
-          recipe_version_id: string | null
-          rendimento_previsto: number | null
-          rendimento_real: number | null
           status: string
           updated_at: string
           user_id: string
@@ -357,19 +351,13 @@ export type Database = {
         Insert: {
           brigadeiro_id?: string | null
           brigadeiro_nome: string
-          consumir_estoque?: boolean
           created_at?: string
           custo_total?: number
           data?: string
           deleted_at?: string | null
           deleted_reason?: string | null
           id?: string
-          insumos_consumidos_at?: string | null
           quantidade?: number
-          observacoes?: string | null
-          recipe_version_id?: string | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
           status?: string
           updated_at?: string
           user_id: string
@@ -377,19 +365,13 @@ export type Database = {
         Update: {
           brigadeiro_id?: string | null
           brigadeiro_nome?: string
-          consumir_estoque?: boolean
           created_at?: string
           custo_total?: number
           data?: string
           deleted_at?: string | null
           deleted_reason?: string | null
           id?: string
-          insumos_consumidos_at?: string | null
           quantidade?: number
-          observacoes?: string | null
-          recipe_version_id?: string | null
-          rendimento_previsto?: number | null
-          rendimento_real?: number | null
           status?: string
           updated_at?: string
           user_id?: string
