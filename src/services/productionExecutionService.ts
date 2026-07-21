@@ -14,6 +14,11 @@ export interface ExecuteProductionResult {
   movement_count: number;
 }
 
+export interface CompleteMassProductionResult {
+  producao_id: string;
+  movement_count: number;
+}
+
 interface ExecuteProductionRpcParams {
   p_recipe_version_id: string;
   p_output_item_id: string;
@@ -29,6 +34,21 @@ interface ExecuteProductionRpc {
     params: ExecuteProductionRpcParams,
   ): Promise<{
     data: ExecuteProductionResult[] | ExecuteProductionResult | null;
+    error: Error | null;
+  }>;
+}
+
+interface CompleteMassProductionRpcParams {
+  p_producao_id: string;
+  p_rendimento_real: number | null;
+}
+
+interface CompleteMassProductionRpc {
+  (
+    fn: 'complete_mass_production',
+    params: CompleteMassProductionRpcParams,
+  ): Promise<{
+    data: CompleteMassProductionResult[] | CompleteMassProductionResult | null;
     error: Error | null;
   }>;
 }
@@ -61,6 +81,28 @@ export async function executeProductionOrder(payload: ExecuteProductionPayload):
   }
 
   return result as ExecuteProductionResult;
+}
+
+export async function completeMassProduction(payload: {
+  producaoId: string;
+  rendimentoReal?: number | null;
+}): Promise<CompleteMassProductionResult> {
+  const executeRpc = supabase.rpc.bind(supabase) as unknown as CompleteMassProductionRpc;
+  const { data, error } = await executeRpc('complete_mass_production', {
+    p_producao_id: payload.producaoId,
+    p_rendimento_real: payload.rendimentoReal ?? null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const result = Array.isArray(data) ? data[0] : (data ?? null);
+  if (!result?.producao_id) {
+    throw new Error('Falha ao concluir produção: resposta inválida da RPC.');
+  }
+
+  return result as CompleteMassProductionResult;
 }
 
 export function buildProductionIdempotencyKey(seed: {
