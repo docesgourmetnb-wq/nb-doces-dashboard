@@ -345,8 +345,8 @@ export type Database = {
           deleted_reason: string | null
           id: string
           insumos_consumidos_at: string | null
-          quantidade: number
           observacoes: string | null
+          quantidade: number
           recipe_version_id: string | null
           rendimento_previsto: number | null
           rendimento_real: number | null
@@ -365,8 +365,8 @@ export type Database = {
           deleted_reason?: string | null
           id?: string
           insumos_consumidos_at?: string | null
-          quantidade?: number
           observacoes?: string | null
+          quantidade?: number
           recipe_version_id?: string | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
@@ -385,8 +385,8 @@ export type Database = {
           deleted_reason?: string | null
           id?: string
           insumos_consumidos_at?: string | null
-          quantidade?: number
           observacoes?: string | null
+          quantidade?: number
           recipe_version_id?: string | null
           rendimento_previsto?: number | null
           rendimento_real?: number | null
@@ -401,6 +401,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "brigadeiros"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_diaria_recipe_version_owner_fkey"
+            columns: ["user_id", "recipe_version_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_versions"
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -655,6 +662,62 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          direction: Database["public"]["Enums"]["movement_direction"]
+          id: string
+          idempotency_key: string | null
+          occurred_at: string
+          quantity: number
+          reason: Database["public"]["Enums"]["movement_reason"]
+          reference_id: string | null
+          reference_type: string | null
+          stock_item_id: string
+          uom: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          direction: Database["public"]["Enums"]["movement_direction"]
+          id?: string
+          idempotency_key?: string | null
+          occurred_at?: string
+          quantity: number
+          reason: Database["public"]["Enums"]["movement_reason"]
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_item_id: string
+          uom: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          direction?: Database["public"]["Enums"]["movement_direction"]
+          id?: string
+          idempotency_key?: string | null
+          occurred_at?: string
+          quantity?: number
+          reason?: Database["public"]["Enums"]["movement_reason"]
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_item_id?: string
+          uom?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_stock_item_owner_fkey"
+            columns: ["user_id", "stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       transacoes: {
         Row: {
           categoria: string
@@ -697,6 +760,13 @@ export type Database = {
     }
     Functions: {
       can_access_module: { Args: { p_module: string }; Returns: boolean }
+      complete_mass_production: {
+        Args: { p_producao_id: string; p_rendimento_real?: number }
+        Returns: {
+          movement_count: number
+          producao_id: string
+        }[]
+      }
       create_pedido_with_items: {
         Args: {
           p_canal_venda?: string
@@ -774,6 +844,10 @@ export type Database = {
           vendas_total: number
         }[]
       }
+      get_stock_balance: {
+        Args: { p_stock_item_id: string; p_user_id: string }
+        Returns: number
+      }
       update_pedido_payment: {
         Args: { p_pedido_id: string; p_valor_pago: number }
         Returns: {
@@ -843,6 +917,15 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "operator" | "viewer"
+      movement_direction: "in" | "out"
+      movement_reason:
+        | "saldo_inicial"
+        | "compra"
+        | "ajuste_manual"
+        | "producao_consumo"
+        | "producao_saida"
+        | "venda"
+        | "perda"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -971,6 +1054,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "operator", "viewer"],
+      movement_direction: ["in", "out"],
+      movement_reason: [
+        "saldo_inicial",
+        "compra",
+        "ajuste_manual",
+        "producao_consumo",
+        "producao_saida",
+        "venda",
+        "perda",
+      ],
     },
   },
 } as const
