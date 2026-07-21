@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from 'lucide-react';
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
 import {
@@ -8,10 +8,7 @@ import {
   getProducaoStatusBadgeClass,
   isProducaoConcluida,
 } from '@/domain/producao';
-import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { supabase } from '@/integrations/supabase/client';
-import { suggestProductionIntegration } from '@/domain/producaoIntegrada';
-import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { parseIntegerInput } from '@/domain/numeros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { cn, formatCurrencyBRL, formatLocalDate, parseLocalDate } from '@/lib/utils';
+import { cn, formatLocalDate, parseLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -43,74 +40,52 @@ interface RecipeOption {
   recipeType: string;
   versionNo: number;
   yieldQty: number;
+  yieldUom: string;
 }
 
-interface OutputItemOption {
-  id: string;
+interface RecipeIngredientPreview {
+  recipeVersionId: string;
+  stockItemId: string;
   nome: string;
-  tipo: string;
-  unidadeBase: string;
+  qtyPerBatch: number;
+  uom: string;
 }
 
 type RecipeVersionOptionRow = {
   id: string;
   version_no: number;
   yield_qty: number | string;
-  recipes?: { nome?: string; tipo?: string } | null;
+  recipes?: { nome?: string; tipo?: string; yield_uom?: string } | null;
 };
 
-type StockItemOptionRow = {
+type RecipeComponentOptionRow = {
+  recipe_version_id: string;
+  stock_item_id: string;
+  qty_per_batch: number | string;
+  uom: string;
+};
+
+type StockItemNameRow = {
   id: string;
   nome: string;
-  tipo: string;
-  unidade_base: string;
 };
-
-const typeLabel: Record<string, string> = {
-  consumo: 'Consumo',
-  massa_base: 'Massa base',
-  produto_final: 'Produto final',
-};
-
-type TamanhoProdutoFilter = 'todos' | '25g' | '30g';
-
-const tamanhoProdutoFilters: Array<{ value: TamanhoProdutoFilter; label: string }> = [
-  { value: 'todos', label: 'Todos' },
-  { value: '25g', label: '25g' },
-  { value: '30g', label: '30g' },
-];
-
-function getTamanhoSortValue(tamanho: string | null) {
-  return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
-}
-
-function sortByProdutoNomeETamanho<T extends { nome?: string | null | undefined }>(a: T, b: T) {
-  const nomeA = a.nome || '';
-  const nomeB = b.nome || '';
-  const nomeBaseCompare = getProdutoNomeBase(nomeA).localeCompare(getProdutoNomeBase(nomeB), 'pt-BR');
-  if (nomeBaseCompare !== 0) return nomeBaseCompare;
-  return getTamanhoSortValue(getProdutoTamanho(nomeA)) - getTamanhoSortValue(getProdutoTamanho(nomeB));
-}
 
 export function ProducaoPage() {
   const {
     producao, loading, showDeleted, setShowDeleted,
     addProducao, updateProducaoStatus, updateProducao, cancelProducao,
   } = useProducao();
-  const { brigadeiros } = useBrigadeiros();
   const [recipeOptions, setRecipeOptions] = useState<RecipeOption[]>([]);
-  const [outputItemOptions, setOutputItemOptions] = useState<OutputItemOption[]>([]);
+  const [recipeIngredients, setRecipeIngredients] = useState<Record<string, RecipeIngredientPreview[]>>({});
   const [loadingIntegrationOptions, setLoadingIntegrationOptions] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<TamanhoProdutoFilter>('todos');
   const [formData, setFormData] = useState({
     data: format(new Date(), 'yyyy-MM-dd'),
-    brigadeiro_id: '',
-    quantidade: '',
-    integrar_estoque: false,
     recipe_version_id: '',
-    output_item_id: '',
+    bateladas: '',
+    integrar_estoque: false,
+    observacoes: '',
   });
 
   // Edit state
@@ -132,20 +107,20 @@ export function ProducaoPage() {
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const activeProducao = producao.filter(p => !p.deleted_at);
-  const totalUnidadesHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.quantidade, 0);
-  const totalCustoHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.custo_total, 0);
-  const quantidadeProducao = parseIntegerInput(formData.quantidade);
-  const quantidadeProducaoValida = Number.isInteger(quantidadeProducao) && quantidadeProducao > 0;
+  const totalBateladasHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.quantidade, 0);
+  const producoesHoje = activeProducao.filter(p => p.data === today).length;
+  const bateladasProducao = parseIntegerInput(formData.bateladas);
+  const bateladasProducaoValida = Number.isInteger(bateladasProducao) && bateladasProducao > 0;
   const quantidadeEdicao = parseIntegerInput(editData.quantidade);
   const quantidadeEdicaoValida = Number.isInteger(quantidadeEdicao) && quantidadeEdicao > 0;
-  const brigadeirosDisponiveis = useMemo(() => {
-    return brigadeiros
-      .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanho(brigadeiro.nome);
-        return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
-      })
-      .sort(sortByProdutoNomeETamanho);
-  }, [brigadeiros, tamanhoProdutoFilter]);
+  const selectedRecipe = recipeOptions.find((recipe) => recipe.id === formData.recipe_version_id);
+  const selectedIngredients = selectedRecipe ? recipeIngredients[selectedRecipe.id] || [] : [];
+  const rendimentoPrevisto = selectedRecipe && bateladasProducaoValida
+    ? selectedRecipe.yieldQty * bateladasProducao
+    : 0;
+  const consumoAutomaticoLabel = formData.integrar_estoque
+    ? 'Os insumos serão consumidos ao concluir a produção.'
+    : 'Planejamento sem consumo automático de insumos.';
 
   useEffect(() => {
     let mounted = true;
@@ -154,40 +129,66 @@ export function ProducaoPage() {
       setLoadingIntegrationOptions(true);
 
       try {
-        const [versionsResult, stockItemsResult] = await Promise.all([
-          supabase
-            .from('recipe_versions')
-            .select('id,version_no,yield_qty,recipes(nome,tipo)')
-            .eq('status', 'active')
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('stock_items')
-            .select('id,nome,tipo,unidade_base')
-            .in('tipo', ['massa_base', 'produto_final'])
-            .eq('ativo', true)
-            .order('nome', { ascending: true }),
-        ]);
+        const versionsResult = await supabase
+          .from('recipe_versions')
+          .select('id,version_no,yield_qty,recipes(nome,tipo,yield_uom)')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
 
         if (!mounted) return;
 
+        const recipeList: RecipeOption[] = [];
+
         if (!versionsResult.error) {
-          setRecipeOptions(((versionsResult.data || []) as RecipeVersionOptionRow[]).map((item) => ({
+          recipeList.push(...((versionsResult.data || []) as RecipeVersionOptionRow[]).map((item) => ({
             id: item.id,
             recipeName: item.recipes?.nome || 'Receita sem nome',
             recipeType: item.recipes?.tipo || 'receita',
             versionNo: item.version_no,
             yieldQty: Number(item.yield_qty || 0),
+            yieldUom: item.recipes?.yield_uom || 'g',
           })));
+          setRecipeOptions(recipeList);
         }
 
-        if (!stockItemsResult.error) {
-          setOutputItemOptions(((stockItemsResult.data || []) as StockItemOptionRow[]).map((item) => ({
-            id: item.id,
-            nome: item.nome,
-            tipo: item.tipo,
-            unidadeBase: item.unidade_base,
-          })));
+        const versionIds = recipeList.map((recipe) => recipe.id);
+        if (versionIds.length === 0) {
+          setRecipeIngredients({});
+          return;
         }
+
+        const componentsResult = await supabase
+          .from('recipe_components')
+          .select('recipe_version_id,stock_item_id,qty_per_batch,uom')
+          .in('recipe_version_id', versionIds)
+          .order('created_at', { ascending: true });
+
+        if (componentsResult.error) return;
+
+        const components = (componentsResult.data || []) as RecipeComponentOptionRow[];
+        const stockItemIds = Array.from(new Set(components.map((component) => component.stock_item_id)));
+        const stockItemsResult = stockItemIds.length > 0
+          ? await supabase.from('stock_items').select('id,nome').in('id', stockItemIds)
+          : { data: [], error: null };
+
+        if (stockItemsResult.error) return;
+
+        const stockNames = new Map(
+          ((stockItemsResult.data || []) as StockItemNameRow[]).map((item) => [item.id, item.nome]),
+        );
+        const ingredientsByVersion = components.reduce<Record<string, RecipeIngredientPreview[]>>((acc, component) => {
+          const item: RecipeIngredientPreview = {
+            recipeVersionId: component.recipe_version_id,
+            stockItemId: component.stock_item_id,
+            nome: stockNames.get(component.stock_item_id) || 'Insumo sem nome',
+            qtyPerBatch: Number(component.qty_per_batch || 0),
+            uom: component.uom,
+          };
+          acc[component.recipe_version_id] = [...(acc[component.recipe_version_id] || []), item];
+          return acc;
+        }, {});
+
+        setRecipeIngredients(ingredientsByVersion);
       } finally {
         if (mounted) setLoadingIntegrationOptions(false);
       }
@@ -200,72 +201,34 @@ export function ProducaoPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!formData.integrar_estoque || !formData.brigadeiro_id || loadingIntegrationOptions) return;
-
-    const brigadeiro = brigadeiros.find((item) => item.id === formData.brigadeiro_id);
-    if (!brigadeiro) return;
-
-    const suggestion = suggestProductionIntegration(brigadeiro.nome, recipeOptions, outputItemOptions);
-    if (!suggestion) return;
-
-    setFormData((current) => {
-      if (!current.integrar_estoque || current.brigadeiro_id !== brigadeiro.id) return current;
-
-      const nextRecipeVersionId = current.recipe_version_id || suggestion.recipeVersionId;
-      const nextOutputItemId = current.output_item_id || suggestion.outputItemId;
-      if (current.recipe_version_id === nextRecipeVersionId && current.output_item_id === nextOutputItemId) {
-        return current;
-      }
-
-      return {
-        ...current,
-        recipe_version_id: nextRecipeVersionId,
-        output_item_id: nextOutputItemId,
-      };
-    });
-  }, [
-    formData.integrar_estoque,
-    formData.brigadeiro_id,
-    brigadeiros,
-    loadingIntegrationOptions,
-    outputItemOptions,
-    recipeOptions,
-  ]);
-
   const handleAddProducao = async () => {
-    const brigadeiro = brigadeiros.find(b => b.id === formData.brigadeiro_id);
-    if (!brigadeiro) return;
-    if (!quantidadeProducaoValida) return;
-    const integrationOptions = {
-      enabled: formData.integrar_estoque,
-      notes: `Integração automática - ${brigadeiro.nome}`,
-      ...(formData.recipe_version_id ? { recipeVersionId: formData.recipe_version_id } : {}),
-      ...(formData.output_item_id ? { outputItemId: formData.output_item_id } : {}),
-    };
+    const recipe = recipeOptions.find((item) => item.id === formData.recipe_version_id);
+    if (!recipe) return;
+    if (!bateladasProducaoValida) return;
 
     setSaving(true);
     try {
       const novaProducao = await addProducao({
         data: formData.data,
-        brigadeiro_id: brigadeiro.id,
-        brigadeiro_nome: brigadeiro.nome,
-        quantidade: quantidadeProducao,
+        brigadeiro_id: null,
+        brigadeiro_nome: recipe.recipeName,
+        quantidade: bateladasProducao,
         custo_total: 0,
-        status: formData.integrar_estoque ? 'concluido' : 'planejado',
-      }, integrationOptions);
+        status: 'planejado',
+      }, {
+        enabled: false,
+        notes: formData.observacoes || `Planejamento de massa - ${recipe.recipeName}`,
+      });
       if (!novaProducao) return;
 
       setIsDialogOpen(false);
       setFormData({
         data: format(new Date(), 'yyyy-MM-dd'),
-        brigadeiro_id: '',
-        quantidade: '',
-        integrar_estoque: false,
         recipe_version_id: '',
-        output_item_id: '',
+        bateladas: '',
+        integrar_estoque: false,
+        observacoes: '',
       });
-      setTamanhoProdutoFilter('todos');
     } finally {
       setSaving(false);
     }
@@ -347,10 +310,7 @@ export function ProducaoPage() {
           <h1 className="font-display text-3xl font-semibold text-foreground">Produção</h1>
           <p className="text-muted-foreground mt-1">Planejamento e controle de produção</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) setTamanhoProdutoFilter('todos');
-        }}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus size={18} />
@@ -367,50 +327,49 @@ export function ProducaoPage() {
                 <Input id="producao-data" type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="producao-sabor">Produto</Label>
-                <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
-                  {tamanhoProdutoFilters.map((filter) => (
-                    <Button
-                      key={filter.value}
-                      type="button"
-                      size="sm"
-                      variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
-                      className="flex-1 sm:flex-none px-4"
-                      onClick={() => {
-                        setTamanhoProdutoFilter(filter.value);
-                        setFormData({ ...formData, brigadeiro_id: '' });
-                      }}
-                    >
-                      {filter.label}
-                    </Button>
-                  ))}
-                </div>
-                <Select value={formData.brigadeiro_id} onValueChange={(v) => setFormData({ ...formData, brigadeiro_id: v })}>
-                  <SelectTrigger id="producao-sabor"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+                <Label htmlFor="producao-receita">Receita ativa</Label>
+                <Select
+                  value={formData.recipe_version_id}
+                  onValueChange={(value) => setFormData({ ...formData, recipe_version_id: value })}
+                  disabled={loadingIntegrationOptions || recipeOptions.length === 0}
+                >
+                  <SelectTrigger
+                    id="producao-receita"
+                    aria-describedby={!loadingIntegrationOptions && recipeOptions.length === 0 ? 'producao-receita-error' : undefined}
+                  >
+                    <SelectValue placeholder="Selecione a receita da massa" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {brigadeirosDisponiveis.length === 0 ? (
+                    {recipeOptions.length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground text-center">
-                        Nenhum produto nesse tamanho
+                        Nenhuma receita ativa cadastrada
                       </div>
                     ) : (
-                      brigadeirosDisponiveis.map((brigadeiro) => {
-                        const tamanho = getProdutoTamanho(brigadeiro.nome);
-                        const nomeBase = getProdutoNomeBase(brigadeiro.nome);
-                        const label = tamanho ? `${nomeBase} • ${tamanho}` : brigadeiro.nome;
-
-                        return (
-                          <SelectItem key={brigadeiro.id} value={brigadeiro.id}>
-                            {label}
-                          </SelectItem>
-                        );
-                      })
+                      recipeOptions.map((recipe) => (
+                        <SelectItem key={recipe.id} value={recipe.id}>
+                          {recipe.recipeName}
+                        </SelectItem>
+                      ))
                     )}
                   </SelectContent>
                 </Select>
+                {!loadingIntegrationOptions && recipeOptions.length === 0 && (
+                  <p id="producao-receita-error" className="text-xs text-destructive">
+                    Cadastre uma ficha de receita ativa antes de planejar produção.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="producao-quantidade">Quantidade</Label>
-                <Input id="producao-quantidade" type="number" min="1" step="1" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} placeholder="Ex: 50" />
+                <Label htmlFor="producao-bateladas">Quantidade de receitas/bateladas</Label>
+                <Input
+                  id="producao-bateladas"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={formData.bateladas}
+                  onChange={(e) => setFormData({ ...formData, bateladas: e.target.value })}
+                  placeholder="Ex: 2"
+                />
               </div>
               <div className="rounded-lg border border-border p-3 space-y-3">
                 <div className="flex items-center gap-2">
@@ -422,83 +381,49 @@ export function ProducaoPage() {
                       setFormData({
                         ...formData,
                         integrar_estoque: checked,
-                        recipe_version_id: checked ? formData.recipe_version_id : '',
-                        output_item_id: checked ? formData.output_item_id : '',
                       });
                     }}
                   />
                   <Label htmlFor="integrar-estoque" className="cursor-pointer">Consumir estoque automaticamente</Label>
                 </div>
-                {formData.integrar_estoque && (
-                  <div className="space-y-2">
-                    {loadingIntegrationOptions ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Carregando receitas e itens de estoque...
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Selecione a receita ativa e o item que receberá a saída da produção.
-                      </p>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="producao-receita">Receita ativa</Label>
-                      <Select
-                        value={formData.recipe_version_id}
-                        onValueChange={(value) => setFormData({ ...formData, recipe_version_id: value })}
-                        disabled={loadingIntegrationOptions || recipeOptions.length === 0}
-                      >
-                        <SelectTrigger
-                          id="producao-receita"
-                          aria-describedby={!loadingIntegrationOptions && recipeOptions.length === 0 ? 'producao-receita-error' : undefined}
-                        >
-                          <SelectValue placeholder="Selecione a receita" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {recipeOptions.map((recipe) => (
-                            <SelectItem key={recipe.id} value={recipe.id}>
-                              {recipe.recipeName} v{recipe.versionNo} - {typeLabel[recipe.recipeType] || recipe.recipeType} ({recipe.yieldQty}g)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {!loadingIntegrationOptions && recipeOptions.length === 0 && (
-                        <p id="producao-receita-error" className="text-xs text-destructive">Nenhuma receita ativa cadastrada.</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="producao-item-saida">Item de saída</Label>
-                      <Select
-                        value={formData.output_item_id}
-                        onValueChange={(value) => setFormData({ ...formData, output_item_id: value })}
-                        disabled={loadingIntegrationOptions || outputItemOptions.length === 0}
-                      >
-                        <SelectTrigger
-                          id="producao-item-saida"
-                          aria-describedby={!loadingIntegrationOptions && outputItemOptions.length === 0 ? 'producao-item-saida-error' : undefined}
-                        >
-                          <SelectValue placeholder="Selecione o item produzido" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {outputItemOptions.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.nome} ({typeLabel[item.tipo] || item.tipo}, {item.unidadeBase})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {!loadingIntegrationOptions && outputItemOptions.length === 0 && (
-                        <p id="producao-item-saida-error" className="text-xs text-destructive">Nenhum item de saída cadastrado no estoque integrado.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  O planejamento não movimenta estoque. {consumoAutomaticoLabel}
+                </p>
               </div>
-              {formData.brigadeiro_id && quantidadeProducaoValida && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">
-                    Custo estimado: {formatCurrencyBRL(quantidadeProducao * (brigadeiros.find(b => b.id === formData.brigadeiro_id)?.custo_unitario || 0))}
-                  </p>
+              <div className="space-y-2">
+                <Label htmlFor="producao-observacoes">Observações</Label>
+                <Textarea
+                  id="producao-observacoes"
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                  placeholder="Ex: Produção para encomendas da semana"
+                />
+              </div>
+              {selectedRecipe && bateladasProducaoValida && (
+                <div className="p-3 bg-muted rounded-lg space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">{selectedRecipe.recipeName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Rendimento previsto: {rendimentoPrevisto.toLocaleString('pt-BR')} {selectedRecipe.yieldUom}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Ingredientes necessários</p>
+                    {selectedIngredients.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Nenhum insumo cadastrado na ficha da receita.</p>
+                    ) : (
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {selectedIngredients.map((ingredient) => (
+                          <li key={ingredient.stockItemId} className="flex justify-between gap-3">
+                            <span>{ingredient.nome}</span>
+                            <span className="font-medium text-foreground">
+                              {(ingredient.qtyPerBatch * bateladasProducao).toLocaleString('pt-BR')} {ingredient.uom}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               )}
               <Button
@@ -506,13 +431,12 @@ export function ProducaoPage() {
                 className="w-full"
                 disabled={
                   saving ||
-                  !formData.brigadeiro_id ||
-                  !quantidadeProducaoValida ||
-                  (formData.integrar_estoque && (!formData.recipe_version_id || !formData.output_item_id))
+                  !formData.recipe_version_id ||
+                  !bateladasProducaoValida
                 }
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {formData.integrar_estoque ? 'Executar Produção Integrada' : 'Adicionar à Produção'}
+                Planejar Produção
               </Button>
             </div>
           </DialogContent>
@@ -522,12 +446,12 @@ export function ProducaoPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <p className="text-sm text-muted-foreground">Produção de Hoje</p>
-          <p className="text-3xl font-display font-semibold mt-1">{totalUnidadesHoje} un.</p>
+          <p className="text-sm text-muted-foreground">Bateladas Hoje</p>
+          <p className="text-3xl font-display font-semibold mt-1">{totalBateladasHoje}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <p className="text-sm text-muted-foreground">Custo Total Hoje</p>
-          <p className="text-3xl font-display font-semibold mt-1">{formatCurrencyBRL(totalCustoHoje)}</p>
+          <p className="text-sm text-muted-foreground">Produções Hoje</p>
+          <p className="text-3xl font-display font-semibold mt-1">{producoesHoje}</p>
         </div>
       </div>
 
@@ -547,7 +471,7 @@ export function ProducaoPage() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            A produção de <strong>{editConfirmItem?.brigadeiro_nome}</strong> já está concluída. Editar pode afetar os custos calculados. Deseja continuar?
+            A produção de <strong>{editConfirmItem?.brigadeiro_nome}</strong> já está concluída. Editar pode afetar o controle da massa. Deseja continuar?
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditConfirmItem(null)}>Cancelar</Button>
@@ -566,7 +490,7 @@ export function ProducaoPage() {
               <Input id="producao-edit-data" type="date" value={editData.data} onChange={(e) => setEditData({ ...editData, data: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="producao-edit-quantidade">Quantidade</Label>
+              <Label htmlFor="producao-edit-quantidade">Bateladas</Label>
               <Input id="producao-edit-quantidade" type="number" min="1" step="1" value={editData.quantidade} onChange={(e) => setEditData({ ...editData, quantidade: e.target.value })} />
             </div>
             <div className="space-y-2">
@@ -594,7 +518,7 @@ export function ProducaoPage() {
           <DialogHeader><DialogTitle className="font-display">Cancelar Produção</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Cancelar <strong>{cancelItem?.brigadeiro_nome}</strong> ({cancelItem?.quantidade} un.)?
+              Cancelar <strong>{cancelItem?.brigadeiro_nome}</strong> ({cancelItem?.quantidade} batelada(s))?
             </p>
             <div className="space-y-2">
               <Label htmlFor="producao-cancel-reason">Motivo (opcional)</Label>
@@ -630,23 +554,16 @@ export function ProducaoPage() {
               <div className="divide-y divide-border">
                 {(producaoByDate[dateKey] || []).map((item) => {
                   const isDeleted = !!item.deleted_at;
-                  const produtoBase = getProdutoNomeBase(item.brigadeiro_nome);
-                  const produtoTamanho = getProdutoTamanho(item.brigadeiro_nome);
 
                   return (
                     <div key={item.id} className={cn("p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4", isDeleted && "opacity-50")}>
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          {produtoTamanho && (
-                            <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                              {produtoTamanho}
-                            </span>
-                          )}
-                          <h4 className="font-medium">{produtoBase}</h4>
+                          <h4 className="font-medium">{item.brigadeiro_nome}</h4>
                           {isDeleted && <span className="text-xs text-destructive font-normal">(Cancelada)</span>}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {item.quantidade} unidades • Custo: {formatCurrencyBRL(item.custo_total)}
+                          {item.quantidade} batelada(s)
                         </p>
                         {isDeleted && item.deleted_reason && (
                           <p className="text-xs text-muted-foreground mt-1">Motivo: {item.deleted_reason}</p>
