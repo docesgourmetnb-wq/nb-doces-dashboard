@@ -119,6 +119,9 @@ export function ProducaoPage() {
   const rendimentoPrevisto = selectedRecipe && bateladasProducaoValida
     ? selectedRecipe.yieldQty * bateladasProducao
     : 0;
+  const rendimentoPrevistoUom = selectedRecipe?.yieldUom === 'lote'
+    ? 'g'
+    : selectedRecipe?.yieldUom || 'g';
   const consumoAutomaticoLabel = formData.integrar_estoque
     ? 'Os insumos serão consumidos ao concluir a produção.'
     : 'Planejamento sem consumo automático de insumos.';
@@ -321,7 +324,7 @@ export function ProducaoPage() {
               Planejar Produção
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-display">Nova Produção</DialogTitle>
             </DialogHeader>
@@ -408,7 +411,7 @@ export function ProducaoPage() {
                   <div>
                     <p className="text-sm font-medium">{selectedRecipe.recipeName}</p>
                     <p className="text-sm text-muted-foreground">
-                      Rendimento previsto: {rendimentoPrevisto.toLocaleString('pt-BR')} {selectedRecipe.yieldUom}
+                      Rendimento previsto: {rendimentoPrevisto.toLocaleString('pt-BR')} {rendimentoPrevistoUom}
                     </p>
                   </div>
                   <div>
