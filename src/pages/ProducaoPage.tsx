@@ -217,6 +217,9 @@ export function ProducaoPage() {
         status: 'planejado',
       }, {
         enabled: false,
+        recipeVersionId: recipe.id,
+        consumeStockOnCompletion: formData.integrar_estoque,
+        expectedYield: rendimentoPrevisto,
         notes: formData.observacoes || `Planejamento de massa - ${recipe.recipeName}`,
       });
       if (!novaProducao) return;
@@ -565,6 +568,16 @@ export function ProducaoPage() {
                         <p className="text-sm text-muted-foreground">
                           {item.quantidade} batelada(s)
                         </p>
+                        {item.rendimento_previsto ? (
+                          <p className="text-xs text-muted-foreground">
+                            Rendimento previsto: {Number(item.rendimento_previsto).toLocaleString('pt-BR')} g
+                          </p>
+                        ) : null}
+                        {item.consumir_estoque && (
+                          <p className="text-xs text-muted-foreground">
+                            {item.insumos_consumidos_at ? 'Insumos consumidos' : 'Consumir insumos ao concluir'}
+                          </p>
+                        )}
                         {isDeleted && item.deleted_reason && (
                           <p className="text-xs text-muted-foreground mt-1">Motivo: {item.deleted_reason}</p>
                         )}

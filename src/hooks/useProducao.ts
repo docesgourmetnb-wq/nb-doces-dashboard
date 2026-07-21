@@ -3,7 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { type ProducaoStatus } from '@/domain/producao';
-import { buildProductionIdempotencyKey, executeProductionOrder } from '@/services/productionExecutionService';
+import {
+  buildProductionIdempotencyKey,
+  completeMassProduction,
+  executeProductionOrder,
+} from '@/services/productionExecutionService';
 
 export interface ProducaoDiaria {
   id: string;
@@ -13,6 +17,12 @@ export interface ProducaoDiaria {
   quantidade: number;
   custo_total: number;
   status: ProducaoStatus;
+  recipe_version_id?: string | null;
+  consumir_estoque?: boolean;
+  insumos_consumidos_at?: string | null;
+  rendimento_previsto?: number | null;
+  rendimento_real?: number | null;
+  observacoes?: string | null;
   deleted_at?: string | null;
   deleted_reason?: string | null;
 }
@@ -69,6 +79,8 @@ export function useProducao() {
       enabled: boolean;
       recipeVersionId?: string;
       outputItemId?: string;
+      consumeStockOnCompletion?: boolean;
+      expectedYield?: number | null;
       notes?: string;
     }
   ) => {
@@ -103,6 +115,10 @@ export function useProducao() {
           quantidade: item.quantidade,
           custo_total: item.custo_total,
           status: item.status,
+          recipe_version_id: integration?.recipeVersionId ?? item.recipe_version_id ?? null,
+          consumir_estoque: integration?.consumeStockOnCompletion ?? item.consumir_estoque ?? false,
+          rendimento_previsto: integration?.expectedYield ?? item.rendimento_previsto ?? null,
+          observacoes: integration?.notes ?? item.observacoes ?? null,
           user_id: user.id,
         })
         .select()
@@ -124,6 +140,16 @@ export function useProducao() {
 
   const updateProducaoStatus = async (id: string, status: ProducaoDiaria['status']) => {
     try {
+      const item = producao.find((p) => p.id === id);
+      if (status === 'concluido' && item?.recipe_version_id) {
+        const result = await completeMassProduction({ producaoId: id });
+        await fetchProducao();
+        toast({
+          title: result.movement_count > 0 ? 'Produção concluída e insumos consumidos!' : 'Produção concluída!',
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('producao_diaria')
         .update({ status })
@@ -143,9 +169,34 @@ export function useProducao() {
 
   const updateProducao = async (id: string, updates: { data?: string; quantidade?: number; status?: ProducaoDiaria['status'] }) => {
     try {
+      const shouldComplete = updates.status === 'concluido';
+      const nonStatusUpdates = { ...updates };
+      if (shouldComplete) delete nonStatusUpdates.status;
+
+      if (Object.keys(nonStatusUpdates).length > 0) {
+        const { error } = await supabase
+          .from('producao_diaria')
+          .update(nonStatusUpdates)
+          .eq('id', id);
+
+        if (error) throw error;
+      }
+
+      if (shouldComplete) {
+        const item = producao.find((p) => p.id === id);
+        if (item?.recipe_version_id) {
+          const result = await completeMassProduction({ producaoId: id });
+          await fetchProducao();
+          toast({
+            title: result.movement_count > 0 ? 'Produção concluída e insumos consumidos!' : 'Produção concluída!',
+          });
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('producao_diaria')
-        .update(updates)
+        .update(shouldComplete ? { status: 'concluido' } : updates)
         .eq('id', id);
 
       if (error) throw error;
