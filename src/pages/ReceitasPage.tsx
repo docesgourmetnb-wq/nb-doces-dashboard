@@ -250,11 +250,11 @@ export function ReceitasPage() {
       setComponents([]);
       return [];
     }
-    const { data, error } = await supabase
-      .from('recipe_components')
-      .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
-      .eq('recipe_version_id', selectedVersionId)
-      .order('sort_order');
+      const { data, error } = await supabase
+        .from('recipe_components')
+        .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
+        .eq('recipe_version_id', selectedVersionId)
+        .order('created_at');
     if (error) {
       toast({ title: 'Erro ao carregar componentes', description: error.message, variant: 'destructive' });
       return [];
@@ -318,7 +318,7 @@ export function ReceitasPage() {
         .from('recipe_components')
         .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
         .eq('recipe_version_id', versionId)
-        .order('sort_order');
+        .order('created_at');
 
       if (error) {
         toast({ title: 'Erro ao carregar componentes', description: error.message, variant: 'destructive' });
@@ -454,7 +454,6 @@ export function ReceitasPage() {
           uom: baseComponent.uom,
           component_type: 'base',
           waste_factor: 0,
-          sort_order: defaultComponents.length,
         });
       }
 
@@ -463,8 +462,7 @@ export function ReceitasPage() {
         const { data: createdComponents, error: componentsError } = await supabase
           .from('recipe_components')
           .insert(defaultComponents)
-          .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
-          .order('sort_order');
+          .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor');
 
         if (componentsError) {
           toast({ title: 'Erro ao preencher base padrão', description: componentsError.message, variant: 'destructive' });
