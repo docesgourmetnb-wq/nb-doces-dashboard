@@ -32,7 +32,7 @@ import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 
 type InsumoFormErrors = Partial<Record<
-  'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'consumo_medio' | 'preco_unitario',
+  'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'preco_unitario',
   string
 >>;
 
@@ -67,7 +67,6 @@ function InsumosTab() {
     unidade: '',
     quantidade_atual: '',
     quantidade_minima: '',
-    consumo_medio: '',
     preco_unitario: '',
   });
 
@@ -82,7 +81,6 @@ function InsumosTab() {
         unidade: insumo.unidade,
         quantidade_atual: insumo.quantidade_atual.toString(),
         quantidade_minima: insumo.quantidade_minima.toString(),
-        consumo_medio: insumo.consumo_medio.toString(),
         preco_unitario: insumo.preco_unitario.toString(),
       });
     } else {
@@ -92,7 +90,6 @@ function InsumosTab() {
         unidade: '',
         quantidade_atual: '',
         quantidade_minima: '',
-        consumo_medio: '',
         preco_unitario: '',
       });
     }
@@ -103,7 +100,6 @@ function InsumosTab() {
   const handleSave = async () => {
     const quantidadeAtual = parseDecimalInput(formData.quantidade_atual);
     const quantidadeMinima = parseDecimalInput(formData.quantidade_minima);
-    const consumoMedio = parseDecimalInput(formData.consumo_medio);
     const precoUnitario = parseDecimalInput(formData.preco_unitario);
     const errors: InsumoFormErrors = {};
 
@@ -111,7 +107,6 @@ function InsumosTab() {
     if (!formData.unidade.trim()) errors.unidade = 'Informe a unidade';
     if (!Number.isFinite(quantidadeAtual) || quantidadeAtual < 0) errors.quantidade_atual = 'Informe uma quantidade válida';
     if (!Number.isFinite(quantidadeMinima) || quantidadeMinima < 0) errors.quantidade_minima = 'Informe uma quantidade mínima válida';
-    if (!Number.isFinite(consumoMedio) || consumoMedio < 0) errors.consumo_medio = 'Informe um consumo médio válido';
     if (!Number.isFinite(precoUnitario) || precoUnitario < 0) errors.preco_unitario = 'Informe um preço válido';
 
     setFormErrors(errors);
@@ -125,7 +120,7 @@ function InsumosTab() {
           unidade: formData.unidade.trim(),
           quantidade_atual: quantidadeAtual,
           quantidade_minima: quantidadeMinima,
-          consumo_medio: consumoMedio,
+          consumo_medio: editingInsumo.consumo_medio,
           preco_unitario: precoUnitario,
         });
       } else {
@@ -134,7 +129,7 @@ function InsumosTab() {
           unidade: formData.unidade.trim(),
           quantidade_atual: quantidadeAtual,
           quantidade_minima: quantidadeMinima,
-          consumo_medio: consumoMedio,
+          consumo_medio: 0,
           preco_unitario: precoUnitario,
         });
       }
@@ -207,15 +202,7 @@ function InsumosTab() {
                   {formErrors.quantidade_minima && <p id="insumo-quantidade-minima-error" className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="insumo-consumo-medio">Consumo Médio/Sem.</Label>
-                  <Input id="insumo-consumo-medio" type="text" inputMode="decimal" value={formData.consumo_medio} onChange={(e) => {
-                    setFormData({ ...formData, consumo_medio: e.target.value });
-                    if (formErrors.consumo_medio) setFormErrors({ ...formErrors, consumo_medio: '' });
-                  }} placeholder="Ex: 1,5" aria-invalid={!!formErrors.consumo_medio} aria-describedby={formErrors.consumo_medio ? 'insumo-consumo-medio-error' : undefined} />
-                  {formErrors.consumo_medio && <p id="insumo-consumo-medio-error" className="text-xs text-destructive">{formErrors.consumo_medio}</p>}
-                </div>
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="insumo-preco-unitario">Preço Unitário (R$)</Label>
                   <Input id="insumo-preco-unitario" type="text" inputMode="decimal" value={formData.preco_unitario} onChange={(e) => {
