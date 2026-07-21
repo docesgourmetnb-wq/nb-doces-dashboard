@@ -9,7 +9,7 @@ import {
 
 test('getProducaoStatusLabel returns labels for known statuses and preserves unknown values', () => {
   assert.equal(getProducaoStatusLabel('planejado'), 'Planejado');
-  assert.equal(getProducaoStatusLabel('em-andamento'), 'Em Andamento');
+  assert.equal(getProducaoStatusLabel('em-andamento'), 'Em produção');
   assert.equal(getProducaoStatusLabel('status-novo'), 'status-novo');
 });
 

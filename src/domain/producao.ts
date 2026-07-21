@@ -3,7 +3,7 @@ export type ProducaoStatus = (typeof PRODUCAO_STATUSES)[number];
 
 const STATUS_CONFIG: Record<ProducaoStatus, { label: string; badgeClass: string }> = {
   'planejado':     { label: 'Planejado',     badgeClass: 'bg-muted text-muted-foreground border border-border' },
-  'em-andamento':  { label: 'Em Andamento',  badgeClass: 'bg-info/15 text-info border border-info/25' },
+  'em-andamento':  { label: 'Em produção',   badgeClass: 'bg-info/15 text-info border border-info/25' },
   'concluido':     { label: 'Concluído',     badgeClass: 'bg-success/15 text-success border border-success/25' },
 };
 
