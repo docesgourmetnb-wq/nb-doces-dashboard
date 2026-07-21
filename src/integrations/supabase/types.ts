@@ -844,9 +844,26 @@ export type Database = {
           vendas_total: number
         }[]
       }
+      get_financial_summary: {
+        Args: never
+        Returns: {
+          lucro_bruto: number
+          total_entradas: number
+          total_historico: number
+          total_saidas: number
+        }[]
+      }
       get_stock_balance: {
         Args: { p_stock_item_id: string; p_user_id: string }
         Returns: number
+      }
+      is_official_financial_transaction: {
+        Args: {
+          p_referencia: string
+          p_transaction_date: string
+          p_user_id: string
+        }
+        Returns: boolean
       }
       update_pedido_payment: {
         Args: { p_pedido_id: string; p_valor_pago: number }
