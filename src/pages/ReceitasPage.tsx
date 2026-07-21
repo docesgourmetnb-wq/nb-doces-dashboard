@@ -312,29 +312,90 @@ export function ReceitasPage() {
     }
   };
 
+  const fetchComponentsForVersion = useCallback(
+    async (versionId: string) => {
+      const { data, error } = await supabase
+        .from('recipe_components')
+        .select('id,stock_item_id,qty_per_batch,uom,component_type,waste_factor')
+        .eq('recipe_version_id', versionId)
+        .order('sort_order');
+
+      if (error) {
+        toast({ title: 'Erro ao carregar componentes', description: error.message, variant: 'destructive' });
+        return null;
+      }
+
+      return (data || []).map(toRecipeComponentRow);
+    },
+    [toast],
+  );
+
   const addFormula = async () => {
     if (!user || !selectedRecipeId) return;
     setSavingFormula(true);
 
     try {
-      const version: RecipeVersionInsert = {
-        user_id: user.id,
-        recipe_id: selectedRecipeId,
-        version_no: 1,
-        status: 'active',
-        yield_qty: 1, // atualizado automaticamente após inserir os insumos
-        peso_total_massa_g: null,
-        peso_unitario_base_g: 25,
-      };
-
-      const { data: createdVersion, error: versionError } = await supabase
+      const { data: existingVersions, error: existingVersionsError } = await supabase
         .from('recipe_versions')
-        .insert(version)
         .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
-        .single();
-      if (versionError || !createdVersion) {
-        toast({ title: 'Erro ao criar ficha da massa', description: versionError?.message, variant: 'destructive' });
+        .eq('recipe_id', selectedRecipeId)
+        .order('version_no', { ascending: false });
+
+      if (existingVersionsError) {
+        toast({
+          title: 'Erro ao verificar ficha da massa',
+          description: existingVersionsError.message,
+          variant: 'destructive',
+        });
         return;
+      }
+
+      const existingVersionRows = (existingVersions || [])
+        .map(toRecipeVersionRow)
+        .sort((a, b) => {
+          if (a.status === 'active' && b.status !== 'active') return -1;
+          if (a.status !== 'active' && b.status === 'active') return 1;
+          return b.version_no - a.version_no;
+        });
+
+      let formulaVersion = existingVersionRows[0] ?? null;
+
+      if (formulaVersion) {
+        const currentComponents = await fetchComponentsForVersion(formulaVersion.id);
+        if (currentComponents === null) return;
+
+        setVersions(existingVersionRows);
+        setSelectedVersionId(formulaVersion.id);
+
+        if (currentComponents.length > 0) {
+          setComponents(currentComponents);
+          toast({ title: 'Ficha da massa já existia' });
+          return;
+        }
+      } else {
+        const version: RecipeVersionInsert = {
+          user_id: user.id,
+          recipe_id: selectedRecipeId,
+          version_no: 1,
+          status: 'active',
+          yield_qty: 1, // atualizado automaticamente após inserir os insumos
+          peso_total_massa_g: null,
+          peso_unitario_base_g: 25,
+        };
+
+        const { data: createdVersion, error: versionError } = await supabase
+          .from('recipe_versions')
+          .insert(version)
+          .select('id,recipe_id,version_no,status,yield_qty,peso_total_massa_g,peso_unitario_base_g')
+          .single();
+
+        if (versionError || !createdVersion) {
+          toast({ title: 'Erro ao criar ficha da massa', description: versionError?.message, variant: 'destructive' });
+          await loadVersions();
+          return;
+        }
+
+        formulaVersion = toRecipeVersionRow(createdVersion);
       }
 
       const nextStockItems = [...stockItems];
@@ -381,7 +442,7 @@ export function ReceitasPage() {
 
         defaultComponents.push({
           user_id: user.id,
-          recipe_version_id: createdVersion.id,
+          recipe_version_id: formulaVersion.id,
           stock_item_id: stockItem.id,
           qty_per_batch: baseComponent.qty_per_batch,
           uom: baseComponent.uom,
@@ -407,12 +468,14 @@ export function ReceitasPage() {
         nextComponents = (createdComponents || []).map(toRecipeComponentRow);
       }
 
-      const createdVersionRow = toRecipeVersionRow(createdVersion);
       setStockItems(nextStockItems);
-      setSelectedVersionId(createdVersionRow.id);
-      setVersions([createdVersionRow, ...versions]);
+      setSelectedVersionId(formulaVersion.id);
+      setVersions((current) => {
+        if (current.some((version) => version.id === formulaVersion.id)) return current;
+        return [formulaVersion, ...current];
+      });
       setComponents(nextComponents);
-      await syncVersionMass(createdVersionRow.id, nextComponents);
+      await syncVersionMass(formulaVersion.id, nextComponents);
       await loadVersions();
 
       if (missingIngredients.length > 0) {
