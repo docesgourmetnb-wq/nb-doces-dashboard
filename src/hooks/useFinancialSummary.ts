@@ -23,11 +23,6 @@ type FinancialSummaryRpc = (
   fn: 'get_financial_summary',
 ) => Promise<{ data: FinancialSummaryRow[] | null; error: { message: string } | null }>;
 
-interface TransacaoSummaryRow {
-  tipo: string;
-  valor: number | string | null;
-}
-
 interface PedidoHistoricoSummaryRow {
   valor_pago: number | string | null;
   valor_total: number | string | null;
@@ -47,23 +42,6 @@ function getErrorMessage(error: unknown) {
     if (typeof message === 'string') return message;
   }
   return 'Erro inesperado';
-}
-
-function buildSummaryFromRows(rows: TransacaoSummaryRow[]): FinancialSummary {
-  const totalEntradas = rows
-    .filter((row) => row.tipo === 'entrada')
-    .reduce((total, row) => total + toFiniteNumber(row.valor), 0);
-
-  const totalSaidas = rows
-    .filter((row) => row.tipo === 'saida')
-    .reduce((total, row) => total + toFiniteNumber(row.valor), 0);
-
-  return {
-    totalEntradas,
-    totalSaidas,
-    lucroBruto: totalEntradas - totalSaidas,
-    totalHistorico: 0,
-  };
 }
 
 function buildHistoricalTotalFromRows(rows: PedidoHistoricoSummaryRow[]) {
@@ -101,19 +79,7 @@ export function useFinancialSummary() {
 
       const rpc = supabase.rpc.bind(supabase) as unknown as FinancialSummaryRpc;
       const { data, error } = await rpc('get_financial_summary');
-      if (error) {
-        const { data: transacoes, error: transacoesError } = await supabase
-          .from('transacoes')
-          .select('tipo, valor')
-          .gte('data', FINANCIAL_CONTROL_START_DATE);
-
-        if (transacoesError) throw transacoesError;
-        setSummary({
-          ...buildSummaryFromRows((transacoes || []) as TransacaoSummaryRow[]),
-          totalHistorico,
-        });
-        return;
-      }
+      if (error) throw error;
 
       const row = Array.isArray(data) ? data[0] : null;
       setSummary({
