@@ -107,8 +107,9 @@ export function ProducaoPage() {
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const activeProducao = producao.filter(p => !p.deleted_at);
-  const totalBateladasHoje = activeProducao.filter(p => p.data === today).reduce((acc, p) => acc + p.quantidade, 0);
-  const producoesHoje = activeProducao.filter(p => p.data === today).length;
+  const producoesPendentes = activeProducao.filter(p => !isProducaoConcluida(p.status)).length;
+  const producoesParaHoje = activeProducao.filter(p => p.data === today && !isProducaoConcluida(p.status)).length;
+  const producoesConcluidasHoje = activeProducao.filter(p => p.data === today && isProducaoConcluida(p.status)).length;
   const bateladasProducao = parseIntegerInput(formData.bateladas);
   const bateladasProducaoValida = Number.isInteger(bateladasProducao) && bateladasProducao > 0;
   const quantidadeEdicao = parseIntegerInput(editData.quantidade);
@@ -363,7 +364,7 @@ export function ProducaoPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="producao-bateladas">Quantidade de receitas/bateladas</Label>
+                <Label htmlFor="producao-bateladas">Quantidade de receitas</Label>
                 <Input
                   id="producao-bateladas"
                   type="number"
@@ -447,14 +448,21 @@ export function ProducaoPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <p className="text-sm text-muted-foreground">Bateladas Hoje</p>
-          <p className="text-3xl font-display font-semibold mt-1">{totalBateladasHoje}</p>
+          <p className="text-sm text-muted-foreground">Pendentes</p>
+          <p className="text-3xl font-display font-semibold mt-1">{producoesPendentes}</p>
+          <p className="text-xs text-muted-foreground mt-1">Massas aguardando conclusão</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <p className="text-sm text-muted-foreground">Produções Hoje</p>
-          <p className="text-3xl font-display font-semibold mt-1">{producoesHoje}</p>
+          <p className="text-sm text-muted-foreground">Para hoje</p>
+          <p className="text-3xl font-display font-semibold mt-1">{producoesParaHoje}</p>
+          <p className="text-xs text-muted-foreground mt-1">Massas planejadas para hoje</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <p className="text-sm text-muted-foreground">Concluídas hoje</p>
+          <p className="text-3xl font-display font-semibold mt-1">{producoesConcluidasHoje}</p>
+          <p className="text-xs text-muted-foreground mt-1">Massas finalizadas hoje</p>
         </div>
       </div>
 
@@ -493,7 +501,7 @@ export function ProducaoPage() {
               <Input id="producao-edit-data" type="date" value={editData.data} onChange={(e) => setEditData({ ...editData, data: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="producao-edit-quantidade">Bateladas</Label>
+              <Label htmlFor="producao-edit-quantidade">Receitas</Label>
               <Input id="producao-edit-quantidade" type="number" min="1" step="1" value={editData.quantidade} onChange={(e) => setEditData({ ...editData, quantidade: e.target.value })} />
             </div>
             <div className="space-y-2">
@@ -521,7 +529,7 @@ export function ProducaoPage() {
           <DialogHeader><DialogTitle className="font-display">Cancelar Produção</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Cancelar <strong>{cancelItem?.brigadeiro_nome}</strong> ({cancelItem?.quantidade} batelada(s))?
+              Cancelar <strong>{cancelItem?.brigadeiro_nome}</strong> ({cancelItem?.quantidade} receita(s))?
             </p>
             <div className="space-y-2">
               <Label htmlFor="producao-cancel-reason">Motivo (opcional)</Label>
@@ -566,7 +574,7 @@ export function ProducaoPage() {
                           {isDeleted && <span className="text-xs text-destructive font-normal">(Cancelada)</span>}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {item.quantidade} batelada(s)
+                          {item.quantidade} receita(s)
                         </p>
                         {item.rendimento_previsto ? (
                           <p className="text-xs text-muted-foreground">
