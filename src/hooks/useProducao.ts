@@ -28,7 +28,14 @@ export interface ProducaoDiaria {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Erro inesperado';
+  if (error instanceof Error) return error.message;
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String((error as { message?: unknown }).message || '').trim();
+    if (message) return message;
+  }
+
+  return 'Erro inesperado';
 }
 
 export function useProducao() {
