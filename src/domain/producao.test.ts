@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  getProducaoErrorMessage,
   getProducaoStatusBadgeClass,
   getProducaoStatusLabel,
   isProducaoConcluida,
@@ -22,4 +23,15 @@ test('isProducaoConcluida only returns true for concluido', () => {
   assert.equal(isProducaoConcluida('concluido'), true);
   assert.equal(isProducaoConcluida('em-andamento'), false);
   assert.equal(isProducaoConcluida('planejado'), false);
+});
+
+test('getProducaoErrorMessage makes insufficient stock errors user friendly', () => {
+  assert.equal(
+    getProducaoErrorMessage('Saldo insuficiente para insumo Leite Condensado: saldo 0, necessário 395.0000'),
+    'Estoque insuficiente: Leite Condensado. Disponível: 0. Necessário: 395.',
+  );
+});
+
+test('getProducaoErrorMessage preserves unknown errors', () => {
+  assert.equal(getProducaoErrorMessage('Erro de banco'), 'Erro de banco');
 });

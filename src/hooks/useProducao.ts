@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { type ProducaoStatus } from '@/domain/producao';
+import { getProducaoErrorMessage, type ProducaoStatus } from '@/domain/producao';
 import {
   buildProductionIdempotencyKey,
   completeMassProduction,
@@ -28,11 +28,11 @@ export interface ProducaoDiaria {
 }
 
 function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) return getProducaoErrorMessage(error.message);
 
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message?: unknown }).message || '').trim();
-    if (message) return message;
+    if (message) return getProducaoErrorMessage(message);
   }
 
   return 'Erro inesperado';

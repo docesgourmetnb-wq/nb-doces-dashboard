@@ -18,3 +18,26 @@ export function getProducaoStatusBadgeClass(status: string): string {
 export function isProducaoConcluida(status: string): boolean {
   return status === 'concluido';
 }
+
+function formatQuantity(value: string): string {
+  const quantity = Number(value);
+  if (!Number.isFinite(quantity)) return value;
+
+  return quantity.toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
+export function getProducaoErrorMessage(message: string): string {
+  const insufficientStockMatch = message.match(
+    /^Saldo insuficiente para insumo (.+): saldo ([\d.]+), necessário ([\d.]+)$/i,
+  );
+
+  if (!insufficientStockMatch) return message;
+
+  const [, itemName, available, required] = insufficientStockMatch;
+  if (!itemName || !available || !required) return message;
+
+  return `Estoque insuficiente: ${itemName}. Disponível: ${formatQuantity(available)}. Necessário: ${formatQuantity(required)}.`;
+}
