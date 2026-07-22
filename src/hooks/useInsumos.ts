@@ -17,6 +17,21 @@ export interface Insumo {
 
 type InsumoInsert = TablesInsert<'insumos'>;
 
+interface RegisterInsumoEntryRpc {
+  (
+    fn: 'register_insumo_entry',
+    params: {
+      p_insumo_id: string;
+      p_quantidade: number;
+      p_valor_total: number;
+      p_data_compra: string;
+    },
+  ): Promise<{
+    data: Partial<Insumo> | null;
+    error: Error | null;
+  }>;
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
 }
@@ -119,6 +134,36 @@ export function useInsumos() {
     }
   };
 
+  const registerInsumoEntry = async (
+    id: string,
+    quantidade: number,
+    valorTotal: number,
+    dataCompra: string,
+  ) => {
+    try {
+      const registerEntryRpc = supabase.rpc.bind(supabase) as unknown as RegisterInsumoEntryRpc;
+      const { data, error } = await registerEntryRpc('register_insumo_entry', {
+        p_insumo_id: id,
+        p_quantidade: quantidade,
+        p_valor_total: valorTotal,
+        p_data_compra: dataCompra,
+      });
+
+      if (error) throw error;
+      const updatedInsumo = data as Insumo;
+      setInsumos(insumos.map(i => i.id === id ? updatedInsumo : i));
+      toast({ title: 'Entrada de insumo registrada!' });
+      return updatedInsumo;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao registrar entrada de insumo',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return undefined;
+    }
+  };
+
   const deleteInsumo = async (id: string) => {
     try {
       const { error } = await supabase
@@ -138,5 +183,5 @@ export function useInsumos() {
     }
   };
 
-  return { insumos, loading, addInsumo, updateInsumo, deleteInsumo, refetch: fetchInsumos };
+  return { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry, deleteInsumo, refetch: fetchInsumos };
 }

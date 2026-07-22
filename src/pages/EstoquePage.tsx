@@ -38,7 +38,7 @@ import {
   type ProdutoCategoriaInput,
 } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
-import { calculateInsumoEntry, getInsumoStockStatus } from '@/domain/estoque';
+import { getInsumoStockStatus } from '@/domain/estoque';
 import {
   INSUMO_UNIDADES,
   getInsumoQuantidadePlaceholder,
@@ -81,7 +81,7 @@ function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<
 }
 
 function InsumosTab() {
-  const { insumos, loading, addInsumo, updateInsumo } = useInsumos();
+  const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry } = useInsumos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
@@ -192,17 +192,13 @@ function InsumosTab() {
 
     setEntrySaving(true);
     try {
-      const entry = calculateInsumoEntry(
-        entryInsumo.quantidade_atual,
+      const updatedInsumo = await registerInsumoEntry(
+        entryInsumo.id,
         quantidadeEntrada,
         valorTotalEntrada,
+        entryFormData.data_compra,
       );
-      await updateInsumo(entryInsumo.id, {
-        quantidade_atual: entry.quantidadeAtual,
-        preco_unitario: entry.precoUnitario || entryInsumo.preco_unitario,
-        ultima_compra: entryFormData.data_compra,
-      });
-      setEntryDialogOpen(false);
+      if (updatedInsumo) setEntryDialogOpen(false);
     } finally {
       setEntrySaving(false);
     }
@@ -329,6 +325,7 @@ function InsumosTab() {
                   aria-describedby={entryErrors.valor_total ? 'insumo-entry-valor-error' : undefined}
                 />
                 {entryErrors.valor_total && <p id="insumo-entry-valor-error" className="text-xs text-destructive">{entryErrors.valor_total}</p>}
+                <p className="text-xs text-muted-foreground">Se informado, o valor gera uma saída em Financeiro.</p>
               </div>
             </div>
             <div className="space-y-2">
