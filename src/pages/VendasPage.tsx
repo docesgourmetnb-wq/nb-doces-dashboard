@@ -96,11 +96,6 @@ export function VendasPage() {
     refetch();
   };
 
-  const handleArchiveTestDirect = async (id: string) => {
-    await archivePedido(id, 'Pedido de teste');
-    refetch();
-  };
-
   const handleStatusChange = async (id: string, status: Pedido['status']) => {
     await updatePedidoStatus(id, status);
     refetch();
@@ -562,26 +557,14 @@ export function VendasPage() {
                               <ArchiveRestore size={18} className="text-muted-foreground" />
                             </button>
                           ) : (
-                            <>
-                              <button
-                                className="p-2 hover:bg-muted rounded-lg transition-colors"
-                                onClick={() => handleArchiveClick(pedido)}
-                                title="Arquivar"
-                                aria-label={`Arquivar pedido de ${getClienteDisplayName(pedido)}`}
-                              >
-                                <Archive size={18} className="text-muted-foreground" />
-                              </button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2 text-xs whitespace-nowrap"
-                                onClick={() => handleArchiveTestDirect(pedido.id)}
-                                aria-label={`Arquivar pedido de teste de ${getClienteDisplayName(pedido)}`}
-                              >
-                                Arquivar teste
-                              </Button>
-                            </>
+                            <button
+                              className="p-2 hover:bg-muted rounded-lg transition-colors"
+                              onClick={() => handleArchiveClick(pedido)}
+                              title="Arquivar"
+                              aria-label={`Arquivar pedido de ${getClienteDisplayName(pedido)}`}
+                            >
+                              <Archive size={18} className="text-muted-foreground" />
+                            </button>
                           )}
                         </div>
                       </td>
