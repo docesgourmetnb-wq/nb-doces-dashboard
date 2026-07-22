@@ -168,10 +168,16 @@ function InsumosTab() {
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
+  const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoSort !== 'nome';
 
-  const handleShowAllInsumos = () => {
+  const handleClearInsumoFilters = () => {
     setInsumoSearch('');
     setInsumoStockFilter('todos');
+    setInsumoSort('nome');
+  };
+
+  const handleShowAllInsumos = () => {
+    handleClearInsumoFilters();
   };
 
   const handleShowInsumosEmFalta = () => {
@@ -622,7 +628,7 @@ function InsumosTab() {
                 {filteredInsumos.length} de {insumos.length} insumo{insumos.length === 1 ? '' : 's'}
               </p>
             </div>
-            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-3xl lg:grid-cols-[1fr_180px_190px]">
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-4xl lg:grid-cols-[1fr_180px_190px_auto]">
               <div className="relative">
                 <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -661,6 +667,11 @@ function InsumosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              {hasActiveInsumoFilters && (
+                <Button type="button" variant="outline" onClick={handleClearInsumoFilters}>
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           </div>
           <div className="hidden lg:grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-sm font-medium text-muted-foreground">
