@@ -552,54 +552,95 @@ function InsumosTab() {
           <h3 className="font-semibold text-lg text-foreground">Nenhum insumo</h3>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-          {insumos.map((insumo) => {
-            const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
-            return (
-              <div
-                key={insumo.id}
-                className="w-full bg-card border border-border rounded-xl p-5 card-hover shadow-sm text-left"
-              >
-                <div className="flex justify-between gap-3 mb-3">
-                  <h3 className="font-semibold font-display">{insumo.nome}</h3>
-                  <div className="flex items-center gap-1">
-                    {stockStatus.needsAttention && (
-                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", stockStatus.status === 'critical' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning')}>
-                        {stockStatus.status === 'critical' ? 'Crítico' : 'Baixo'}
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="hidden lg:grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-sm font-medium text-muted-foreground">
+            <span>Insumo</span>
+            <span>Saldo</span>
+            <span>Mínimo</span>
+            <span>Último custo</span>
+            <span className="text-right">Ações</span>
+          </div>
+          <div className="divide-y divide-border">
+            {insumos.map((insumo) => {
+              const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
+              const stockBadge = stockStatus.needsAttention
+                ? stockStatus.status === 'critical'
+                  ? 'Crítico'
+                  : 'Baixo'
+                : null;
+
+              return (
+                <div
+                  key={insumo.id}
+                  className="grid grid-cols-1 gap-3 px-4 py-4 lg:grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] lg:items-center lg:gap-4 lg:px-5 lg:py-3"
+                >
+                  <div className="flex min-w-0 items-center justify-between gap-3 lg:block">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold text-foreground">{insumo.nome}</h3>
+                      <p className="text-xs text-muted-foreground lg:hidden">
+                        {formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}
+                      </p>
+                    </div>
+                    {stockBadge && (
+                      <span className={cn("shrink-0 rounded-full px-2 py-1 text-xs font-medium lg:hidden", stockStatus.status === 'critical' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning')}>
+                        {stockBadge}
                       </span>
                     )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpenDialog(insumo)}
-                      aria-label={`Editar cadastro do insumo ${insumo.nome}`}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm lg:contents">
+                    <div>
+                      <p className="text-xs text-muted-foreground lg:hidden">Saldo</p>
+                      <p className="font-medium text-foreground">{formatInsumoQuantidade(insumo.quantidade_atual)} {insumo.unidade}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground lg:hidden">Mínimo</p>
+                      <p className="text-muted-foreground">
+                        {insumo.quantidade_minima > 0
+                          ? `${formatInsumoQuantidade(insumo.quantidade_minima)} ${insumo.unidade}`
+                          : 'Não definido'}
+                      </p>
+                    </div>
+                    <div className="hidden lg:block">
+                      <p className="text-muted-foreground">{formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 lg:justify-end">
+                    <div className="flex min-w-[120px] items-center gap-2 lg:min-w-[96px]">
+                      <Progress value={stockStatus.progressValue} className="h-2 flex-1" />
+                      {stockBadge && (
+                        <span className={cn("hidden shrink-0 rounded-full px-2 py-1 text-xs font-medium lg:inline-flex", stockStatus.status === 'critical' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning')}>
+                          {stockBadge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenDialog(insumo)}
+                        aria-label={`Editar cadastro do insumo ${insumo.nome}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEntryDialog(insumo)}
+                        className="shrink-0 gap-2"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        Entrada
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex justify-between text-sm mb-2 text-muted-foreground">
-                  <span>Atual: {insumo.quantidade_atual} {insumo.unidade}</span>
-                  <span>{insumo.quantidade_minima > 0 ? `Mín: ${insumo.quantidade_minima} ${insumo.unidade}` : 'Mín: não definido'}</span>
-                </div>
-                <Progress value={stockStatus.progressValue} className="h-2 mb-4" />
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">Último custo: {formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}</p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenEntryDialog(insumo)}
-                    className="shrink-0 gap-2"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    Entrada
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
