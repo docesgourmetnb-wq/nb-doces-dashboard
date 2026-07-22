@@ -66,6 +66,7 @@ type InsumoEntryErrors = Partial<Record<
 >>;
 
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
+type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
@@ -106,6 +107,7 @@ function InsumosTab() {
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
   const [insumoSearch, setInsumoSearch] = useState('');
   const [insumoStockFilter, setInsumoStockFilter] = useState<InsumoStockFilter>('todos');
+  const [insumoSort, setInsumoSort] = useState<InsumoSortOption>('nome');
   const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
@@ -135,7 +137,7 @@ function InsumosTab() {
   const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
-    return insumos.filter((insumo) => {
+    const filtered = insumos.filter((insumo) => {
       const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
       const matchesSearch = !searchTerm
         || insumo.nome.toLowerCase().includes(searchTerm)
@@ -146,7 +148,23 @@ function InsumosTab() {
 
       return matchesSearch && matchesStockFilter;
     });
-  }, [insumoSearch, insumoStockFilter, insumos]);
+
+    return [...filtered].sort((a, b) => {
+      if (insumoSort === 'menor-saldo') {
+        return a.quantidade_atual - b.quantidade_atual || a.nome.localeCompare(b.nome, 'pt-BR');
+      }
+
+      if (insumoSort === 'maior-saldo') {
+        return b.quantidade_atual - a.quantidade_atual || a.nome.localeCompare(b.nome, 'pt-BR');
+      }
+
+      if (insumoSort === 'ultimo-custo') {
+        return b.preco_unitario - a.preco_unitario || a.nome.localeCompare(b.nome, 'pt-BR');
+      }
+
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
+  }, [insumoSearch, insumoSort, insumoStockFilter, insumos]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
@@ -604,7 +622,7 @@ function InsumosTab() {
                 {filteredInsumos.length} de {insumos.length} insumo{insumos.length === 1 ? '' : 's'}
               </p>
             </div>
-            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-xl">
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-3xl lg:grid-cols-[1fr_180px_190px]">
               <div className="relative">
                 <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -626,6 +644,20 @@ function InsumosTab() {
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="atencao">Atenção</SelectItem>
                     <SelectItem value="sem-minimo">Sem mínimo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="insumos-sort" className="sr-only">Ordenar insumos</Label>
+                <Select value={insumoSort} onValueChange={(value) => setInsumoSort(value as InsumoSortOption)}>
+                  <SelectTrigger id="insumos-sort">
+                    <SelectValue placeholder="Ordenar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nome">Nome</SelectItem>
+                    <SelectItem value="menor-saldo">Menor saldo</SelectItem>
+                    <SelectItem value="maior-saldo">Maior saldo</SelectItem>
+                    <SelectItem value="ultimo-custo">Último custo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
