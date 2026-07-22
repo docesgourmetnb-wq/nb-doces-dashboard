@@ -871,6 +871,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      register_insumo_entry: {
+        Args: {
+          p_data_compra?: string
+          p_insumo_id: string
+          p_quantidade: number
+          p_valor_total?: number
+        }
+        Returns: {
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
       update_pedido_payment: {
         Args: {
           p_data_pagamento?: string
