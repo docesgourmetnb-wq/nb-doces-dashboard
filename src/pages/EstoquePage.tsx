@@ -28,7 +28,7 @@ import { cn, formatCurrencyBRL } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanho, getProdutoTamanhoComercial } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { calculateInsumoEntry, getInsumoStockStatus } from '@/domain/estoque';
 
@@ -578,7 +578,7 @@ function ProdutosTab() {
     return brigadeiros
       .filter((brigadeiro) => !produtos.some((produto) => produto.brigadeiro_id === brigadeiro.id))
       .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        const tamanho = getProdutoTamanhoComercial(brigadeiro);
         return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
       })
       .sort(sortByProdutoNomeETamanho);
@@ -664,7 +664,7 @@ function ProdutosTab() {
                 <select id="estoque-produto-base" className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" value={brigadeiroId} onChange={e => setBrigadeiroId(e.target.value)}>
                    <option value="">Selecione um produto...</option>
                    {availableBrigadeiros.map((brigadeiro) => {
-                     const tamanho = getProdutoTamanho(brigadeiro.nome);
+                     const tamanho = getProdutoTamanhoComercial(brigadeiro);
                      const nomeBase = getProdutoNomeBase(brigadeiro.nome);
                      const label = tamanho ? `${nomeBase} • ${tamanho}` : brigadeiro.nome;
 

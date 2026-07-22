@@ -47,6 +47,7 @@ export type Database = {
       brigadeiros: {
         Row: {
           ativo: boolean
+          categoria: string
           created_at: string
           custo_unitario: number
           descricao: string | null
@@ -54,12 +55,14 @@ export type Database = {
           margem_lucro: number | null
           nome: string
           preco_venda: number
+          tamanho_g: number | null
           tipo: string
           updated_at: string
           user_id: string
         }
         Insert: {
           ativo?: boolean
+          categoria?: string
           created_at?: string
           custo_unitario?: number
           descricao?: string | null
@@ -67,12 +70,14 @@ export type Database = {
           margem_lucro?: number | null
           nome: string
           preco_venda?: number
+          tamanho_g?: number | null
           tipo?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           ativo?: boolean
+          categoria?: string
           created_at?: string
           custo_unitario?: number
           descricao?: string | null
@@ -80,6 +85,7 @@ export type Database = {
           margem_lucro?: number | null
           nome?: string
           preco_venda?: number
+          tamanho_g?: number | null
           tipo?: string
           updated_at?: string
           user_id?: string

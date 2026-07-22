@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 export interface Brigadeiro {
   id: string;
   nome: string;
+  categoria: 'brigadeiro' | 'bolo';
+  tamanho_g?: number | null;
   tipo: 'tradicional' | 'gourmet' | 'premium';
   preco_venda: number;
   custo_unitario: number;
@@ -62,6 +64,8 @@ export function useBrigadeiros() {
     try {
       const insertData: BrigadeiroInsert = {
         nome: brigadeiro.nome,
+        categoria: brigadeiro.categoria,
+        tamanho_g: brigadeiro.tamanho_g ?? null,
         tipo: brigadeiro.tipo,
         preco_venda: brigadeiro.preco_venda,
         custo_unitario: brigadeiro.custo_unitario,
