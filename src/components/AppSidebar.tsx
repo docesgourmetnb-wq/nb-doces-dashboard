@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   LogOut,
-  Users
+  Users,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +25,7 @@ const menuItems = [
   { id: 'dashboard', module: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'produtos', module: 'produtos', label: 'Produtos', icon: Package },
   { id: 'clientes', module: 'clientes', label: 'Clientes', icon: Users },
+  { id: 'fornecedores', module: 'estoque', label: 'Fornecedores', icon: Building2 },
   { id: 'vendas', module: 'pedidos', label: 'Vendas', icon: ShoppingCart },
   { id: 'producao', module: 'producao', label: 'Produção', icon: Factory },
   { id: 'receitas', module: 'receitas', label: 'Receitas', icon: BookOpen },
