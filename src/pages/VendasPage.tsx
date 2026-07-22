@@ -22,7 +22,7 @@ import {
   ENTREGA_LABELS,
   PAGAMENTO_LABELS,
 } from '@/domain/pedidos';
-import { FINANCIAL_CONTROL_START_LABEL, isHistoricalFinancialOrder } from '@/domain/financeiro';
+import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate, isHistoricalFinancialOrder } from '@/domain/financeiro';
 import { parseDecimalInput } from '@/domain/numeros';
 import {
   Dialog,
@@ -60,6 +60,7 @@ export function VendasPage() {
   const [showArchiveReasonModal, setShowArchiveReasonModal] = useState<Pedido | null>(null);
   const [paymentPedido, setPaymentPedido] = useState<Pedido | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Status labels/classes now come from domain helpers
 
@@ -125,13 +126,15 @@ export function VendasPage() {
   const openPaymentDialog = (pedido: Pedido) => {
     setPaymentPedido(pedido);
     setPaymentAmount('');
+    setPaymentDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
   const handleRegisterPayment = async () => {
-    if (!paymentPedido || nextValorPago === null) return;
-    await updatePedidoPayment(paymentPedido.id, nextValorPago);
+    if (!paymentPedido || nextValorPago === null || !paymentDate) return;
+    await updatePedidoPayment(paymentPedido.id, nextValorPago, paymentDate);
     setPaymentPedido(null);
     setPaymentAmount('');
+    setPaymentDate(format(new Date(), 'yyyy-MM-dd'));
     refetch();
   };
 
@@ -241,7 +244,7 @@ export function VendasPage() {
       </Dialog>
 
       {/* Payment modal */}
-      <Dialog open={!!paymentPedido} onOpenChange={(open) => { if (!open) { setPaymentPedido(null); setPaymentAmount(''); } }}>
+      <Dialog open={!!paymentPedido} onOpenChange={(open) => { if (!open) { setPaymentPedido(null); setPaymentAmount(''); setPaymentDate(format(new Date(), 'yyyy-MM-dd')); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Registrar pagamento</DialogTitle>
@@ -266,9 +269,9 @@ export function VendasPage() {
                   <span className="font-medium">{formatCurrencyBRL(paymentPedido.saldo_restante)}</span>
                 </div>
               </div>
-              {isHistoricalFinancialOrder(paymentPedido.data_entrega) && (
+              {(!isFinancialControlDate(paymentDate) || isHistoricalFinancialOrder(paymentPedido.data_entrega)) && (
                 <div className="rounded-lg border border-accent bg-accent/30 p-3 text-sm text-accent-foreground">
-                  Este pedido é histórico. O pagamento será registrado no pedido, mas não entrará no financeiro oficial iniciado em {FINANCIAL_CONTROL_START_LABEL}.
+                  Este pagamento será registrado no pedido, mas não entrará no financeiro oficial iniciado em {FINANCIAL_CONTROL_START_LABEL}.
                 </div>
               )}
               <div className="space-y-2">
@@ -287,11 +290,25 @@ export function VendasPage() {
                   <p id="pedido-pagamento-valor-error" className="text-xs text-destructive">{paymentError}</p>
                 )}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="pedido-pagamento-data">Data do pagamento</Label>
+                <Input
+                  id="pedido-pagamento-data"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  aria-invalid={!paymentDate}
+                  aria-describedby={!paymentDate ? 'pedido-pagamento-data-error' : undefined}
+                />
+                {!paymentDate && (
+                  <p id="pedido-pagamento-data-error" className="text-xs text-destructive">Informe a data do pagamento.</p>
+                )}
+              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setPaymentAmount(String(paymentPedido.saldo_restante.toFixed(2)))}>
                   Quitar saldo
                 </Button>
-                <Button onClick={handleRegisterPayment} disabled={nextValorPago === null}>
+                <Button onClick={handleRegisterPayment} disabled={nextValorPago === null || !paymentDate}>
                   Registrar pagamento
                 </Button>
               </DialogFooter>

@@ -872,7 +872,11 @@ export type Database = {
         Returns: boolean
       }
       update_pedido_payment: {
-        Args: { p_pedido_id: string; p_valor_pago: number }
+        Args: {
+          p_data_pagamento?: string
+          p_pedido_id: string
+          p_valor_pago: number
+        }
         Returns: {
           archived_at: string | null
           archived_reason: string | null
