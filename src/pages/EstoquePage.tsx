@@ -65,6 +65,8 @@ type InsumoEntryErrors = Partial<Record<
   string
 >>;
 
+type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
+
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
@@ -103,6 +105,7 @@ function InsumosTab() {
   const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
   const [insumoSearch, setInsumoSearch] = useState('');
+  const [insumoStockFilter, setInsumoStockFilter] = useState<InsumoStockFilter>('todos');
   const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
@@ -132,12 +135,18 @@ function InsumosTab() {
   const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
-    if (!searchTerm) return insumos;
-    return insumos.filter((insumo) => (
-      insumo.nome.toLowerCase().includes(searchTerm)
-      || insumo.unidade.toLowerCase().includes(searchTerm)
-    ));
-  }, [insumoSearch, insumos]);
+    return insumos.filter((insumo) => {
+      const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
+      const matchesSearch = !searchTerm
+        || insumo.nome.toLowerCase().includes(searchTerm)
+        || insumo.unidade.toLowerCase().includes(searchTerm);
+      const matchesStockFilter = insumoStockFilter === 'todos'
+        || (insumoStockFilter === 'atencao' && stockStatus.needsAttention)
+        || (insumoStockFilter === 'sem-minimo' && stockStatus.status === 'unset');
+
+      return matchesSearch && matchesStockFilter;
+    });
+  }, [insumoSearch, insumoStockFilter, insumos]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
@@ -569,16 +578,31 @@ function InsumosTab() {
                 {filteredInsumos.length} de {insumos.length} insumo{insumos.length === 1 ? '' : 's'}
               </p>
             </div>
-            <div className="relative w-full lg:max-w-sm">
-              <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <Input
-                id="insumos-search"
-                value={insumoSearch}
-                onChange={(event) => setInsumoSearch(event.target.value)}
-                placeholder="Buscar insumo..."
-                className="pl-10"
-              />
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-xl">
+              <div className="relative">
+                <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <Input
+                  id="insumos-search"
+                  value={insumoSearch}
+                  onChange={(event) => setInsumoSearch(event.target.value)}
+                  placeholder="Buscar insumo..."
+                  className="pl-10"
+                />
+              </div>
+              <div>
+                <Label htmlFor="insumos-stock-filter" className="sr-only">Filtrar insumos por status</Label>
+                <Select value={insumoStockFilter} onValueChange={(value) => setInsumoStockFilter(value as InsumoStockFilter)}>
+                  <SelectTrigger id="insumos-stock-filter">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="atencao">Atenção</SelectItem>
+                    <SelectItem value="sem-minimo">Sem mínimo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <div className="hidden lg:grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-sm font-medium text-muted-foreground">
@@ -590,7 +614,7 @@ function InsumosTab() {
           </div>
           {filteredInsumos.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-              Nenhum insumo encontrado para a busca atual.
+              Nenhum insumo encontrado para os filtros atuais.
             </p>
           ) : (
             <div className="divide-y divide-border">
