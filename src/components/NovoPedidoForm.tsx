@@ -170,6 +170,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     setLoading(true);
     try {
       const dataEntrega = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`;
+      const dataCriacao = format(new Date(), 'yyyy-MM-dd');
       const statusFinanceiro = derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber);
       let pedidoClienteId = modoCliente === 'existente' && clienteId ? clienteId : null;
       let pedidoClienteNome = clienteNome;
@@ -198,7 +199,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
       const novoPedido = await addPedido({
         cliente: pedidoClienteNome,
         cliente_id: pedidoClienteId,
-        data: dataEntrega,
+        data: dataCriacao,
         data_entrega: dataEntrega,
         tipo_pedido: tipoPedido,
         tipo_entrega: tipoEntrega,
