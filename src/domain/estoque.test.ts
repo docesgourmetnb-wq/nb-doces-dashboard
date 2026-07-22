@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateInsumoEntry, getInsumoStockStatus } from './estoque.ts';
+import { calculateInsumoEntry, calculateInsumoPurchaseQuantity, getInsumoStockStatus } from './estoque.ts';
 
 test('getInsumoStockStatus ignores alerts when minimum stock is not defined', () => {
   assert.deepEqual(getInsumoStockStatus(0, 0), {
@@ -26,4 +26,14 @@ test('calculateInsumoEntry adds quantity and calculates latest unit cost', () =>
 test('calculateInsumoEntry rejects invalid entry values', () => {
   assert.throws(() => calculateInsumoEntry(100, 0, 25), /Quantidade/);
   assert.throws(() => calculateInsumoEntry(100, 10, -1), /Valor/);
+});
+
+test('calculateInsumoPurchaseQuantity calculates total from packages and content', () => {
+  assert.equal(calculateInsumoPurchaseQuantity(10, 395), 3950);
+  assert.equal(calculateInsumoPurchaseQuantity(2, 1.5), 3);
+});
+
+test('calculateInsumoPurchaseQuantity rejects invalid package values', () => {
+  assert.throws(() => calculateInsumoPurchaseQuantity(0, 395), /embalagens/);
+  assert.throws(() => calculateInsumoPurchaseQuantity(10, 0), /Conteúdo/);
 });
