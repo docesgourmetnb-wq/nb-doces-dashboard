@@ -388,8 +388,17 @@ export function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {summary.topProdutos.map((p, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{p.nome}</TableCell>
+                  <TableRow key={`${p.nome}-${p.tamanho || 'sem-tamanho'}-${i}`}>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{p.nome}</span>
+                        {p.tamanho && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                            {p.tamanho}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{p.quantidade}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatCurrencyBRL(p.receita)}</TableCell>
                   </TableRow>
