@@ -476,9 +476,9 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                     produtosDisponiveis.map((b) => {
                       const tamanho = getProdutoTamanhoComercial(b);
                       const nomeBase = getProdutoNomeBase(b.nome);
-                      const label = tamanho
-                        ? `${nomeBase} • ${tamanho} • ${formatCurrencyBRL(b.preco_venda)}`
-                        : `${b.nome} • ${formatCurrencyBRL(b.preco_venda)}`;
+                      const label = tamanhoProdutoFilter === 'todos' && tamanho
+                        ? `${nomeBase} • ${tamanho}`
+                        : nomeBase;
 
                       return (
                         <SelectItem key={b.id} value={b.id}>
