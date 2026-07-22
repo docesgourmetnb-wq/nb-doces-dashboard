@@ -16,6 +16,8 @@ export interface ItemPedido {
   id?: string;
   brigadeiro_id?: string | null;
   brigadeiro_nome: string;
+  brigadeiro_categoria?: 'brigadeiro' | 'bolo' | null;
+  brigadeiro_tamanho_g?: number | null;
   quantidade: number;
   preco_unitario: number;
 }
@@ -50,9 +52,12 @@ type PedidoRow = Tables<'pedidos'>;
 type PedidoUpdate = TablesUpdate<'pedidos'>;
 type ClienteRow = Pick<Tables<'clientes'>, 'nome'>;
 type ItemPedidoRow = Tables<'itens_pedido'>;
+type ItemPedidoWithProduto = ItemPedidoRow & {
+  brigadeiros?: Pick<Tables<'brigadeiros'>, 'categoria' | 'tamanho_g'> | null;
+};
 type PedidoWithRelations = PedidoRow & {
   clientes?: ClienteRow | null;
-  itens_pedido?: ItemPedidoRow[] | null;
+  itens_pedido?: ItemPedidoWithProduto[] | null;
 };
 
 interface UpdatePedidoStatusRpc {
@@ -137,7 +142,15 @@ export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
     status_operacional: ((p['status_operacional'] as string) || pedido.status) as Pedido['status'],
     status_financeiro: ((p['status_financeiro'] as PedidoFinanceiroStatus) ?? 'nao_pago') as PedidoFinanceiroStatus,
     observacoes: pedido.observacoes,
-    itens: pedido.itens_pedido || [],
+    itens: (pedido.itens_pedido || []).map((item) => ({
+      id: item.id,
+      brigadeiro_id: item.brigadeiro_id,
+      brigadeiro_nome: item.brigadeiro_nome,
+      brigadeiro_categoria: (item.brigadeiros?.categoria as ItemPedido['brigadeiro_categoria']) ?? null,
+      brigadeiro_tamanho_g: item.brigadeiros?.tamanho_g ?? null,
+      quantidade: item.quantidade,
+      preco_unitario: item.preco_unitario,
+    })),
     archived_at: pedido.archived_at,
     archived_reason: pedido.archived_reason,
   };
@@ -165,7 +178,7 @@ export function usePedidos() {
     try {
       let query = supabase
         .from('pedidos')
-        .select('*, clientes(nome), itens_pedido(*)')
+        .select('*, clientes(nome), itens_pedido(*, brigadeiros(categoria, tamanho_g))')
         .order('data', { ascending: true });
 
       if (!showArchived) {
