@@ -5,6 +5,7 @@ import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
 import { Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useFornecedores } from '@/hooks/useFornecedores';
+import { useInsumoPurchaseEntries } from '@/hooks/useInsumoPurchaseEntries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,7 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { cn, formatCurrencyBRL } from '@/lib/utils';
+import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -76,6 +77,10 @@ function formatInsumoQuantidade(value: number) {
   return value.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 }
 
+function formatCurrencyBRLPrecise(value: number) {
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+}
+
 function sortByProdutoNomeETamanho<T extends ProdutoCategoriaInput>(a: T, b: T) {
   const nomeA = getProdutoCatalogoNome(a);
   const nomeB = getProdutoCatalogoNome(b);
@@ -95,6 +100,7 @@ function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry } = useInsumos();
   const { fornecedores } = useFornecedores();
+  const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
@@ -116,6 +122,8 @@ function InsumosTab() {
     fornecedor_id: 'sem-fornecedor',
   });
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
+  const insumosPorId = useMemo(() => new Map(insumos.map((insumo) => [insumo.id, insumo])), [insumos]);
+  const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
@@ -222,7 +230,10 @@ function InsumosTab() {
         entryFormData.data_compra,
         entryFormData.fornecedor_id === 'sem-fornecedor' ? null : entryFormData.fornecedor_id,
       );
-      if (updatedInsumo) setEntryDialogOpen(false);
+      if (updatedInsumo) {
+        await refetchPurchaseEntries();
+        setEntryDialogOpen(false);
+      }
     } finally {
       setEntrySaving(false);
     }
@@ -448,6 +459,56 @@ function InsumosTab() {
           <p className="text-sm text-muted-foreground">Valor do Estoque</p>
           <p className="text-2xl font-display font-semibold mt-1">{formatCurrencyBRL(valorTotalEstoque)}</p>
         </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-display font-semibold text-lg">Compras recentes</h3>
+            <p className="text-sm text-muted-foreground">Histórico das últimas entradas registradas no estoque.</p>
+          </div>
+          <ShoppingCart className="w-5 h-5 text-muted-foreground" />
+        </div>
+        {purchaseEntriesLoading ? (
+          <div className="py-6 text-center text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+            Carregando compras...
+          </div>
+        ) : purchaseEntries.length === 0 ? (
+          <p className="py-4 text-sm text-muted-foreground text-center">
+            Nenhuma compra registrada ainda. Use Entrada no card do insumo para começar.
+          </p>
+        ) : (
+          <div className="divide-y divide-border">
+            {purchaseEntries.map((entry) => {
+              const insumo = insumosPorId.get(entry.insumo_id);
+              const fornecedor = entry.fornecedor_id ? fornecedoresPorId.get(entry.fornecedor_id) : null;
+
+              return (
+                <div key={entry.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 py-3">
+                  <div>
+                    <p className="font-medium text-foreground">{insumo?.nome || 'Insumo removido'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {fornecedor?.nome || 'Sem fornecedor'} • {formatLocalDate(entry.data_compra, 'dd/MM/yyyy')}
+                    </p>
+                  </div>
+                  <div className="text-sm md:text-right">
+                    <p className="font-medium text-foreground">
+                      {formatInsumoQuantidade(entry.quantidade)} {entry.unidade}
+                    </p>
+                    <p className="text-muted-foreground">Quantidade</p>
+                  </div>
+                  <div className="text-sm md:text-right">
+                    <p className="font-medium text-foreground">{formatCurrencyBRL(entry.valor_total)}</p>
+                    <p className="text-muted-foreground">
+                      {formatCurrencyBRLPrecise(entry.preco_unitario)} / {entry.unidade}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {insumos.length === 0 ? (
