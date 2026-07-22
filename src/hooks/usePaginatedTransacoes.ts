@@ -119,6 +119,28 @@ export function usePaginatedTransacoes() {
     }
   };
 
+  const deleteManualTransacao = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('transacoes')
+        .delete()
+        .eq('id', id)
+        .is('referencia', null);
+
+      if (error) throw error;
+      await fetchTransacoes();
+      toast({ title: 'Transação removida!' });
+      return true;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao remover transação',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     transacoes,
     loading,
@@ -131,6 +153,7 @@ export function usePaginatedTransacoes() {
     categoriaFilter,
     setCategoriaFilter,
     addTransacao,
+    deleteManualTransacao,
     refetch: fetchTransacoes,
   };
 }
