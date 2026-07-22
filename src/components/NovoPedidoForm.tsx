@@ -35,21 +35,20 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
-import { getProdutoNomeBase, getProdutoTamanhoComercial } from '@/domain/produtos';
+import {
+  BRIGADEIRO_TAMANHO_FILTERS,
+  type BrigadeiroTamanhoFilter,
+  filterProdutosBrigadeiro,
+  getProdutoNomeBase,
+  getProdutoTamanhoComercial,
+  matchesBrigadeiroTamanhoFilter,
+} from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
   onSuccess?: () => void;
 }
-
-type TamanhoProdutoFilter = 'todos' | '25g' | '30g';
-
-const tamanhoProdutoFilters: Array<{ value: TamanhoProdutoFilter; label: string }> = [
-  { value: 'todos', label: 'Todos' },
-  { value: '25g', label: '25g' },
-  { value: '30g', label: '30g' },
-];
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
@@ -79,23 +78,21 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   
   // For adding new item
   const [selectedBrigadeiro, setSelectedBrigadeiro] = useState('');
-  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<TamanhoProdutoFilter>('todos');
+  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [quantidade, setQuantidade] = useState(1);
+  const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
 
   const produtosDisponiveis = useMemo(() => {
-    return brigadeiros
-      .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanhoComercial(brigadeiro);
-        return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
-      })
+    return produtosBrigadeiro
+      .filter((brigadeiro) => matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoProdutoFilter))
       .sort((a, b) => {
         const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
         return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
-  }, [brigadeiros, tamanhoProdutoFilter]);
+  }, [produtosBrigadeiro, tamanhoProdutoFilter]);
 
-  const selectedBrigadeiroData = brigadeiros.find(b => b.id === selectedBrigadeiro) || null;
+  const selectedBrigadeiroData = produtosBrigadeiro.find(b => b.id === selectedBrigadeiro) || null;
   const itemPendente: ItemPedido | null = selectedBrigadeiroData && quantidade > 0
     ? {
         brigadeiro_id: selectedBrigadeiroData.id,
@@ -139,7 +136,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const handleAddItem = () => {
     if (!selectedBrigadeiro || quantidade <= 0) return;
     
-    const brigadeiro = brigadeiros.find(b => b.id === selectedBrigadeiro);
+    const brigadeiro = produtosBrigadeiro.find(b => b.id === selectedBrigadeiro);
     if (!brigadeiro) return;
 
     // Check if already exists
@@ -434,7 +431,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
           <div className="space-y-4">
             <Label htmlFor="pedido-produto">Adicionar Itens *</Label>
             <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
-              {tamanhoProdutoFilters.map((filter) => (
+              {BRIGADEIRO_TAMANHO_FILTERS.map((filter) => (
                 <Button
                   key={filter.value}
                   type="button"

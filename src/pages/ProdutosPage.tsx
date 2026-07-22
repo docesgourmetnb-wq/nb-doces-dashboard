@@ -22,19 +22,20 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { getProdutoNomeBase, getProdutoTamanhoComercial, inferProdutoTamanhoGramas, summarizeProdutos } from '@/domain/produtos';
+import {
+  BRIGADEIRO_TAMANHO_FILTERS,
+  type BrigadeiroTamanhoFilter,
+  filterProdutosBrigadeiro,
+  getProdutoNomeBase,
+  getProdutoTamanhoComercial,
+  inferProdutoTamanhoGramas,
+  matchesBrigadeiroTamanhoFilter,
+  summarizeProdutos,
+} from '@/domain/produtos';
 import { parseDecimalInput } from '@/domain/numeros';
 import { formatCurrencyBRL } from '@/lib/utils';
 
 type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
-type TamanhoFilter = 'todos' | '25g' | '30g';
-
-const tamanhoFilters: Array<{ value: TamanhoFilter; label: string }> = [
-  { value: 'todos', label: 'Todos' },
-  { value: '25g', label: '25g' },
-  { value: '30g', label: '30g' },
-];
-
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
@@ -42,7 +43,7 @@ function getTamanhoSortValue(tamanho: string | null) {
 export function ProdutosPage() {
   const { brigadeiros, loading, addBrigadeiro, updateBrigadeiro, deleteBrigadeiro } = useBrigadeiros();
   const [search, setSearch] = useState('');
-  const [tamanhoFilter, setTamanhoFilter] = useState<TamanhoFilter>('todos');
+  const [tamanhoFilter, setTamanhoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBrigadeiro, setEditingBrigadeiro] = useState<Brigadeiro | null>(null);
   const [saving, setSaving] = useState(false);
@@ -53,15 +54,15 @@ export function ProdutosPage() {
     custo_unitario: '',
     descricao: '',
   });
+  const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
 
   const filteredBrigadeiros = useMemo(() => {
     const searchTerm = search.trim().toLowerCase();
 
-    return brigadeiros
+    return produtosBrigadeiro
       .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanhoComercial(brigadeiro);
         const matchesSearch = !searchTerm || brigadeiro.nome.toLowerCase().includes(searchTerm);
-        const matchesTamanho = tamanhoFilter === 'todos' || tamanho === tamanhoFilter;
+        const matchesTamanho = matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoFilter);
         return matchesSearch && matchesTamanho;
       })
       .sort((a, b) => {
@@ -69,8 +70,8 @@ export function ProdutosPage() {
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
         return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
-  }, [brigadeiros, search, tamanhoFilter]);
-  const produtosResumo = useMemo(() => summarizeProdutos(brigadeiros), [brigadeiros]);
+  }, [produtosBrigadeiro, search, tamanhoFilter]);
+  const produtosResumo = useMemo(() => summarizeProdutos(produtosBrigadeiro), [produtosBrigadeiro]);
   const primeiroSaborSemPar = produtosResumo.saboresSemPar[0];
   const saboresSemParPorNome = useMemo(() => {
     return new Map(produtosResumo.saboresSemPar.map((produto) => [produto.nomeBase, produto]));
@@ -329,7 +330,7 @@ export function ProdutosPage() {
             />
           </div>
           <div className="flex w-full sm:w-auto rounded-lg border border-border bg-muted/40 p-1">
-            {tamanhoFilters.map((filter) => (
+            {BRIGADEIRO_TAMANHO_FILTERS.map((filter) => (
               <Button
                 key={filter.value}
                 type="button"

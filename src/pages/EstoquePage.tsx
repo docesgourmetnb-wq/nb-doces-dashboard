@@ -28,7 +28,15 @@ import { cn, formatCurrencyBRL } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { getProdutoNomeBase, getProdutoTamanhoComercial, type ProdutoCategoriaInput } from '@/domain/produtos';
+import {
+  BRIGADEIRO_TAMANHO_FILTERS,
+  type BrigadeiroTamanhoFilter,
+  filterProdutosBrigadeiro,
+  getProdutoNomeBase,
+  getProdutoTamanhoComercial,
+  matchesBrigadeiroTamanhoFilter,
+  type ProdutoCategoriaInput,
+} from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { calculateInsumoEntry, getInsumoStockStatus } from '@/domain/estoque';
 
@@ -41,14 +49,6 @@ type InsumoEntryErrors = Partial<Record<
   'quantidade' | 'valor_total' | 'data_compra',
   string
 >>;
-
-type TamanhoProdutoFilter = 'todos' | '25g' | '30g';
-
-const tamanhoProdutoFilters: Array<{ value: TamanhoProdutoFilter; label: string }> = [
-  { value: 'todos', label: 'Todos' },
-  { value: '25g', label: '25g' },
-  { value: '30g', label: '30g' },
-];
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
@@ -578,7 +578,7 @@ function ProdutosTab() {
   const { produtos, loading, addProduto, updateQuantidade, deleteProduto } = useEstoqueProdutos();
   const { brigadeiros } = useBrigadeiros();
   const [brigadeiroId, setBrigadeiroId] = useState('');
-  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<TamanhoProdutoFilter>('todos');
+  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [actionProduto, setActionProduto] = useState<EstoqueProduto | null>(null);
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
@@ -587,17 +587,15 @@ function ProdutosTab() {
   const brigadeirosPorId = useMemo(() => {
     return new Map(brigadeiros.map((brigadeiro) => [brigadeiro.id, brigadeiro]));
   }, [brigadeiros]);
+  const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
 
   // Filtrar quais brigadeiros ainda nao tem estoque cadastrado
   const availableBrigadeiros = useMemo(() => {
-    return brigadeiros
+    return produtosBrigadeiro
       .filter((brigadeiro) => !produtos.some((produto) => produto.brigadeiro_id === brigadeiro.id))
-      .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanhoComercial(brigadeiro);
-        return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
-      })
+      .filter((brigadeiro) => matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoProdutoFilter))
       .sort(sortByProdutoNomeETamanho);
-  }, [brigadeiros, produtos, tamanhoProdutoFilter]);
+  }, [produtosBrigadeiro, produtos, tamanhoProdutoFilter]);
 
   const produtosOrdenados = useMemo(() => {
     return [...produtos].sort((a, b) => sortByProdutoNomeETamanho(
@@ -610,7 +608,7 @@ function ProdutosTab() {
 
   const handleRegister = async () => {
     if (!brigadeiroId) return;
-    const brig = availableBrigadeiros.find(b => b.id === brigadeiroId) || brigadeiros.find(b => b.id === brigadeiroId);
+    const brig = availableBrigadeiros.find(b => b.id === brigadeiroId) || produtosBrigadeiro.find(b => b.id === brigadeiroId);
     await addProduto(brigadeiroId, 0, brig?.nome || 'Produto Sem Nome');
     setBrigadeiroId('');
     setTamanhoProdutoFilter('todos');
@@ -658,7 +656,7 @@ function ProdutosTab() {
             <DialogHeader><DialogTitle>Acompanhar Novo Produto</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
               <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
-                {tamanhoProdutoFilters.map((filter) => (
+                {BRIGADEIRO_TAMANHO_FILTERS.map((filter) => (
                   <Button
                     key={filter.value}
                     type="button"
