@@ -105,6 +105,8 @@ REVOKE ALL ON FUNCTION public.can_access_module(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_user_role() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.can_access_module(text) TO authenticated;
 
+DROP FUNCTION IF EXISTS public.get_dashboard_summary(integer, integer);
+
 CREATE OR REPLACE FUNCTION public.get_dashboard_summary(p_year integer, p_month integer)
 RETURNS TABLE(
   vendas_periodo numeric,
