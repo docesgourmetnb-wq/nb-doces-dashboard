@@ -7,6 +7,7 @@ import {
   Warehouse, 
   DollarSign,
   BookOpen,
+  FlaskConical,
   Menu,
   X,
   LogOut,
@@ -24,6 +25,7 @@ interface AppSidebarProps {
 const menuItems = [
   { id: 'dashboard', module: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'produtos', module: 'produtos', label: 'Produtos', icon: Package },
+  { id: 'laboratorio', module: 'produtos', label: 'Laboratório', icon: FlaskConical },
   { id: 'clientes', module: 'clientes', label: 'Clientes', icon: Users },
   { id: 'fornecedores', module: 'estoque', label: 'Fornecedores', icon: Building2 },
   { id: 'vendas', module: 'pedidos', label: 'Vendas', icon: ShoppingCart },

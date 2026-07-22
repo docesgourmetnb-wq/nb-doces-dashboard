@@ -257,6 +257,54 @@ export type Database = {
           },
         ]
       }
+      laboratorio_items: {
+        Row: {
+          canal: string | null
+          cliente: string | null
+          created_at: string
+          data_registro: string
+          descricao: string | null
+          id: string
+          prioridade: string
+          produto_relacionado: string | null
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canal?: string | null
+          cliente?: string | null
+          created_at?: string
+          data_registro?: string
+          descricao?: string | null
+          id?: string
+          prioridade?: string
+          produto_relacionado?: string | null
+          status?: string
+          tipo?: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canal?: string | null
+          cliente?: string | null
+          created_at?: string
+          data_registro?: string
+          descricao?: string | null
+          id?: string
+          prioridade?: string
+          produto_relacionado?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       itens_pedido: {
         Row: {
           brigadeiro_id: string | null
