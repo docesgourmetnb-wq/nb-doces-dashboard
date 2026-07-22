@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Building2, Edit2, Loader2, Mail, Phone, Plus, Search, Trash2 } from 'lucide-react';
+import { Building2, CalendarDays, Edit2, Loader2, Mail, Phone, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { useFornecedores, type Fornecedor } from '@/hooks/useFornecedores';
+import { useFornecedorPurchaseSummary } from '@/hooks/useFornecedorPurchaseSummary';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,10 +25,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 
 export function FornecedoresPage() {
   const { fornecedores, loading, addFornecedor, updateFornecedor, deleteFornecedor } = useFornecedores();
+  const { summaryByFornecedorId, loading: loadingPurchaseSummary } = useFornecedorPurchaseSummary();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFornecedor, setEditingFornecedor] = useState<Fornecedor | null>(null);
@@ -227,14 +229,17 @@ export function FornecedoresPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredFornecedores.map((fornecedor) => (
-              <div
-                key={fornecedor.id}
-                className={cn(
-                  'bg-card border border-border rounded-lg p-5 shadow-sm transition-shadow hover:shadow-md',
-                  !fornecedor.ativo && 'opacity-60',
-                )}
-              >
+            {filteredFornecedores.map((fornecedor) => {
+              const purchaseSummary = summaryByFornecedorId[fornecedor.id];
+
+              return (
+                <div
+                  key={fornecedor.id}
+                  className={cn(
+                    'bg-card border border-border rounded-lg p-5 shadow-sm transition-shadow hover:shadow-md',
+                    !fornecedor.ativo && 'opacity-60',
+                  )}
+                >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -292,6 +297,30 @@ export function FornecedoresPage() {
                   </div>
                 </div>
 
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border pt-4">
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ShoppingCart size={14} />
+                      Compras
+                    </div>
+                    <p className="mt-1 font-display text-xl font-semibold text-foreground">
+                      {loadingPurchaseSummary ? '...' : formatCurrencyBRL(purchaseSummary?.totalCompras ?? 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {purchaseSummary?.quantidadeCompras ?? 0} lançamento(s)
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CalendarDays size={14} />
+                      Última compra
+                    </div>
+                    <p className="mt-1 font-medium text-foreground">
+                      {purchaseSummary?.ultimaCompra ? formatLocalDate(purchaseSummary.ultimaCompra, 'dd/MM/yyyy') : '-'}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="mt-4 space-y-2">
                   {fornecedor.telefone && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -315,8 +344,9 @@ export function FornecedoresPage() {
                     {fornecedor.observacoes}
                   </p>
                 )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
