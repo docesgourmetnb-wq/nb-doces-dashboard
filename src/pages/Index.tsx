@@ -3,6 +3,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProdutosPage } from '@/pages/ProdutosPage';
 import { ClientesPage } from '@/pages/ClientesPage';
+import { FornecedoresPage } from '@/pages/FornecedoresPage';
 import { VendasPage } from '@/pages/VendasPage';
 import { ProducaoPage } from '@/pages/ProducaoPage';
 import { EstoquePage } from '@/pages/EstoquePage';
@@ -14,6 +15,7 @@ const pageModules: Record<string, string> = {
   dashboard: 'dashboard',
   produtos: 'produtos',
   clientes: 'clientes',
+  fornecedores: 'estoque',
   vendas: 'pedidos',
   producao: 'producao',
   receitas: 'receitas',
@@ -50,6 +52,8 @@ const Index = () => {
         return <ProdutosPage />;
       case 'clientes':
         return <ClientesPage />;
+      case 'fornecedores':
+        return <FornecedoresPage />;
       case 'vendas':
         return <VendasPage />;
       case 'producao':
