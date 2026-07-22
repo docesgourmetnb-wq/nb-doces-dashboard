@@ -168,7 +168,13 @@ function InsumosTab() {
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
+  const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoSort !== 'nome';
+
+  const handleClearPurchaseFilters = () => {
+    setPurchaseInsumoFilter('todos');
+    setPurchaseFornecedorFilter('todos');
+  };
 
   const handleClearInsumoFilters = () => {
     setInsumoSearch('');
@@ -540,9 +546,9 @@ function InsumosTab() {
             <h3 className="font-display font-semibold text-lg">Compras recentes</h3>
             <p className="text-sm text-muted-foreground">Histórico das últimas entradas registradas no estoque.</p>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[520px]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[640px] lg:grid-cols-[1fr_1fr_auto]">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Insumo</Label>
+              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Insumo da compra</Label>
               <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
                 <SelectTrigger id="purchase-insumo-filter">
                   <SelectValue placeholder="Todos os insumos" />
@@ -556,7 +562,7 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Fornecedor</Label>
+              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Fornecedor da compra</Label>
               <Select value={purchaseFornecedorFilter} onValueChange={setPurchaseFornecedorFilter}>
                 <SelectTrigger id="purchase-fornecedor-filter">
                   <SelectValue placeholder="Todos os fornecedores" />
@@ -570,6 +576,13 @@ function InsumosTab() {
                 </SelectContent>
               </Select>
             </div>
+            {hasActivePurchaseFilters && (
+              <div className="flex items-end">
+                <Button type="button" variant="outline" onClick={handleClearPurchaseFilters}>
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         {purchaseEntriesLoading ? (
