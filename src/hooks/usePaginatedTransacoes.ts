@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { TablesInsert } from '@/integrations/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Transacao } from '@/hooks/useTransacoes';
@@ -8,6 +8,7 @@ import { FINANCIAL_CONTROL_START_DATE } from '@/domain/financeiro';
 
 const PAGE_SIZE = 20;
 type TransacaoInsert = TablesInsert<'transacoes'>;
+type TransacaoUpdate = TablesUpdate<'transacoes'>;
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -141,6 +142,43 @@ export function usePaginatedTransacoes() {
     }
   };
 
+  const updateManualTransacao = async (
+    id: string,
+    transacao: Pick<Transacao, 'tipo' | 'categoria' | 'descricao' | 'valor' | 'data'>,
+  ) => {
+    try {
+      const updateData: TransacaoUpdate = {
+        tipo: transacao.tipo,
+        categoria: transacao.categoria,
+        descricao: transacao.descricao,
+        valor: transacao.valor,
+        data: transacao.data,
+      };
+
+      const { data, error } = await supabase
+        .from('transacoes')
+        .update(updateData)
+        .eq('id', id)
+        .is('referencia', null)
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error('Transações automáticas não podem ser editadas por aqui.');
+
+      await fetchTransacoes();
+      toast({ title: 'Transação atualizada!' });
+      return true;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao editar transação',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     transacoes,
     loading,
@@ -154,6 +192,7 @@ export function usePaginatedTransacoes() {
     setCategoriaFilter,
     addTransacao,
     deleteManualTransacao,
+    updateManualTransacao,
     refetch: fetchTransacoes,
   };
 }
