@@ -74,6 +74,7 @@ interface UpdatePedidoPaymentRpc {
     params: {
       p_pedido_id: string;
       p_valor_pago: number;
+      p_data_pagamento?: string;
     },
   ): Promise<{
     data: Partial<PedidoRow> | null;
@@ -225,13 +226,18 @@ export function usePedidos() {
     }
   };
 
-  const updatePedidoPayment = async (id: string, valorPago: number) => {
+  const updatePedidoPayment = async (id: string, valorPago: number, dataPagamento?: string) => {
     try {
       const updatePaymentRpc = supabase.rpc.bind(supabase) as unknown as UpdatePedidoPaymentRpc;
-      const { error } = await updatePaymentRpc('update_pedido_payment', {
+      const paymentParams: Parameters<UpdatePedidoPaymentRpc>[1] = {
         p_pedido_id: id,
         p_valor_pago: valorPago,
-      });
+      };
+      if (dataPagamento) {
+        paymentParams.p_data_pagamento = dataPagamento;
+      }
+
+      const { error } = await updatePaymentRpc('update_pedido_payment', paymentParams);
 
       if (error) throw error;
 
