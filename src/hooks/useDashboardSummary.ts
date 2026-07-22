@@ -12,6 +12,7 @@ export interface DashboardClientRank {
 
 export interface DashboardProductRank {
   nome: string;
+  tamanho?: string | null;
   quantidade: number;
   receita: number;
 }
