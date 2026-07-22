@@ -151,6 +151,16 @@ function InsumosTab() {
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
 
+  const handleShowAllInsumos = () => {
+    setInsumoSearch('');
+    setInsumoStockFilter('todos');
+  };
+
+  const handleShowInsumosEmFalta = () => {
+    setInsumoSearch('');
+    setInsumoStockFilter('atencao');
+  };
+
   const handleOpenDialog = (insumo?: Insumo) => {
     if (insumo) {
       setEditingInsumo(insumo);
@@ -470,14 +480,30 @@ function InsumosTab() {
       </Dialog>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-border pb-6">
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleShowAllInsumos}
+          className={cn(
+            "bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3 text-left transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            insumoStockFilter === 'todos' && !insumoSearch.trim() && "border-primary/50 bg-primary/5"
+          )}
+          aria-label="Mostrar todos os insumos cadastrados"
+        >
           <div className="p-2 bg-primary/10 rounded-lg"><Package className="text-primary w-5 h-5" /></div>
           <div><p className="text-sm text-muted-foreground">Itens Totais</p><p className="text-2xl font-display font-semibold">{insumos.length}</p></div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3">
+        </button>
+        <button
+          type="button"
+          onClick={handleShowInsumosEmFalta}
+          className={cn(
+            "bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3 text-left transition-colors hover:border-warning/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            insumoStockFilter === 'atencao' && !insumoSearch.trim() && "border-warning/60 bg-warning/10"
+          )}
+          aria-label="Mostrar insumos que precisam de atenção"
+        >
           <div className="p-2 bg-warning/20 rounded-lg"><AlertTriangle className="text-warning w-5 h-5" /></div>
           <div><p className="text-sm text-muted-foreground">Em Falta</p><p className="text-2xl font-display font-semibold">{insumosEmFalta.length}</p></div>
-        </div>
+        </button>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <p className="text-sm text-muted-foreground">Valor do Estoque</p>
           <p className="text-2xl font-display font-semibold mt-1">{formatCurrencyBRL(valorTotalEstoque)}</p>
