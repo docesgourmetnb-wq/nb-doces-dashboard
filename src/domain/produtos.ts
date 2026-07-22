@@ -18,6 +18,10 @@ export const BRIGADEIRO_TAMANHO_FILTERS: Array<{ value: BrigadeiroTamanhoFilter;
   ...BRIGADEIRO_TAMANHOS_COMERCIAIS.map((tamanho) => ({ value: tamanho, label: tamanho })),
 ];
 
+export function isBrigadeiroTamanhoGramas(tamanho: number) {
+  return BRIGADEIRO_TAMANHOS_COMERCIAIS.includes(`${tamanho}g` as BrigadeiroTamanhoComercial);
+}
+
 export interface ProdutoCategoriaInput {
   nome: string;
   categoria?: string | null;

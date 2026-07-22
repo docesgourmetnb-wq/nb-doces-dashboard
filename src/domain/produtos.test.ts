@@ -7,6 +7,7 @@ import {
   getProdutoTamanho,
   getProdutoTamanhoComercial,
   inferProdutoTamanhoGramas,
+  isBrigadeiroTamanhoGramas,
   matchesBrigadeiroTamanhoFilter,
   summarizeProdutos,
 } from './produtos.ts';
@@ -51,6 +52,12 @@ test('matchesBrigadeiroTamanhoFilter only matches brigadeiros by commercial size
   assert.equal(matchesBrigadeiroTamanhoFilter({ nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25 }, '25g'), true);
   assert.equal(matchesBrigadeiroTamanhoFilter({ nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25 }, '30g'), false);
   assert.equal(matchesBrigadeiroTamanhoFilter({ nome: 'Bolo 25g', categoria: 'bolo', tamanho_g: 25 }, '25g'), false);
+});
+
+test('isBrigadeiroTamanhoGramas accepts only current commercial sizes', () => {
+  assert.equal(isBrigadeiroTamanhoGramas(25), true);
+  assert.equal(isBrigadeiroTamanhoGramas(30), true);
+  assert.equal(isBrigadeiroTamanhoGramas(20), false);
 });
 
 test('inferProdutoTamanhoGramas derives size from product name', () => {

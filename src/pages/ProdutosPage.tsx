@@ -24,18 +24,20 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
+  BRIGADEIRO_TAMANHOS_COMERCIAIS,
   type BrigadeiroTamanhoFilter,
   filterProdutosBrigadeiro,
   getProdutoNomeBase,
   getProdutoTamanhoComercial,
   inferProdutoTamanhoGramas,
+  isBrigadeiroTamanhoGramas,
   matchesBrigadeiroTamanhoFilter,
   summarizeProdutos,
 } from '@/domain/produtos';
 import { parseDecimalInput } from '@/domain/numeros';
 import { formatCurrencyBRL } from '@/lib/utils';
 
-type ProdutoFormErrors = Partial<Record<'nome' | 'preco_venda' | 'custo_unitario', string>>;
+type ProdutoFormErrors = Partial<Record<'nome' | 'tamanho_g' | 'preco_venda' | 'custo_unitario', string>>;
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
@@ -49,6 +51,7 @@ export function ProdutosPage() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
+    tamanho_g: '30',
     tipo: 'gourmet' as Brigadeiro['tipo'],
     preco_venda: '',
     custo_unitario: '',
@@ -82,6 +85,7 @@ export function ProdutosPage() {
       setEditingBrigadeiro(brigadeiro);
       setFormData({
         nome: brigadeiro.nome,
+        tamanho_g: String(brigadeiro.tamanho_g ?? inferProdutoTamanhoGramas(brigadeiro.nome) ?? 30),
         tipo: brigadeiro.tipo,
         preco_venda: brigadeiro.preco_venda.toString(),
         custo_unitario: brigadeiro.custo_unitario.toString(),
@@ -91,6 +95,7 @@ export function ProdutosPage() {
       setEditingBrigadeiro(null);
       setFormData({
         nome: '',
+        tamanho_g: '30',
         tipo: 'gourmet',
         preco_venda: '',
         custo_unitario: '',
@@ -113,9 +118,13 @@ export function ProdutosPage() {
     const errors: ProdutoFormErrors = {};
     const preco_venda = parseDecimalInput(formData.preco_venda);
     const custo_unitario = parseDecimalInput(formData.custo_unitario);
+    const tamanho_g = Number(formData.tamanho_g);
 
     if (!formData.nome.trim()) {
       errors.nome = 'Informe o nome do produto';
+    }
+    if (!isBrigadeiroTamanhoGramas(tamanho_g)) {
+      errors.tamanho_g = 'Selecione 25g ou 30g';
     }
     if (!Number.isFinite(preco_venda) || preco_venda <= 0) {
       errors.preco_venda = 'Preço de venda deve ser maior que zero';
@@ -132,7 +141,7 @@ export function ProdutosPage() {
         await updateBrigadeiro(editingBrigadeiro.id, {
           nome: formData.nome.trim(),
           categoria: 'brigadeiro',
-          tamanho_g: inferProdutoTamanhoGramas(formData.nome.trim()),
+          tamanho_g,
           tipo: formData.tipo,
           preco_venda,
           custo_unitario,
@@ -142,7 +151,7 @@ export function ProdutosPage() {
         await addBrigadeiro({
           nome: formData.nome.trim(),
           categoria: 'brigadeiro',
-          tamanho_g: inferProdutoTamanhoGramas(formData.nome.trim()),
+          tamanho_g,
           tipo: formData.tipo,
           preco_venda,
           custo_unitario,
@@ -200,6 +209,26 @@ export function ProdutosPage() {
                   aria-describedby={formErrors.nome ? 'produto-nome-error' : undefined}
                 />
                 {formErrors.nome && <p id="produto-nome-error" className="text-xs text-destructive">{formErrors.nome}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="produto-tamanho">Tamanho</Label>
+                <select
+                  id="produto-tamanho"
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={formData.tamanho_g}
+                  onChange={(e) => {
+                    setFormData({ ...formData, tamanho_g: e.target.value });
+                    if (formErrors.tamanho_g) setFormErrors({ ...formErrors, tamanho_g: '' });
+                  }}
+                  aria-invalid={!!formErrors.tamanho_g}
+                  aria-describedby={formErrors.tamanho_g ? 'produto-tamanho-error' : undefined}
+                >
+                  {BRIGADEIRO_TAMANHOS_COMERCIAIS.map((tamanho) => (
+                    <option key={tamanho} value={tamanho.replace('g', '')}>{tamanho}</option>
+                  ))}
+                </select>
+                {formErrors.tamanho_g && <p id="produto-tamanho-error" className="text-xs text-destructive">{formErrors.tamanho_g}</p>}
+                <p className="text-xs text-muted-foreground">Não precisa colocar o tamanho no nome.</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
