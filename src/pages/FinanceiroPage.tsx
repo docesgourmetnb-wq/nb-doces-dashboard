@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet, History } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet, History, Trash2 } from 'lucide-react';
 import { Transacao } from '@/hooks/useTransacoes';
 import { usePaginatedTransacoes } from '@/hooks/usePaginatedTransacoes';
 import { useFinancialSummary } from '@/hooks/useFinancialSummary';
@@ -21,6 +21,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,10 +64,12 @@ export function FinanceiroPage() {
     tipoFilter, setTipoFilter,
     categoriaFilter, setCategoriaFilter,
     addTransacao,
+    deleteManualTransacao,
   } = usePaginatedTransacoes();
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteConfirmTransacao, setDeleteConfirmTransacao] = useState<Transacao | null>(null);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<TransacaoFormErrors>({});
   const [formData, setFormData] = useState({
@@ -114,6 +126,15 @@ export function FinanceiroPage() {
       setFormErrors({});
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteManualTransacao = async () => {
+    if (!deleteConfirmTransacao) return;
+    const deleted = await deleteManualTransacao(deleteConfirmTransacao.id);
+    if (deleted) {
+      await refetchSummary();
+      setDeleteConfirmTransacao(null);
     }
   };
 
@@ -395,18 +416,51 @@ export function FinanceiroPage() {
                     </p>
                   </div>
                 </div>
-                <p className={cn(
-                  "font-semibold",
-                  transacao.tipo === 'entrada' ? 'text-success' : 'text-destructive'
-                )}>
-                  {transacao.tipo === 'entrada' ? '+' : '-'} {formatCurrencyBRL(transacao.valor)}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className={cn(
+                    "font-semibold",
+                    transacao.tipo === 'entrada' ? 'text-success' : 'text-destructive'
+                  )}>
+                    {transacao.tipo === 'entrada' ? '+' : '-'} {formatCurrencyBRL(transacao.valor)}
+                  </p>
+                  {!transacao.referencia && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteConfirmTransacao(transacao)}
+                      aria-label={`Remover transação ${transacao.descricao}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
       <PaginationControls page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
+      <AlertDialog open={!!deleteConfirmTransacao} onOpenChange={(open) => !open && setDeleteConfirmTransacao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover transação manual?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação remove somente o lançamento financeiro manual. Transações automáticas de pedidos e estoque não podem ser removidas por aqui.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteManualTransacao}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
