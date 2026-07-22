@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
-import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanho, getProdutoTamanhoComercial } from '@/domain/produtos';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -483,7 +483,11 @@ export function VendasPage() {
                                     <div className="space-y-2">
                                       {pedido.itens.map((item, index) => {
                                         const produtoBase = getProdutoNomeBase(item.brigadeiro_nome);
-                                        const produtoTamanho = getProdutoTamanho(item.brigadeiro_nome);
+                                        const produtoTamanho = getProdutoTamanhoComercial({
+                                          nome: item.brigadeiro_nome,
+                                          categoria: item.brigadeiro_categoria ?? null,
+                                          tamanho_g: item.brigadeiro_tamanho_g ?? null,
+                                        }) ?? getProdutoTamanho(item.brigadeiro_nome);
                                         const precoUnitario = formatCurrencyBRL(item.preco_unitario);
                                         const subtotal = formatCurrencyBRL(item.quantidade * item.preco_unitario);
 
