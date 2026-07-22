@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProdutosPage } from '@/pages/ProdutosPage';
+import { LaboratorioPage } from '@/pages/LaboratorioPage';
 import { ClientesPage } from '@/pages/ClientesPage';
 import { FornecedoresPage } from '@/pages/FornecedoresPage';
 import { VendasPage } from '@/pages/VendasPage';
@@ -14,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 const pageModules: Record<string, string> = {
   dashboard: 'dashboard',
   produtos: 'produtos',
+  laboratorio: 'produtos',
   clientes: 'clientes',
   fornecedores: 'estoque',
   vendas: 'pedidos',
@@ -50,6 +52,8 @@ const Index = () => {
         return <DashboardPage />;
       case 'produtos':
         return <ProdutosPage />;
+      case 'laboratorio':
+        return <LaboratorioPage />;
       case 'clientes':
         return <ClientesPage />;
       case 'fornecedores':
