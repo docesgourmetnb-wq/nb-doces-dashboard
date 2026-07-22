@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   findProdutosSemParDeTamanho,
+  filterProdutosBrigadeiro,
   getProdutoNomeBase,
   getProdutoTamanho,
   getProdutoTamanhoComercial,
   inferProdutoTamanhoGramas,
+  matchesBrigadeiroTamanhoFilter,
   summarizeProdutos,
 } from './produtos.ts';
 
@@ -32,6 +34,23 @@ test('getProdutoTamanhoComercial prefers explicit brigadeiro size', () => {
 
 test('getProdutoTamanhoComercial does not apply brigadeiro sizes to cakes', () => {
   assert.equal(getProdutoTamanhoComercial({ nome: 'Bolo de cenoura 30g', categoria: 'bolo', tamanho_g: 30 }), null);
+});
+
+test('filterProdutosBrigadeiro keeps only brigadeiro products', () => {
+  assert.deepEqual(filterProdutosBrigadeiro([
+    { nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25 },
+    { nome: 'Bolo de cenoura', categoria: 'bolo', tamanho_g: null },
+    { nome: 'Legado 30g', tamanho_g: null },
+  ]), [
+    { nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25 },
+    { nome: 'Legado 30g', tamanho_g: null },
+  ]);
+});
+
+test('matchesBrigadeiroTamanhoFilter only matches brigadeiros by commercial size', () => {
+  assert.equal(matchesBrigadeiroTamanhoFilter({ nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25 }, '25g'), true);
+  assert.equal(matchesBrigadeiroTamanhoFilter({ nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25 }, '30g'), false);
+  assert.equal(matchesBrigadeiroTamanhoFilter({ nome: 'Bolo 25g', categoria: 'bolo', tamanho_g: 25 }, '25g'), false);
 });
 
 test('inferProdutoTamanhoGramas derives size from product name', () => {

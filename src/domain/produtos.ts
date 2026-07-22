@@ -9,6 +9,15 @@ export function getProdutoTamanho(nome: string) {
   return nome.match(/(\d+(?:[,.]\d+)?)\s*g$/i)?.[0].replace(/\s+/g, '') ?? null;
 }
 
+export const BRIGADEIRO_TAMANHOS_COMERCIAIS = ['25g', '30g'] as const;
+export type BrigadeiroTamanhoComercial = typeof BRIGADEIRO_TAMANHOS_COMERCIAIS[number];
+export type BrigadeiroTamanhoFilter = 'todos' | BrigadeiroTamanhoComercial;
+
+export const BRIGADEIRO_TAMANHO_FILTERS: Array<{ value: BrigadeiroTamanhoFilter; label: string }> = [
+  { value: 'todos', label: 'Todos' },
+  ...BRIGADEIRO_TAMANHOS_COMERCIAIS.map((tamanho) => ({ value: tamanho, label: tamanho })),
+];
+
 export interface ProdutoCategoriaInput {
   nome: string;
   categoria?: string | null;
@@ -17,6 +26,10 @@ export interface ProdutoCategoriaInput {
 
 export function isProdutoBrigadeiro(produto: ProdutoCategoriaInput) {
   return (produto.categoria ?? 'brigadeiro') === 'brigadeiro';
+}
+
+export function filterProdutosBrigadeiro<T extends ProdutoCategoriaInput>(produtos: T[]) {
+  return produtos.filter(isProdutoBrigadeiro);
 }
 
 export function getProdutoTamanhoComercial(produto: ProdutoCategoriaInput) {
@@ -31,6 +44,14 @@ export function inferProdutoTamanhoGramas(nome: string) {
   const tamanho = getProdutoTamanho(nome);
   if (!tamanho) return null;
   return Number(tamanho.replace(/g$/i, '').replace(',', '.'));
+}
+
+export function matchesBrigadeiroTamanhoFilter(
+  produto: ProdutoCategoriaInput,
+  filter: BrigadeiroTamanhoFilter,
+) {
+  if (!isProdutoBrigadeiro(produto)) return false;
+  return filter === 'todos' || getProdutoTamanhoComercial(produto) === filter;
 }
 
 export interface ProdutoResumoInput {
