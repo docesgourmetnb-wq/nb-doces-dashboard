@@ -267,8 +267,17 @@ export function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {productionDemand.slice(0, 8).map((item) => (
-                  <TableRow key={item.nome}>
-                    <TableCell className="font-medium">{item.nome}</TableCell>
+                  <TableRow key={item.brigadeiroId || `${item.nome}-${item.tamanho || 'sem-tamanho'}`}>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{item.nome}</span>
+                        {item.tamanho && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                            {item.tamanho}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{item.quantidadePedido} un.</TableCell>
                     <TableCell className="text-right tabular-nums">{item.estoqueDisponivel} un.</TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{item.quantidade} un.</TableCell>

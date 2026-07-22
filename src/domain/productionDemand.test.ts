@@ -50,7 +50,8 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
   assert.deepEqual(result, [
     {
       brigadeiroId: null,
-      nome: 'Brulee 30g',
+      nome: 'Brulee',
+      tamanho: '30g',
       quantidade: 32,
       quantidadePedido: 32,
       estoqueDisponivel: 0,
@@ -59,7 +60,8 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
     },
     {
       brigadeiroId: null,
-      nome: 'Ninho 30g',
+      nome: 'Ninho',
+      tamanho: '30g',
       quantidade: 8,
       quantidadePedido: 8,
       estoqueDisponivel: 0,
@@ -89,7 +91,8 @@ test('aggregateProductionDemand subtracts ready final product stock', () => {
   assert.deepEqual(result, [
     {
       brigadeiroId: 'brigadeiro-1',
-      nome: 'Brulée 30g',
+      nome: 'Brulée',
+      tamanho: '30g',
       quantidade: 12,
       quantidadePedido: 18,
       estoqueDisponivel: 6,
@@ -140,7 +143,8 @@ test('summarizeProductionDemand reports demand covered by ready stock', () => {
   assert.deepEqual(result.items, [
     {
       brigadeiroId: 'brigadeiro-1',
-      nome: 'Brulée 30g',
+      nome: 'Brulée',
+      tamanho: '30g',
       quantidade: 12,
       quantidadePedido: 18,
       estoqueDisponivel: 6,
@@ -148,6 +152,29 @@ test('summarizeProductionDemand reports demand covered by ready stock', () => {
       proximaEntrega: '2026-07-20',
     },
   ]);
+});
+
+test('aggregateProductionDemand displays explicit product size when name is clean', () => {
+  const result = aggregateProductionDemand([
+    {
+      id: 'pedido-1',
+      cliente: 'Juliana',
+      data_entrega: '2026-07-20',
+      status: 'confirmado',
+      itens: [
+        {
+          brigadeiro_id: 'brigadeiro-25',
+          brigadeiro_nome: 'Branquinho',
+          brigadeiro_categoria: 'brigadeiro',
+          brigadeiro_tamanho_g: 25,
+          quantidade: 20,
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(result[0]?.nome, 'Branquinho');
+  assert.equal(result[0]?.tamanho, '25g');
 });
 
 test('summarizeProductionDemand does not reuse stock reserved by ready orders', () => {
