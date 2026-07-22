@@ -769,6 +769,7 @@ export type Database = {
           created_at: string
           data: string
           descricao: string
+          fornecedor_id: string | null
           id: string
           referencia: string | null
           tipo: string
@@ -780,6 +781,7 @@ export type Database = {
           created_at?: string
           data?: string
           descricao: string
+          fornecedor_id?: string | null
           id?: string
           referencia?: string | null
           tipo: string
@@ -791,6 +793,7 @@ export type Database = {
           created_at?: string
           data?: string
           descricao?: string
+          fornecedor_id?: string | null
           id?: string
           referencia?: string | null
           tipo?: string
@@ -913,6 +916,7 @@ export type Database = {
       register_insumo_entry: {
         Args: {
           p_data_compra?: string
+          p_fornecedor_id?: string | null
           p_insumo_id: string
           p_quantidade: number
           p_valor_total?: number
