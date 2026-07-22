@@ -53,3 +53,15 @@ export function calculateInsumoEntry(
     precoUnitario: valorTotalEntrada > 0 ? valorTotalEntrada / quantidadeEntrada : 0,
   };
 }
+
+export function calculateInsumoPurchaseQuantity(quantidadeEmbalagens: number, conteudoPorEmbalagem: number) {
+  if (!Number.isFinite(quantidadeEmbalagens) || quantidadeEmbalagens <= 0) {
+    throw new Error('Quantidade de embalagens inválida');
+  }
+
+  if (!Number.isFinite(conteudoPorEmbalagem) || conteudoPorEmbalagem <= 0) {
+    throw new Error('Conteúdo por embalagem inválido');
+  }
+
+  return quantidadeEmbalagens * conteudoPorEmbalagem;
+}
