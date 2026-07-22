@@ -3,7 +3,7 @@ import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, 
 import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
-import { useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,7 +28,7 @@ import { cn, formatCurrencyBRL } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { getProdutoNomeBase, getProdutoTamanho, getProdutoTamanhoComercial } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanhoComercial, type ProdutoCategoriaInput } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { calculateInsumoEntry, getInsumoStockStatus } from '@/domain/estoque';
 
@@ -54,12 +54,24 @@ function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
 
-function sortByProdutoNomeETamanho<T extends { nome?: string | null | undefined }>(a: T, b: T) {
-  const nomeA = a.nome || '';
-  const nomeB = b.nome || '';
+function getProdutoCatalogoNome(produto: { nome?: string | null | undefined }) {
+  return produto.nome || '';
+}
+
+function sortByProdutoNomeETamanho<T extends ProdutoCategoriaInput>(a: T, b: T) {
+  const nomeA = getProdutoCatalogoNome(a);
+  const nomeB = getProdutoCatalogoNome(b);
   const nomeBaseCompare = getProdutoNomeBase(nomeA).localeCompare(getProdutoNomeBase(nomeB), 'pt-BR');
   if (nomeBaseCompare !== 0) return nomeBaseCompare;
-  return getTamanhoSortValue(getProdutoTamanho(nomeA)) - getTamanhoSortValue(getProdutoTamanho(nomeB));
+  return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
+}
+
+function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<string, Brigadeiro>) {
+  return brigadeirosPorId.get(produto.brigadeiro_id) ?? {
+    nome: produto.brigadeiro?.nome || 'Carregando...',
+    categoria: 'brigadeiro',
+    tamanho_g: null,
+  };
 }
 
 function InsumosTab() {
@@ -572,6 +584,9 @@ function ProdutosTab() {
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
   const [actionValue, setActionValue] = useState('');
   const [deleteProdutoConfirm, setDeleteProdutoConfirm] = useState<EstoqueProduto | null>(null);
+  const brigadeirosPorId = useMemo(() => {
+    return new Map(brigadeiros.map((brigadeiro) => [brigadeiro.id, brigadeiro]));
+  }, [brigadeiros]);
 
   // Filtrar quais brigadeiros ainda nao tem estoque cadastrado
   const availableBrigadeiros = useMemo(() => {
@@ -586,10 +601,10 @@ function ProdutosTab() {
 
   const produtosOrdenados = useMemo(() => {
     return [...produtos].sort((a, b) => sortByProdutoNomeETamanho(
-      { nome: a.brigadeiro?.nome },
-      { nome: b.brigadeiro?.nome },
+      getProdutoFinalCatalogo(a, brigadeirosPorId),
+      getProdutoFinalCatalogo(b, brigadeirosPorId),
     ));
-  }, [produtos]);
+  }, [produtos, brigadeirosPorId]);
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
 
@@ -690,9 +705,10 @@ function ProdutosTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {produtosOrdenados.map(produto => {
-          const produtoNome = produto.brigadeiro?.nome || 'Carregando...';
+          const produtoCatalogo = getProdutoFinalCatalogo(produto, brigadeirosPorId);
+          const produtoNome = produtoCatalogo.nome;
           const produtoBase = getProdutoNomeBase(produtoNome);
-          const produtoTamanho = getProdutoTamanho(produtoNome);
+          const produtoTamanho = getProdutoTamanhoComercial(produtoCatalogo);
 
           return (
           <div key={produto.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
