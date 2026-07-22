@@ -21,3 +21,31 @@ export function calculateDeliveredAverageTicket(deliveredValue: number, delivere
 
   return deliveredValue / deliveredOrders;
 }
+
+export const CATEGORIAS_TRANSACAO = {
+  entrada: [
+    'Vendas',
+    'Aporte',
+    'Reembolso',
+    'Outras entradas',
+  ],
+  saida: [
+    'Insumos',
+    'Embalagens',
+    'Taxas',
+    'Entrega',
+    'Equipamentos',
+    'Manutenção',
+    'Outras saídas',
+  ],
+} as const;
+
+export type TransacaoTipo = keyof typeof CATEGORIAS_TRANSACAO;
+
+export function getCategoriasTransacao(tipo: TransacaoTipo) {
+  return CATEGORIAS_TRANSACAO[tipo];
+}
+
+export function isCategoriaTransacaoValida(tipo: TransacaoTipo, categoria: string) {
+  return CATEGORIAS_TRANSACAO[tipo].some((item) => item === categoria);
+}

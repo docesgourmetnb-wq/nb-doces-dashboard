@@ -34,7 +34,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate } from '@/domain/financeiro';
+import {
+  FINANCIAL_CONTROL_START_LABEL,
+  getCategoriasTransacao,
+  isCategoriaTransacaoValida,
+  isFinancialControlDate,
+} from '@/domain/financeiro';
 import { parseDecimalInput } from '@/domain/numeros';
 
 type TransacaoFormErrors = Partial<Record<'categoria' | 'descricao' | 'valor' | 'data', string>>;
@@ -70,7 +75,7 @@ export function FinanceiroPage() {
     const valor = parseDecimalInput(formData.valor);
     const errors: TransacaoFormErrors = {};
 
-    if (!formData.categoria.trim()) errors.categoria = 'Informe uma categoria';
+    if (!isCategoriaTransacaoValida(formData.tipo, formData.categoria)) errors.categoria = 'Selecione uma categoria';
     if (!formData.descricao.trim()) errors.descricao = 'Informe uma descrição';
     if (!Number.isFinite(valor) || valor <= 0) errors.valor = 'Informe um valor maior que zero';
     if (!formData.data) errors.data = 'Informe uma data';
@@ -88,7 +93,7 @@ export function FinanceiroPage() {
     try {
       const newTransacao = await addTransacao({
         tipo: formData.tipo,
-        categoria: formData.categoria.trim(),
+        categoria: formData.categoria,
         descricao: formData.descricao.trim(),
         valor,
         data: formData.data,
@@ -150,7 +155,10 @@ export function FinanceiroPage() {
                 <Label htmlFor="transacao-tipo">Tipo</Label>
                 <Select
                   value={formData.tipo}
-                  onValueChange={(value: Transacao['tipo']) => setFormData({ ...formData, tipo: value })}
+                  onValueChange={(value: Transacao['tipo']) => {
+                    setFormData({ ...formData, tipo: value, categoria: '' });
+                    if (formErrors.categoria) setFormErrors({ ...formErrors, categoria: '' });
+                  }}
                 >
                   <SelectTrigger id="transacao-tipo">
                     <SelectValue />
@@ -163,17 +171,26 @@ export function FinanceiroPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="transacao-categoria">Categoria</Label>
-                <Input
-                  id="transacao-categoria"
+                <Select
                   value={formData.categoria}
-                  onChange={(e) => {
-                    setFormData({ ...formData, categoria: e.target.value });
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, categoria: value });
                     if (formErrors.categoria) setFormErrors({ ...formErrors, categoria: '' });
                   }}
-                  placeholder="Ex: Vendas, Insumos, Embalagens"
-                  aria-invalid={!!formErrors.categoria}
-                  aria-describedby={formErrors.categoria ? 'transacao-categoria-error' : undefined}
-                />
+                >
+                  <SelectTrigger
+                    id="transacao-categoria"
+                    aria-invalid={!!formErrors.categoria}
+                    aria-describedby={formErrors.categoria ? 'transacao-categoria-error' : undefined}
+                  >
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getCategoriasTransacao(formData.tipo).map((categoria) => (
+                      <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {formErrors.categoria && <p id="transacao-categoria-error" className="text-xs text-destructive">{formErrors.categoria}</p>}
               </div>
               <div className="space-y-2">
