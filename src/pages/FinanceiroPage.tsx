@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet, History, Trash2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2, Wallet, History, Trash2, Pencil } from 'lucide-react';
 import { Transacao } from '@/hooks/useTransacoes';
 import { usePaginatedTransacoes } from '@/hooks/usePaginatedTransacoes';
 import { useFinancialSummary } from '@/hooks/useFinancialSummary';
@@ -65,14 +65,25 @@ export function FinanceiroPage() {
     categoriaFilter, setCategoriaFilter,
     addTransacao,
     deleteManualTransacao,
+    updateManualTransacao,
   } = usePaginatedTransacoes();
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTransacao, setEditingTransacao] = useState<Transacao | null>(null);
   const [deleteConfirmTransacao, setDeleteConfirmTransacao] = useState<Transacao | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editingSaving, setEditingSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<TransacaoFormErrors>({});
+  const [editFormErrors, setEditFormErrors] = useState<TransacaoFormErrors>({});
   const [formData, setFormData] = useState({
+    tipo: 'entrada' as Transacao['tipo'],
+    categoria: '',
+    descricao: '',
+    valor: '',
+    data: format(new Date(), 'yyyy-MM-dd'),
+  });
+  const [editFormData, setEditFormData] = useState({
     tipo: 'entrada' as Transacao['tipo'],
     categoria: '',
     descricao: '',
@@ -126,6 +137,60 @@ export function FinanceiroPage() {
       setFormErrors({});
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openEditTransacao = (transacao: Transacao) => {
+    setEditingTransacao(transacao);
+    setEditFormData({
+      tipo: transacao.tipo,
+      categoria: transacao.categoria,
+      descricao: transacao.descricao,
+      valor: transacao.valor.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+      data: transacao.data,
+    });
+    setEditFormErrors({});
+  };
+
+  const handleUpdateManualTransacao = async () => {
+    if (!editingTransacao) return;
+
+    const valor = parseDecimalInput(editFormData.valor);
+    const errors: TransacaoFormErrors = {};
+
+    if (!isCategoriaTransacaoValida(editFormData.tipo, editFormData.categoria)) errors.categoria = 'Selecione uma categoria';
+    if (!editFormData.descricao.trim()) errors.descricao = 'Informe uma descrição';
+    if (!Number.isFinite(valor) || valor <= 0) errors.valor = 'Informe um valor maior que zero';
+    if (!editFormData.data) errors.data = 'Informe uma data';
+    if (editFormData.data && !isFinancialControlDate(editFormData.data)) {
+      errors.data = `Use uma data a partir de ${FINANCIAL_CONTROL_START_LABEL}`;
+    }
+
+    setEditFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast({ title: 'Revise os campos da transação', variant: 'destructive' });
+      return;
+    }
+
+    setEditingSaving(true);
+    try {
+      const updated = await updateManualTransacao(editingTransacao.id, {
+        tipo: editFormData.tipo,
+        categoria: editFormData.categoria,
+        descricao: editFormData.descricao.trim(),
+        valor,
+        data: editFormData.data,
+      });
+      await refetchSummary();
+      if (!updated) return;
+
+      setEditingTransacao(null);
+      setEditFormErrors({});
+    } finally {
+      setEditingSaving(false);
     }
   };
 
@@ -424,16 +489,28 @@ export function FinanceiroPage() {
                     {transacao.tipo === 'entrada' ? '+' : '-'} {formatCurrencyBRL(transacao.valor)}
                   </p>
                   {!transacao.referencia && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => setDeleteConfirmTransacao(transacao)}
-                      aria-label={`Remover transação ${transacao.descricao}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => openEditTransacao(transacao)}
+                        aria-label={`Editar transação ${transacao.descricao}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleteConfirmTransacao(transacao)}
+                        aria-label={`Remover transação ${transacao.descricao}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -442,6 +519,118 @@ export function FinanceiroPage() {
         )}
       </div>
       <PaginationControls page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
+      <Dialog
+        open={!!editingTransacao}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTransacao(null);
+            setEditFormErrors({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Editar transação manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-transacao-tipo">Tipo</Label>
+              <Select
+                value={editFormData.tipo}
+                onValueChange={(value: Transacao['tipo']) => {
+                  setEditFormData({ ...editFormData, tipo: value, categoria: '' });
+                  if (editFormErrors.categoria) setEditFormErrors({ ...editFormErrors, categoria: '' });
+                }}
+              >
+                <SelectTrigger id="edit-transacao-tipo">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entrada">Entrada</SelectItem>
+                  <SelectItem value="saida">Saída</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-transacao-categoria">Categoria</Label>
+              <Select
+                value={editFormData.categoria}
+                onValueChange={(value) => {
+                  setEditFormData({ ...editFormData, categoria: value });
+                  if (editFormErrors.categoria) setEditFormErrors({ ...editFormErrors, categoria: '' });
+                }}
+              >
+                <SelectTrigger
+                  id="edit-transacao-categoria"
+                  aria-invalid={!!editFormErrors.categoria}
+                  aria-describedby={editFormErrors.categoria ? 'edit-transacao-categoria-error' : undefined}
+                >
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getCategoriasTransacao(editFormData.tipo).map((categoria) => (
+                    <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {editFormErrors.categoria && <p id="edit-transacao-categoria-error" className="text-xs text-destructive">{editFormErrors.categoria}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-transacao-descricao">Descrição</Label>
+              <Input
+                id="edit-transacao-descricao"
+                value={editFormData.descricao}
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, descricao: e.target.value });
+                  if (editFormErrors.descricao) setEditFormErrors({ ...editFormErrors, descricao: '' });
+                }}
+                placeholder="Descreva a transação"
+                aria-invalid={!!editFormErrors.descricao}
+                aria-describedby={editFormErrors.descricao ? 'edit-transacao-descricao-error' : undefined}
+              />
+              {editFormErrors.descricao && <p id="edit-transacao-descricao-error" className="text-xs text-destructive">{editFormErrors.descricao}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-transacao-valor">Valor (R$)</Label>
+                <Input
+                  id="edit-transacao-valor"
+                  type="text"
+                  inputMode="decimal"
+                  value={editFormData.valor}
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, valor: e.target.value });
+                    if (editFormErrors.valor) setEditFormErrors({ ...editFormErrors, valor: '' });
+                  }}
+                  placeholder="Ex: 35,50"
+                  aria-invalid={!!editFormErrors.valor}
+                  aria-describedby={editFormErrors.valor ? 'edit-transacao-valor-error' : undefined}
+                />
+                {editFormErrors.valor && <p id="edit-transacao-valor-error" className="text-xs text-destructive">{editFormErrors.valor}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-transacao-data">Data</Label>
+                <Input
+                  id="edit-transacao-data"
+                  type="date"
+                  value={editFormData.data}
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, data: e.target.value });
+                    if (editFormErrors.data) setEditFormErrors({ ...editFormErrors, data: '' });
+                  }}
+                  aria-invalid={!!editFormErrors.data}
+                  aria-describedby={editFormErrors.data ? 'edit-transacao-data-error' : undefined}
+                />
+                {editFormErrors.data && <p id="edit-transacao-data-error" className="text-xs text-destructive">{editFormErrors.data}</p>}
+              </div>
+            </div>
+            <Button onClick={handleUpdateManualTransacao} className="w-full" disabled={editingSaving}>
+              {editingSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar transação
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={!!deleteConfirmTransacao} onOpenChange={(open) => !open && setDeleteConfirmTransacao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
