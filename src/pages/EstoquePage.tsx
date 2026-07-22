@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, Trash2, Pencil, ShoppingCart } from 'lucide-react';
+import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, Trash2, Pencil, ShoppingCart, Search } from 'lucide-react';
 import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
@@ -102,6 +102,7 @@ function InsumosTab() {
   const { fornecedores } = useFornecedores();
   const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
+  const [insumoSearch, setInsumoSearch] = useState('');
   const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
@@ -129,6 +130,14 @@ function InsumosTab() {
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
   const insumosPorId = useMemo(() => new Map(insumos.map((insumo) => [insumo.id, insumo])), [insumos]);
   const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
+  const filteredInsumos = useMemo(() => {
+    const searchTerm = insumoSearch.trim().toLowerCase();
+    if (!searchTerm) return insumos;
+    return insumos.filter((insumo) => (
+      insumo.nome.toLowerCase().includes(searchTerm)
+      || insumo.unidade.toLowerCase().includes(searchTerm)
+    ));
+  }, [insumoSearch, insumos]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
@@ -553,6 +562,25 @@ function InsumosTab() {
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="font-display font-semibold text-lg">Insumos cadastrados</h3>
+              <p className="text-sm text-muted-foreground">
+                {filteredInsumos.length} de {insumos.length} insumo{insumos.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <div className="relative w-full lg:max-w-sm">
+              <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="insumos-search"
+                value={insumoSearch}
+                onChange={(event) => setInsumoSearch(event.target.value)}
+                placeholder="Buscar insumo..."
+                className="pl-10"
+              />
+            </div>
+          </div>
           <div className="hidden lg:grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-sm font-medium text-muted-foreground">
             <span>Insumo</span>
             <span>Saldo</span>
@@ -560,8 +588,13 @@ function InsumosTab() {
             <span>Último custo</span>
             <span className="text-right">Ações</span>
           </div>
-          <div className="divide-y divide-border">
-            {insumos.map((insumo) => {
+          {filteredInsumos.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+              Nenhum insumo encontrado para a busca atual.
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {filteredInsumos.map((insumo) => {
               const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
               const stockBadge = stockStatus.needsAttention
                 ? stockStatus.status === 'critical'
@@ -639,8 +672,9 @@ function InsumosTab() {
                   </div>
                 </div>
               );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
