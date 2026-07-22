@@ -37,6 +37,7 @@ import {
 import {
   FINANCIAL_CONTROL_START_LABEL,
   getCategoriasTransacao,
+  getTodasCategoriasTransacao,
   isCategoriaTransacaoValida,
   isFinancialControlDate,
 } from '@/domain/financeiro';
@@ -51,6 +52,7 @@ export function FinanceiroPage() {
     transacoes, loading,
     page, setPage, totalPages, totalCount,
     tipoFilter, setTipoFilter,
+    categoriaFilter, setCategoriaFilter,
     addTransacao,
   } = usePaginatedTransacoes();
   const { toast } = useToast();
@@ -336,16 +338,29 @@ export function FinanceiroPage() {
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="font-display font-semibold">Transações Recentes</h2>
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filtrar transações por tipo">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas</SelectItem>
-              <SelectItem value="entrada">Entradas</SelectItem>
-              <SelectItem value="saida">Saídas</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Select value={tipoFilter} onValueChange={setTipoFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filtrar transações por tipo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas</SelectItem>
+                <SelectItem value="entrada">Entradas</SelectItem>
+                <SelectItem value="saida">Saídas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+              <SelectTrigger className="w-full sm:w-[190px]" aria-label="Filtrar transações por categoria">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas categorias</SelectItem>
+                {getTodasCategoriasTransacao().map((categoria) => (
+                  <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         {transacoes.length === 0 ? (
           <div className="p-12 text-center">
@@ -354,7 +369,9 @@ export function FinanceiroPage() {
             </div>
             <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhuma transação registrada</h3>
             <p className="text-muted-foreground text-sm">
-              {tipoFilter !== 'todos' ? 'Tente ajustar o filtro.' : 'Registre sua primeira transação para começar o controle financeiro.'}
+              {tipoFilter !== 'todos' || categoriaFilter !== 'todas'
+                ? 'Tente ajustar os filtros.'
+                : 'Registre sua primeira transação para começar o controle financeiro.'}
             </p>
           </div>
         ) : (

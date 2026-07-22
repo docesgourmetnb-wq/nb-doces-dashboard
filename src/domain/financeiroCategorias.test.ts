@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getCategoriasTransacao, isCategoriaTransacaoValida } from './financeiro.ts';
+import {
+  getCategoriasTransacao,
+  getTodasCategoriasTransacao,
+  isCategoriaTransacaoValida,
+} from './financeiro.ts';
 
 test('getCategoriasTransacao returns categories by transaction type', () => {
   assert.deepEqual(getCategoriasTransacao('entrada'), [
@@ -17,4 +21,9 @@ test('isCategoriaTransacaoValida validates category against transaction type', (
   assert.equal(isCategoriaTransacaoValida('entrada', 'Vendas'), true);
   assert.equal(isCategoriaTransacaoValida('entrada', 'Insumos'), false);
   assert.equal(isCategoriaTransacaoValida('saida', 'Insumos'), true);
+});
+
+test('getTodasCategoriasTransacao returns entrada and saida categories', () => {
+  assert.ok(getTodasCategoriasTransacao().includes('Vendas'));
+  assert.ok(getTodasCategoriasTransacao().includes('Insumos'));
 });
