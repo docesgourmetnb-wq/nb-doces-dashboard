@@ -46,6 +46,10 @@ export function getCategoriasTransacao(tipo: TransacaoTipo) {
   return CATEGORIAS_TRANSACAO[tipo];
 }
 
+export function getTodasCategoriasTransacao() {
+  return [...CATEGORIAS_TRANSACAO.entrada, ...CATEGORIAS_TRANSACAO.saida];
+}
+
 export function isCategoriaTransacaoValida(tipo: TransacaoTipo, categoria: string) {
   return CATEGORIAS_TRANSACAO[tipo].some((item) => item === categoria);
 }

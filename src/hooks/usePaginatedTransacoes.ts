@@ -19,6 +19,7 @@ export function usePaginatedTransacoes() {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [tipoFilter, setTipoFilter] = useState<string>('todos');
+  const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -39,6 +40,9 @@ export function usePaginatedTransacoes() {
       if (tipoFilter !== 'todos') {
         countQuery = countQuery.eq('tipo', tipoFilter);
       }
+      if (categoriaFilter !== 'todas') {
+        countQuery = countQuery.eq('categoria', categoriaFilter);
+      }
 
       const { count, error: countError } = await countQuery;
       if (countError) throw countError;
@@ -57,6 +61,9 @@ export function usePaginatedTransacoes() {
       if (tipoFilter !== 'todos') {
         dataQuery = dataQuery.eq('tipo', tipoFilter);
       }
+      if (categoriaFilter !== 'todas') {
+        dataQuery = dataQuery.eq('categoria', categoriaFilter);
+      }
 
       const { data, error } = await dataQuery;
       if (error) throw error;
@@ -66,7 +73,7 @@ export function usePaginatedTransacoes() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, tipoFilter, page]);
+  }, [user, toast, tipoFilter, categoriaFilter, page]);
 
   useEffect(() => {
     fetchTransacoes();
@@ -74,7 +81,7 @@ export function usePaginatedTransacoes() {
 
   useEffect(() => {
     setPage(0);
-  }, [tipoFilter]);
+  }, [tipoFilter, categoriaFilter]);
 
   const addTransacao = async (transacao: Omit<Transacao, 'id'>) => {
     if (!user) return undefined;
@@ -121,6 +128,8 @@ export function usePaginatedTransacoes() {
     totalCount,
     tipoFilter,
     setTipoFilter,
+    categoriaFilter,
+    setCategoriaFilter,
     addTransacao,
     refetch: fetchTransacoes,
   };
