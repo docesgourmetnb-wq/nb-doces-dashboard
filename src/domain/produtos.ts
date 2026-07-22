@@ -9,8 +9,34 @@ export function getProdutoTamanho(nome: string) {
   return nome.match(/(\d+(?:[,.]\d+)?)\s*g$/i)?.[0].replace(/\s+/g, '') ?? null;
 }
 
+export interface ProdutoCategoriaInput {
+  nome: string;
+  categoria?: string | null;
+  tamanho_g?: number | null;
+}
+
+export function isProdutoBrigadeiro(produto: ProdutoCategoriaInput) {
+  return (produto.categoria ?? 'brigadeiro') === 'brigadeiro';
+}
+
+export function getProdutoTamanhoComercial(produto: ProdutoCategoriaInput) {
+  if (!isProdutoBrigadeiro(produto)) return null;
+  if (Number.isFinite(produto.tamanho_g)) {
+    return `${Number(produto.tamanho_g).toLocaleString('pt-BR')}g`;
+  }
+  return getProdutoTamanho(produto.nome);
+}
+
+export function inferProdutoTamanhoGramas(nome: string) {
+  const tamanho = getProdutoTamanho(nome);
+  if (!tamanho) return null;
+  return Number(tamanho.replace(/g$/i, '').replace(',', '.'));
+}
+
 export interface ProdutoResumoInput {
   nome: string;
+  categoria?: string | null;
+  tamanho_g?: number | null;
   margem_lucro?: number | null;
 }
 
@@ -25,8 +51,8 @@ export interface ProdutoResumo {
 
 export function summarizeProdutos(produtos: ProdutoResumoInput[]): ProdutoResumo {
   const total = produtos.length;
-  const total25g = produtos.filter((produto) => getProdutoTamanho(produto.nome) === '25g').length;
-  const total30g = produtos.filter((produto) => getProdutoTamanho(produto.nome) === '30g').length;
+  const total25g = produtos.filter((produto) => getProdutoTamanhoComercial(produto) === '25g').length;
+  const total30g = produtos.filter((produto) => getProdutoTamanhoComercial(produto) === '30g').length;
   const semTamanho = total - total25g - total30g;
   const margens = produtos
     .map((produto) => produto.margem_lucro)
@@ -55,7 +81,7 @@ export function findProdutosSemParDeTamanho(produtos: ProdutoResumoInput[]): Pro
 
   for (const produto of produtos) {
     const nomeBase = getProdutoNomeBase(produto.nome);
-    const tamanho = getProdutoTamanho(produto.nome);
+    const tamanho = getProdutoTamanhoComercial(produto);
     if (!nomeBase || !tamanho) continue;
 
     if (!tamanhosPorSabor.has(nomeBase)) {

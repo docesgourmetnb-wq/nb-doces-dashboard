@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanhoComercial, inferProdutoTamanhoGramas, summarizeProdutos } from '@/domain/produtos';
 import { parseDecimalInput } from '@/domain/numeros';
 import { formatCurrencyBRL } from '@/lib/utils';
 
@@ -59,7 +59,7 @@ export function ProdutosPage() {
 
     return brigadeiros
       .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        const tamanho = getProdutoTamanhoComercial(brigadeiro);
         const matchesSearch = !searchTerm || brigadeiro.nome.toLowerCase().includes(searchTerm);
         const matchesTamanho = tamanhoFilter === 'todos' || tamanho === tamanhoFilter;
         return matchesSearch && matchesTamanho;
@@ -67,7 +67,7 @@ export function ProdutosPage() {
       .sort((a, b) => {
         const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
-        return getTamanhoSortValue(getProdutoTamanho(a.nome)) - getTamanhoSortValue(getProdutoTamanho(b.nome));
+        return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
   }, [brigadeiros, search, tamanhoFilter]);
   const produtosResumo = useMemo(() => summarizeProdutos(brigadeiros), [brigadeiros]);
@@ -130,6 +130,8 @@ export function ProdutosPage() {
       if (editingBrigadeiro) {
         await updateBrigadeiro(editingBrigadeiro.id, {
           nome: formData.nome.trim(),
+          categoria: 'brigadeiro',
+          tamanho_g: inferProdutoTamanhoGramas(formData.nome.trim()),
           tipo: formData.tipo,
           preco_venda,
           custo_unitario,
@@ -138,6 +140,8 @@ export function ProdutosPage() {
       } else {
         await addBrigadeiro({
           nome: formData.nome.trim(),
+          categoria: 'brigadeiro',
+          tamanho_g: inferProdutoTamanhoGramas(formData.nome.trim()),
           tipo: formData.tipo,
           preco_venda,
           custo_unitario,
@@ -354,7 +358,7 @@ export function ProdutosPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredBrigadeiros.map((brigadeiro) => {
-              const tamanho = getProdutoTamanho(brigadeiro.nome);
+              const tamanho = getProdutoTamanhoComercial(brigadeiro);
               const nomeBase = getProdutoNomeBase(brigadeiro.nome);
               const produtoSemPar = saboresSemParPorNome.get(nomeBase);
 

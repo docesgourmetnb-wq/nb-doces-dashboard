@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findProdutosSemParDeTamanho, getProdutoNomeBase, getProdutoTamanho, summarizeProdutos } from './produtos.ts';
+import {
+  findProdutosSemParDeTamanho,
+  getProdutoNomeBase,
+  getProdutoTamanho,
+  getProdutoTamanhoComercial,
+  inferProdutoTamanhoGramas,
+  summarizeProdutos,
+} from './produtos.ts';
 
 test('getProdutoNomeBase removes gram suffix from product names', () => {
   assert.equal(getProdutoNomeBase('Brulée 30g'), 'Brulée');
@@ -18,12 +25,27 @@ test('getProdutoTamanho extracts gram suffix from product names', () => {
   assert.equal(getProdutoTamanho('Mini cento sortido'), null);
 });
 
+test('getProdutoTamanhoComercial prefers explicit brigadeiro size', () => {
+  assert.equal(getProdutoTamanhoComercial({ nome: 'Brulée especial', categoria: 'brigadeiro', tamanho_g: 25 }), '25g');
+  assert.equal(getProdutoTamanhoComercial({ nome: 'Brulée 30g', categoria: 'brigadeiro', tamanho_g: null }), '30g');
+});
+
+test('getProdutoTamanhoComercial does not apply brigadeiro sizes to cakes', () => {
+  assert.equal(getProdutoTamanhoComercial({ nome: 'Bolo de cenoura 30g', categoria: 'bolo', tamanho_g: 30 }), null);
+});
+
+test('inferProdutoTamanhoGramas derives size from product name', () => {
+  assert.equal(inferProdutoTamanhoGramas('Branquinho 25g'), 25);
+  assert.equal(inferProdutoTamanhoGramas('Branquinho 17,5g'), 17.5);
+  assert.equal(inferProdutoTamanhoGramas('Bolo de cenoura'), null);
+});
+
 test('summarizeProdutos counts products by commercial size', () => {
   assert.deepEqual(summarizeProdutos([
-    { nome: 'Brulée 25g', margem_lucro: 69 },
-    { nome: 'Brulée 30g', margem_lucro: 74 },
+    { nome: 'Brulée', categoria: 'brigadeiro', tamanho_g: 25, margem_lucro: 69 },
+    { nome: 'Brulée', categoria: 'brigadeiro', tamanho_g: 30, margem_lucro: 74 },
     { nome: 'Pistache 25g', margem_lucro: 41 },
-    { nome: 'Cento sortido', margem_lucro: 50 },
+    { nome: 'Bolo de cenoura 30g', categoria: 'bolo', tamanho_g: 30, margem_lucro: 50 },
   ]), {
     total: 4,
     total25g: 2,

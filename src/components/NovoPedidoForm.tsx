@@ -35,7 +35,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
-import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
+import { getProdutoNomeBase, getProdutoTamanhoComercial } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
 
@@ -85,13 +85,13 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
   const produtosDisponiveis = useMemo(() => {
     return brigadeiros
       .filter((brigadeiro) => {
-        const tamanho = getProdutoTamanho(brigadeiro.nome);
+        const tamanho = getProdutoTamanhoComercial(brigadeiro);
         return tamanhoProdutoFilter === 'todos' || tamanho === tamanhoProdutoFilter;
       })
       .sort((a, b) => {
         const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
-        return getTamanhoSortValue(getProdutoTamanho(a.nome)) - getTamanhoSortValue(getProdutoTamanho(b.nome));
+        return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
   }, [brigadeiros, tamanhoProdutoFilter]);
 
@@ -462,7 +462,7 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
                     </div>
                   ) : (
                     produtosDisponiveis.map((b) => {
-                      const tamanho = getProdutoTamanho(b.nome);
+                      const tamanho = getProdutoTamanhoComercial(b);
                       const nomeBase = getProdutoNomeBase(b.nome);
                       const label = tamanho
                         ? `${nomeBase} • ${tamanho} • ${formatCurrencyBRL(b.preco_venda)}`
