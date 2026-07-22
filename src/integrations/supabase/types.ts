@@ -200,6 +200,63 @@ export type Database = {
         }
         Relationships: []
       }
+      insumo_purchase_entries: {
+        Row: {
+          created_at: string
+          data_compra: string
+          fornecedor_id: string | null
+          id: string
+          insumo_id: string
+          preco_unitario: number
+          quantidade: number
+          transacao_referencia: string | null
+          unidade: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          data_compra?: string
+          fornecedor_id?: string | null
+          id?: string
+          insumo_id: string
+          preco_unitario?: number
+          quantidade: number
+          transacao_referencia?: string | null
+          unidade: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          data_compra?: string
+          fornecedor_id?: string | null
+          id?: string
+          insumo_id?: string
+          preco_unitario?: number
+          quantidade?: number
+          transacao_referencia?: string | null
+          unidade?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumo_purchase_entries_fornecedor_owner_fkey"
+            columns: ["user_id", "fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["user_id", "id"]
+          },
+          {
+            foreignKeyName: "insumo_purchase_entries_insumo_owner_fkey"
+            columns: ["user_id", "insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       itens_pedido: {
         Row: {
           brigadeiro_id: string | null
