@@ -386,7 +386,7 @@ export function ProdutosPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {filteredBrigadeiros.map((brigadeiro) => {
               const tamanho = getProdutoTamanhoComercial(brigadeiro);
               const nomeBase = getProdutoNomeBase(brigadeiro.nome);
@@ -395,20 +395,23 @@ export function ProdutosPage() {
             return (
               <div
                 key={brigadeiro.id}
-                className="bg-card border border-border rounded-xl p-5 card-hover shadow-sm"
+                className="bg-card border border-border rounded-lg p-4 card-hover shadow-sm"
               >
-                <div className="flex items-start justify-between mb-3">
-                  {tamanho ? (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                      {tamanho}
-                    </span>
-                  ) : (
-                    <span aria-hidden="true" />
-                  )}
-                  <div className="flex gap-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {tamanho ? (
+                      <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                        {tamanho}
+                      </span>
+                    ) : null}
+                    <h3 className="mt-3 line-clamp-2 min-h-[3rem] font-display text-lg font-semibold leading-tight">
+                      {nomeBase}
+                    </h3>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
                     <button
                       onClick={() => handleOpenDialog(brigadeiro)}
-                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      className="rounded-md p-1.5 transition-colors hover:bg-muted"
                       aria-label={`Editar ${brigadeiro.nome}`}
                     >
                       <Pencil size={16} className="text-muted-foreground" />
@@ -416,7 +419,7 @@ export function ProdutosPage() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
-                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                          className="rounded-md p-1.5 transition-colors hover:bg-destructive/10"
                           aria-label={`Excluir ${brigadeiro.nome}`}
                         >
                           <Trash2 size={16} className="text-destructive" />
@@ -442,30 +445,29 @@ export function ProdutosPage() {
                     </AlertDialog>
                   </div>
                 </div>
-              
-                <h3 className="font-display font-semibold text-lg mb-1">{nomeBase}</h3>
+
                 {produtoSemPar && (
-                  <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">
+                  <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
                     <AlertTriangle size={13} aria-hidden="true" />
                     Sem {produtoSemPar.faltando.join('/')}
                   </div>
                 )}
                 {brigadeiro.descricao && (
-                  <p className="text-sm text-muted-foreground mb-4">{brigadeiro.descricao}</p>
+                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{brigadeiro.descricao}</p>
                 )}
               
-                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-border">
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Venda</p>
-                    <p className="font-semibold text-success">{formatCurrencyBRL(brigadeiro.preco_venda)}</p>
+                    <p className="text-sm font-semibold text-success">{formatCurrencyBRL(brigadeiro.preco_venda)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Custo</p>
-                    <p className="font-medium">{formatCurrencyBRL(brigadeiro.custo_unitario)}</p>
+                    <p className="text-sm font-medium">{formatCurrencyBRL(brigadeiro.custo_unitario)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Margem</p>
-                    <p className="font-medium text-accent">{brigadeiro.margem_lucro?.toFixed(1) || 0}%</p>
+                    <p className="text-sm font-medium text-accent">{brigadeiro.margem_lucro?.toFixed(1) || 0}%</p>
                   </div>
                 </div>
               </div>
