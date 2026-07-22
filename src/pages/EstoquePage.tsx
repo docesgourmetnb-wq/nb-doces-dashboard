@@ -100,7 +100,12 @@ function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry } = useInsumos();
   const { fornecedores } = useFornecedores();
-  const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries();
+  const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
+  const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
+  const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
+    fornecedorId: purchaseFornecedorFilter,
+    insumoId: purchaseInsumoFilter,
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
@@ -462,12 +467,42 @@ function InsumosTab() {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex flex-col gap-4 mb-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h3 className="font-display font-semibold text-lg">Compras recentes</h3>
             <p className="text-sm text-muted-foreground">Histórico das últimas entradas registradas no estoque.</p>
           </div>
-          <ShoppingCart className="w-5 h-5 text-muted-foreground" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[520px]">
+            <div className="space-y-1.5">
+              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Insumo</Label>
+              <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
+                <SelectTrigger id="purchase-insumo-filter">
+                  <SelectValue placeholder="Todos os insumos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os insumos</SelectItem>
+                  {insumos.map((insumo) => (
+                    <SelectItem key={insumo.id} value={insumo.id}>{insumo.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Fornecedor</Label>
+              <Select value={purchaseFornecedorFilter} onValueChange={setPurchaseFornecedorFilter}>
+                <SelectTrigger id="purchase-fornecedor-filter">
+                  <SelectValue placeholder="Todos os fornecedores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os fornecedores</SelectItem>
+                  <SelectItem value="sem-fornecedor">Sem fornecedor</SelectItem>
+                  {fornecedores.map((fornecedor) => (
+                    <SelectItem key={fornecedor.id} value={fornecedor.id}>{fornecedor.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
         {purchaseEntriesLoading ? (
           <div className="py-6 text-center text-muted-foreground">
@@ -476,7 +511,7 @@ function InsumosTab() {
           </div>
         ) : purchaseEntries.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground text-center">
-            Nenhuma compra registrada ainda. Use Entrada no card do insumo para começar.
+            Nenhuma compra encontrada para os filtros atuais.
           </p>
         ) : (
           <div className="divide-y divide-border">
