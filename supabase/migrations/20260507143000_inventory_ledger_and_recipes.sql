@@ -519,7 +519,7 @@ JOIN public.stock_items si
     ELSE 'insumo'::public.stock_item_type
   END
 WHERE i.quantidade_atual > 0
-ON CONFLICT (user_id, idempotency_key) DO NOTHING;
+ON CONFLICT (user_id, idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING;
 
 -- RLS
 ALTER TABLE public.stock_items ENABLE ROW LEVEL SECURITY;
