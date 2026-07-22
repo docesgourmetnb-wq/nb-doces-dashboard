@@ -17,6 +17,10 @@ type PedidoDemandRow = {
   itens_pedido?: Array<{
     brigadeiro_id: string | null;
     brigadeiro_nome: string;
+    brigadeiros?: {
+      categoria: string | null;
+      tamanho_g: number | null;
+    } | null;
     quantidade: number;
   }> | null;
 };
@@ -69,7 +73,7 @@ export function useProductionDemand() {
       const [pedidosResult, estoqueResult] = await Promise.all([
         supabase
           .from('pedidos')
-          .select('id, cliente, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade)')
+          .select('id, cliente, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade, brigadeiros(categoria, tamanho_g))')
           .is('archived_at', null)
           .in('status_operacional', ['confirmado', 'em-producao', 'pronto'])
           .order('data_entrega', { ascending: true }),
@@ -87,7 +91,13 @@ export function useProductionDemand() {
         cliente: pedido.cliente,
         data_entrega: pedido.data_entrega,
         status: pedido.status_operacional || pedido.status,
-        itens: pedido.itens_pedido || [],
+        itens: (pedido.itens_pedido || []).map((item) => ({
+          brigadeiro_id: item.brigadeiro_id,
+          brigadeiro_nome: item.brigadeiro_nome,
+          brigadeiro_categoria: item.brigadeiros?.categoria ?? null,
+          brigadeiro_tamanho_g: item.brigadeiros?.tamanho_g ?? null,
+          quantidade: item.quantidade,
+        })),
       }));
       const estoquePronto = ((estoqueResult.data || []) as EstoqueProdutoRow[]).map(parseLegacyProdutoEstoque);
       const estoqueReservado = pedidos
