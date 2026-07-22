@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Trash2, Loader2, UserPlus, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { type Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido } from '@/hooks/usePedidos';
 import {
@@ -40,6 +40,7 @@ import {
   type BrigadeiroTamanhoFilter,
   filterProdutosBrigadeiro,
   getProdutoNomeBase,
+  getProdutoTamanho,
   getProdutoTamanhoComercial,
   matchesBrigadeiroTamanhoFilter,
 } from '@/domain/produtos';
@@ -52,6 +53,15 @@ interface NovoPedidoFormProps {
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
+}
+
+function getPedidoItemProdutoInfo(item: ItemPedido, produtosPorId: Map<string, Brigadeiro>) {
+  const produto = item.brigadeiro_id ? produtosPorId.get(item.brigadeiro_id) : undefined;
+  const nome = produto?.nome ?? item.brigadeiro_nome ?? '';
+  const nomeBase = getProdutoNomeBase(nome) || item.brigadeiro_nome || 'Produto';
+  const tamanho = produto ? getProdutoTamanhoComercial(produto) : getProdutoTamanho(nome);
+
+  return { nomeBase, tamanho };
 }
 
 export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
@@ -91,6 +101,10 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
         return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
   }, [produtosBrigadeiro, tamanhoProdutoFilter]);
+
+  const produtosPorId = useMemo(() => {
+    return new Map(produtosBrigadeiro.map((produto) => [produto.id, produto]));
+  }, [produtosBrigadeiro]);
 
   const selectedBrigadeiroData = produtosBrigadeiro.find(b => b.id === selectedBrigadeiro) || null;
   const itemPendente: ItemPedido | null = selectedBrigadeiroData && quantidade > 0
@@ -498,29 +512,43 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
             {/* Items List */}
             {itens.length > 0 && (
               <div className="space-y-2 border border-border rounded-lg p-4 bg-muted/30">
-                {itens.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.brigadeiro_nome}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.quantidade} x {formatCurrencyBRL(item.preco_unitario)}
-                      </p>
+                {itens.map((item, index) => {
+                  const produtoInfo = getPedidoItemProdutoInfo(item, produtosPorId);
+                  const itemLabel = produtoInfo.tamanho
+                    ? `${produtoInfo.nomeBase} ${produtoInfo.tamanho}`
+                    : produtoInfo.nomeBase;
+
+                  return (
+                    <div key={index} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{produtoInfo.nomeBase}</p>
+                          {produtoInfo.tamanho && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                              {produtoInfo.tamanho}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {item.quantidade} x {formatCurrencyBRL(item.preco_unitario)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="font-semibold">
+                          {formatCurrencyBRL(item.quantidade * item.preco_unitario)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                          aria-label={`Remover ${itemLabel} do pedido`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <p className="font-semibold">
-                        {formatCurrencyBRL(item.quantidade * item.preco_unitario)}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                        aria-label={`Remover ${item.brigadeiro_nome} do pedido`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="flex justify-between items-center pt-3 border-t border-border mt-3">
                   <span className="font-medium">Total do Pedido</span>
                   <span className="text-xl font-display font-semibold text-primary">
