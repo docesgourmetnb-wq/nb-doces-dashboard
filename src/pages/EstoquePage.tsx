@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
+import { Plus, AlertTriangle, Package, Loader2, ArrowUpCircle, ArrowDownCircle, Trash2, Pencil, ShoppingCart } from 'lucide-react';
 import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
@@ -30,9 +30,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { getProdutoNomeBase, getProdutoTamanho } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
+import { calculateInsumoEntry, getInsumoStockStatus } from '@/domain/estoque';
 
 type InsumoFormErrors = Partial<Record<
-  'nome' | 'unidade' | 'quantidade_atual' | 'quantidade_minima' | 'preco_unitario',
+  'nome' | 'unidade' | 'quantidade_minima',
+  string
+>>;
+
+type InsumoEntryErrors = Partial<Record<
+  'quantidade' | 'valor_total' | 'data_compra',
   string
 >>;
 
@@ -59,18 +65,25 @@ function sortByProdutoNomeETamanho<T extends { nome?: string | null | undefined 
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo } = useInsumos();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
+  const [entryInsumo, setEntryInsumo] = useState<Insumo | null>(null);
   const [saving, setSaving] = useState(false);
+  const [entrySaving, setEntrySaving] = useState(false);
   const [formErrors, setFormErrors] = useState<InsumoFormErrors>({});
+  const [entryErrors, setEntryErrors] = useState<InsumoEntryErrors>({});
   const [formData, setFormData] = useState({
     nome: '',
     unidade: '',
-    quantidade_atual: '',
     quantidade_minima: '',
-    preco_unitario: '',
+  });
+  const [entryFormData, setEntryFormData] = useState({
+    quantidade: '',
+    valor_total: '',
+    data_compra: new Date().toISOString().slice(0, 10),
   });
 
-  const insumosEmFalta = insumos.filter(i => i.quantidade_atual <= i.quantidade_minima);
+  const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
 
   const handleOpenDialog = (insumo?: Insumo) => {
@@ -79,35 +92,38 @@ function InsumosTab() {
       setFormData({
         nome: insumo.nome,
         unidade: insumo.unidade,
-        quantidade_atual: insumo.quantidade_atual.toString(),
         quantidade_minima: insumo.quantidade_minima.toString(),
-        preco_unitario: insumo.preco_unitario.toString(),
       });
     } else {
       setEditingInsumo(null);
       setFormData({
         nome: '',
         unidade: '',
-        quantidade_atual: '',
         quantidade_minima: '',
-        preco_unitario: '',
       });
     }
     setFormErrors({});
     setIsDialogOpen(true);
   };
 
+  const handleOpenEntryDialog = (insumo: Insumo) => {
+    setEntryInsumo(insumo);
+    setEntryFormData({
+      quantidade: '',
+      valor_total: '',
+      data_compra: new Date().toISOString().slice(0, 10),
+    });
+    setEntryErrors({});
+    setEntryDialogOpen(true);
+  };
+
   const handleSave = async () => {
-    const quantidadeAtual = parseDecimalInput(formData.quantidade_atual);
-    const quantidadeMinima = parseDecimalInput(formData.quantidade_minima);
-    const precoUnitario = parseDecimalInput(formData.preco_unitario);
+    const quantidadeMinima = formData.quantidade_minima.trim() ? parseDecimalInput(formData.quantidade_minima) : 0;
     const errors: InsumoFormErrors = {};
 
     if (!formData.nome.trim()) errors.nome = 'Informe o nome do insumo';
     if (!formData.unidade.trim()) errors.unidade = 'Informe a unidade';
-    if (!Number.isFinite(quantidadeAtual) || quantidadeAtual < 0) errors.quantidade_atual = 'Informe uma quantidade válida';
     if (!Number.isFinite(quantidadeMinima) || quantidadeMinima < 0) errors.quantidade_minima = 'Informe uma quantidade mínima válida';
-    if (!Number.isFinite(precoUnitario) || precoUnitario < 0) errors.preco_unitario = 'Informe um preço válido';
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -118,19 +134,16 @@ function InsumosTab() {
         await updateInsumo(editingInsumo.id, {
           nome: formData.nome.trim(),
           unidade: formData.unidade.trim(),
-          quantidade_atual: quantidadeAtual,
           quantidade_minima: quantidadeMinima,
-          consumo_medio: editingInsumo.consumo_medio,
-          preco_unitario: precoUnitario,
         });
       } else {
         await addInsumo({
           nome: formData.nome.trim(),
           unidade: formData.unidade.trim(),
-          quantidade_atual: quantidadeAtual,
+          quantidade_atual: 0,
           quantidade_minima: quantidadeMinima,
           consumo_medio: 0,
-          preco_unitario: precoUnitario,
+          preco_unitario: 0,
         });
       }
       setIsDialogOpen(false);
@@ -139,11 +152,42 @@ function InsumosTab() {
     }
   };
 
-  const getStockStatus = (insumo: Insumo) => {
-    const ratio = insumo.quantidade_atual / insumo.quantidade_minima;
-    if (ratio < 0.5) return { status: 'critical', color: 'bg-destructive' };
-    if (ratio <= 1) return { status: 'low', color: 'bg-warning' };
-    return { status: 'ok', color: 'bg-success' };
+  const handleSaveEntry = async () => {
+    if (!entryInsumo) return;
+
+    const quantidadeEntrada = parseDecimalInput(entryFormData.quantidade);
+    const valorTotalEntrada = entryFormData.valor_total.trim() ? parseDecimalInput(entryFormData.valor_total) : 0;
+    const errors: InsumoEntryErrors = {};
+
+    if (!Number.isFinite(quantidadeEntrada) || quantidadeEntrada <= 0) {
+      errors.quantidade = 'Informe uma quantidade maior que zero';
+    }
+    if (!Number.isFinite(valorTotalEntrada) || valorTotalEntrada < 0) {
+      errors.valor_total = 'Informe um valor total válido';
+    }
+    if (!entryFormData.data_compra) {
+      errors.data_compra = 'Informe a data da compra';
+    }
+
+    setEntryErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setEntrySaving(true);
+    try {
+      const entry = calculateInsumoEntry(
+        entryInsumo.quantidade_atual,
+        quantidadeEntrada,
+        valorTotalEntrada,
+      );
+      await updateInsumo(entryInsumo.id, {
+        quantidade_atual: entry.quantidadeAtual,
+        preco_unitario: entry.precoUnitario || entryInsumo.preco_unitario,
+        ultima_compra: entryFormData.data_compra,
+      });
+      setEntryDialogOpen(false);
+    } finally {
+      setEntrySaving(false);
+    }
   };
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
@@ -157,7 +201,6 @@ function InsumosTab() {
         </Button>
       </div>
 
-      {/* Dialog omitido externamente por simplificacao, mas renderizado condicionalmente se precisasse */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -166,7 +209,7 @@ function InsumosTab() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="insumo-nome">Nome</Label>
                   <Input id="insumo-nome" value={formData.nome} onChange={(e) => {
@@ -186,32 +229,20 @@ function InsumosTab() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="insumo-quantidade-atual">Quantidade Atual</Label>
-                  <Input id="insumo-quantidade-atual" type="text" inputMode="decimal" value={formData.quantidade_atual} onChange={(e) => {
-                    setFormData({ ...formData, quantidade_atual: e.target.value });
-                    if (formErrors.quantidade_atual) setFormErrors({ ...formErrors, quantidade_atual: '' });
-                  }} placeholder="Ex: 12,5" aria-invalid={!!formErrors.quantidade_atual} aria-describedby={formErrors.quantidade_atual ? 'insumo-quantidade-atual-error' : undefined} />
-                  {formErrors.quantidade_atual && <p id="insumo-quantidade-atual-error" className="text-xs text-destructive">{formErrors.quantidade_atual}</p>}
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="insumo-quantidade-minima">Quantidade Mínima</Label>
                   <Input id="insumo-quantidade-minima" type="text" inputMode="decimal" value={formData.quantidade_minima} onChange={(e) => {
                     setFormData({ ...formData, quantidade_minima: e.target.value });
                     if (formErrors.quantidade_minima) setFormErrors({ ...formErrors, quantidade_minima: '' });
                   }} placeholder="Ex: 2,5" aria-invalid={!!formErrors.quantidade_minima} aria-describedby={formErrors.quantidade_minima ? 'insumo-quantidade-minima-error' : undefined} />
                   {formErrors.quantidade_minima && <p id="insumo-quantidade-minima-error" className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
+                  <p className="text-xs text-muted-foreground">Opcional. Use apenas para alertas de estoque baixo.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="insumo-preco-unitario">Preço Unitário (R$)</Label>
-                  <Input id="insumo-preco-unitario" type="text" inputMode="decimal" value={formData.preco_unitario} onChange={(e) => {
-                    setFormData({ ...formData, preco_unitario: e.target.value });
-                    if (formErrors.preco_unitario) setFormErrors({ ...formErrors, preco_unitario: '' });
-                  }} placeholder="Ex: 8,90" aria-invalid={!!formErrors.preco_unitario} aria-describedby={formErrors.preco_unitario ? 'insumo-preco-unitario-error' : undefined} />
-                  {formErrors.preco_unitario && <p id="insumo-preco-unitario-error" className="text-xs text-destructive">{formErrors.preco_unitario}</p>}
-                </div>
-              </div>
+              {!editingInsumo && (
+                <p className="text-sm text-muted-foreground">
+                  Depois de cadastrar, use Registrar entrada para informar compra, quantidade e custo.
+                </p>
+              )}
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {editingInsumo ? 'Salvar Alterações' : 'Adicionar Insumo'}
@@ -219,6 +250,74 @@ function InsumosTab() {
             </div>
           </DialogContent>
         </Dialog>
+
+      <Dialog open={entryDialogOpen} onOpenChange={setEntryDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Registrar entrada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Insumo: <strong className="text-foreground">{entryInsumo?.nome}</strong>
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="insumo-entry-quantidade">Quantidade comprada</Label>
+                <Input
+                  id="insumo-entry-quantidade"
+                  type="text"
+                  inputMode="decimal"
+                  value={entryFormData.quantidade}
+                  onChange={(e) => {
+                    setEntryFormData({ ...entryFormData, quantidade: e.target.value });
+                    if (entryErrors.quantidade) setEntryErrors({ ...entryErrors, quantidade: '' });
+                  }}
+                  placeholder="Ex: 395"
+                  aria-invalid={!!entryErrors.quantidade}
+                  aria-describedby={entryErrors.quantidade ? 'insumo-entry-quantidade-error' : undefined}
+                />
+                {entryErrors.quantidade && <p id="insumo-entry-quantidade-error" className="text-xs text-destructive">{entryErrors.quantidade}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="insumo-entry-valor">Valor total (R$)</Label>
+                <Input
+                  id="insumo-entry-valor"
+                  type="text"
+                  inputMode="decimal"
+                  value={entryFormData.valor_total}
+                  onChange={(e) => {
+                    setEntryFormData({ ...entryFormData, valor_total: e.target.value });
+                    if (entryErrors.valor_total) setEntryErrors({ ...entryErrors, valor_total: '' });
+                  }}
+                  placeholder="Ex: 8,90"
+                  aria-invalid={!!entryErrors.valor_total}
+                  aria-describedby={entryErrors.valor_total ? 'insumo-entry-valor-error' : undefined}
+                />
+                {entryErrors.valor_total && <p id="insumo-entry-valor-error" className="text-xs text-destructive">{entryErrors.valor_total}</p>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insumo-entry-data">Data da compra</Label>
+              <Input
+                id="insumo-entry-data"
+                type="date"
+                value={entryFormData.data_compra}
+                onChange={(e) => {
+                  setEntryFormData({ ...entryFormData, data_compra: e.target.value });
+                  if (entryErrors.data_compra) setEntryErrors({ ...entryErrors, data_compra: '' });
+                }}
+                aria-invalid={!!entryErrors.data_compra}
+                aria-describedby={entryErrors.data_compra ? 'insumo-entry-data-error' : undefined}
+              />
+              {entryErrors.data_compra && <p id="insumo-entry-data-error" className="text-xs text-destructive">{entryErrors.data_compra}</p>}
+            </div>
+            <Button onClick={handleSaveEntry} className="w-full" disabled={entrySaving}>
+              {entrySaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+              Registrar entrada
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-border pb-6">
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3">
@@ -243,31 +342,50 @@ function InsumosTab() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
           {insumos.map((insumo) => {
-            const stockStatus = getStockStatus(insumo);
-            const progressValue = Math.min((insumo.quantidade_atual / insumo.quantidade_minima) * 100, 100);
+            const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
             return (
-              <button
+              <div
                 key={insumo.id}
-                type="button"
-                onClick={() => handleOpenDialog(insumo)}
-                className="w-full bg-card border border-border rounded-xl p-5 card-hover cursor-pointer shadow-sm text-left"
-                aria-label={`Editar insumo ${insumo.nome}`}
+                className="w-full bg-card border border-border rounded-xl p-5 card-hover shadow-sm text-left"
               >
-                <div className="flex justify-between mb-3">
+                <div className="flex justify-between gap-3 mb-3">
                   <h3 className="font-semibold font-display">{insumo.nome}</h3>
-                  {stockStatus.status !== 'ok' && (
-                    <span className={cn("px-2 py-1 rounded-full text-xs font-medium", stockStatus.status === 'critical' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning')}>
-                      {stockStatus.status === 'critical' ? 'Crítico' : 'Baixo'}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {stockStatus.needsAttention && (
+                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", stockStatus.status === 'critical' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning')}>
+                        {stockStatus.status === 'critical' ? 'Crítico' : 'Baixo'}
+                      </span>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenDialog(insumo)}
+                      aria-label={`Editar cadastro do insumo ${insumo.nome}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                   <span>Atual: {insumo.quantidade_atual} {insumo.unidade}</span>
-                  <span>Mín: {insumo.quantidade_minima}</span>
+                  <span>{insumo.quantidade_minima > 0 ? `Mín: ${insumo.quantidade_minima}` : 'Mín: não definido'}</span>
                 </div>
-                <Progress value={progressValue} className="h-2 mb-4" />
-                <p className="text-sm text-muted-foreground">{formatCurrencyBRL(insumo.preco_unitario || 0)} / un</p>
-              </button>
+                <Progress value={stockStatus.progressValue} className="h-2 mb-4" />
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">Último custo: {formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenEntryDialog(insumo)}
+                    className="shrink-0 gap-2"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    Entrada
+                  </Button>
+                </div>
+              </div>
             );
           })}
         </div>
