@@ -39,6 +39,12 @@ import {
 } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { calculateInsumoEntry, getInsumoStockStatus } from '@/domain/estoque';
+import {
+  INSUMO_UNIDADES,
+  getInsumoQuantidadePlaceholder,
+  getInsumoUnidadeLabel,
+  isInsumoUnidadePadrao,
+} from '@/domain/insumos';
 
 type InsumoFormErrors = Partial<Record<
   'nome' | 'unidade' | 'quantidade_minima',
@@ -86,7 +92,7 @@ function InsumosTab() {
   const [entryErrors, setEntryErrors] = useState<InsumoEntryErrors>({});
   const [formData, setFormData] = useState({
     nome: '',
-    unidade: '',
+    unidade: 'g',
     quantidade_minima: '',
   });
   const [entryFormData, setEntryFormData] = useState({
@@ -110,7 +116,7 @@ function InsumosTab() {
       setEditingInsumo(null);
       setFormData({
         nome: '',
-        unidade: '',
+        unidade: 'g',
         quantidade_minima: '',
       });
     }
@@ -145,13 +151,13 @@ function InsumosTab() {
       if (editingInsumo) {
         await updateInsumo(editingInsumo.id, {
           nome: formData.nome.trim(),
-          unidade: formData.unidade.trim(),
+          unidade: formData.unidade,
           quantidade_minima: quantidadeMinima,
         });
       } else {
         await addInsumo({
           nome: formData.nome.trim(),
-          unidade: formData.unidade.trim(),
+          unidade: formData.unidade,
           quantidade_atual: 0,
           quantidade_minima: quantidadeMinima,
           consumo_medio: 0,
@@ -232,20 +238,34 @@ function InsumosTab() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-unidade">Unidade</Label>
-                  <Input id="insumo-unidade" value={formData.unidade} onChange={(e) => {
-                    setFormData({ ...formData, unidade: e.target.value });
-                    if (formErrors.unidade) setFormErrors({ ...formErrors, unidade: '' });
-                  }} placeholder="Ex: lata, kg" aria-invalid={!!formErrors.unidade} aria-describedby={formErrors.unidade ? 'insumo-unidade-error' : undefined} />
+                  <select
+                    id="insumo-unidade"
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    value={formData.unidade}
+                    onChange={(e) => {
+                      setFormData({ ...formData, unidade: e.target.value });
+                      if (formErrors.unidade) setFormErrors({ ...formErrors, unidade: '' });
+                    }}
+                    aria-invalid={!!formErrors.unidade}
+                    aria-describedby={formErrors.unidade ? 'insumo-unidade-error' : undefined}
+                  >
+                    {!isInsumoUnidadePadrao(formData.unidade) && formData.unidade && (
+                      <option value={formData.unidade}>Atual: {formData.unidade}</option>
+                    )}
+                    {INSUMO_UNIDADES.map((unidade) => (
+                      <option key={unidade.value} value={unidade.value}>{unidade.label}</option>
+                    ))}
+                  </select>
                   {formErrors.unidade && <p id="insumo-unidade-error" className="text-xs text-destructive">{formErrors.unidade}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="insumo-quantidade-minima">Quantidade Mínima</Label>
+                  <Label htmlFor="insumo-quantidade-minima">Quantidade mínima ({formData.unidade})</Label>
                   <Input id="insumo-quantidade-minima" type="text" inputMode="decimal" value={formData.quantidade_minima} onChange={(e) => {
                     setFormData({ ...formData, quantidade_minima: e.target.value });
                     if (formErrors.quantidade_minima) setFormErrors({ ...formErrors, quantidade_minima: '' });
-                  }} placeholder="Ex: 2,5" aria-invalid={!!formErrors.quantidade_minima} aria-describedby={formErrors.quantidade_minima ? 'insumo-quantidade-minima-error' : undefined} />
+                  }} placeholder={getInsumoQuantidadePlaceholder(formData.unidade)} aria-invalid={!!formErrors.quantidade_minima} aria-describedby={formErrors.quantidade_minima ? 'insumo-quantidade-minima-error' : undefined} />
                   {formErrors.quantidade_minima && <p id="insumo-quantidade-minima-error" className="text-xs text-destructive">{formErrors.quantidade_minima}</p>}
                   <p className="text-xs text-muted-foreground">Opcional. Use apenas para alertas de estoque baixo.</p>
                 </div>
@@ -271,10 +291,13 @@ function InsumosTab() {
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
               Insumo: <strong className="text-foreground">{entryInsumo?.nome}</strong>
+              {entryInsumo && (
+                <span> • controle em {getInsumoUnidadeLabel(entryInsumo.unidade)}</span>
+              )}
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="insumo-entry-quantidade">Quantidade comprada</Label>
+                <Label htmlFor="insumo-entry-quantidade">Quantidade comprada ({entryInsumo?.unidade || 'unidade'})</Label>
                 <Input
                   id="insumo-entry-quantidade"
                   type="text"
@@ -284,7 +307,7 @@ function InsumosTab() {
                     setEntryFormData({ ...entryFormData, quantidade: e.target.value });
                     if (entryErrors.quantidade) setEntryErrors({ ...entryErrors, quantidade: '' });
                   }}
-                  placeholder="Ex: 395"
+                  placeholder={getInsumoQuantidadePlaceholder(entryInsumo?.unidade || '')}
                   aria-invalid={!!entryErrors.quantidade}
                   aria-describedby={entryErrors.quantidade ? 'insumo-entry-quantidade-error' : undefined}
                 />
@@ -381,7 +404,7 @@ function InsumosTab() {
                 </div>
                 <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                   <span>Atual: {insumo.quantidade_atual} {insumo.unidade}</span>
-                  <span>{insumo.quantidade_minima > 0 ? `Mín: ${insumo.quantidade_minima}` : 'Mín: não definido'}</span>
+                  <span>{insumo.quantidade_minima > 0 ? `Mín: ${insumo.quantidade_minima} ${insumo.unidade}` : 'Mín: não definido'}</span>
                 </div>
                 <Progress value={stockStatus.progressValue} className="h-2 mb-4" />
                 <div className="flex items-center justify-between gap-3">
