@@ -21,6 +21,8 @@ AS $$
     );
 $$;
 
+DROP FUNCTION IF EXISTS public.get_financial_summary();
+
 CREATE OR REPLACE FUNCTION public.get_financial_summary()
 RETURNS TABLE (
   total_entradas NUMERIC,
