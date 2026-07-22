@@ -4,6 +4,7 @@ import { useInsumos, Insumo } from '@/hooks/useInsumos';
 import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
 import { Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { useFornecedores } from '@/hooks/useFornecedores';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,6 +28,13 @@ import { Label } from '@/components/ui/label';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
@@ -86,6 +94,7 @@ function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<
 
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry } = useInsumos();
+  const { fornecedores } = useFornecedores();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
@@ -104,7 +113,9 @@ function InsumosTab() {
     conteudo_por_embalagem: '',
     valor_total: '',
     data_compra: new Date().toISOString().slice(0, 10),
+    fornecedor_id: 'sem-fornecedor',
   });
+  const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
@@ -136,6 +147,7 @@ function InsumosTab() {
       conteudo_por_embalagem: '',
       valor_total: '',
       data_compra: new Date().toISOString().slice(0, 10),
+      fornecedor_id: 'sem-fornecedor',
     });
     setEntryErrors({});
     setEntryDialogOpen(true);
@@ -208,6 +220,7 @@ function InsumosTab() {
         quantidadeEntrada,
         valorTotalEntrada,
         entryFormData.data_compra,
+        entryFormData.fornecedor_id === 'sem-fornecedor' ? null : entryFormData.fornecedor_id,
       );
       if (updatedInsumo) setEntryDialogOpen(false);
     } finally {
@@ -354,6 +367,30 @@ function InsumosTab() {
                   ? '-'
                   : `${formatInsumoQuantidade(previewQuantidadeTotal)} ${entryInsumo.unidade}`}
               </strong>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insumo-entry-fornecedor">Fornecedor</Label>
+              <Select
+                value={entryFormData.fornecedor_id}
+                onValueChange={(value) => setEntryFormData({ ...entryFormData, fornecedor_id: value })}
+              >
+                <SelectTrigger id="insumo-entry-fornecedor">
+                  <SelectValue placeholder="Selecione um fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sem-fornecedor">Sem fornecedor informado</SelectItem>
+                  {fornecedoresAtivos.map((fornecedor) => (
+                    <SelectItem key={fornecedor.id} value={fornecedor.id}>
+                      {fornecedor.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fornecedoresAtivos.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Cadastre fornecedores no menu Fornecedores para vincular compras.
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
