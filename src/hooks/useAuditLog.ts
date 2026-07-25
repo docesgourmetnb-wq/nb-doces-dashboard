@@ -12,6 +12,9 @@ const ACTION_LABELS: Record<string, string> = {
   unarchived: 'Pedido desarquivado',
   venda_created: 'Venda registrada',
   estorno_created: 'Estorno registrado',
+  payment_created: 'Pagamento registrado',
+  historical_payment_recorded: 'Pagamento histórico registrado',
+  stock_consumed: 'Estoque baixado',
 };
 
 export function getActionLabel(action: string): string {
