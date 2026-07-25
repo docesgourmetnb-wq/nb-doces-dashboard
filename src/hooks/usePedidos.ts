@@ -210,8 +210,8 @@ export function usePedidos() {
   const updatePedidoStatus = async (id: string, status: Pedido['status']) => {
     try {
       const pedido = pedidos.find(p => p.id === id);
-      if (!pedido || pedido.status === status) return; // idempotency guard
-      if (status === 'entregue' && pedido.saldo_restante > 0) {
+      if (pedido?.status === status) return; // idempotency guard
+      if (status === 'entregue' && pedido && pedido.saldo_restante > 0) {
         toast({
           title: 'Saldo pendente',
           description: 'Este pedido ainda possui saldo pendente e não pode ser marcado como entregue.',
