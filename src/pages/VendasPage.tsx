@@ -428,7 +428,7 @@ export function VendasPage() {
                                 <Eye size={18} className="text-muted-foreground" />
                               </button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle className="font-display">
                                   Pedido - {getClienteDisplayName(pedido)}
@@ -510,7 +510,7 @@ export function VendasPage() {
                                     </div>
                                   </div>
                                 )}
-                                <div className="pt-4 border-t border-border flex justify-between items-center">
+                                <div className="pt-4 border-t border-border flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                   <div className="space-y-1">
                                     <span className="font-medium">Pagamento</span>
                                     <p className="text-sm text-muted-foreground">
