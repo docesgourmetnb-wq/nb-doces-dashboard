@@ -1,4 +1,5 @@
 import type { PedidoStatus } from './pedidos';
+import { isHistoricalOrder } from './financeiro.ts';
 import { getProdutoNomeBase, getProdutoTamanhoComercial } from './produtos.ts';
 import { normalizeProductionMatchName } from './producaoIntegrada.ts';
 
@@ -13,6 +14,7 @@ export interface ProductionDemandItemInput {
 export interface ProductionDemandPedidoInput {
   id: string;
   cliente: string;
+  data?: string | null;
   data_entrega: string;
   status: PedidoStatus | string;
   itens?: ProductionDemandItemInput[] | null;
@@ -46,6 +48,10 @@ const PRODUCTION_STATUSES = new Set<string>(['confirmado', 'em-producao']);
 
 export function isPedidoDemandante(status: string) {
   return PRODUCTION_STATUSES.has(status);
+}
+
+export function isPedidoNaProducaoAtual(pedido: ProductionDemandPedidoInput) {
+  return isPedidoDemandante(pedido.status) && !isHistoricalOrder(pedido);
 }
 
 function getDemandKey(item: ProductionDemandItemInput | ProductionStockItemInput) {
@@ -83,7 +89,7 @@ export function summarizeProductionDemand(
   }
 
   for (const pedido of pedidos) {
-    if (!isPedidoDemandante(pedido.status)) continue;
+    if (!isPedidoNaProducaoAtual(pedido)) continue;
 
     for (const item of pedido.itens || []) {
       if (!item.brigadeiro_nome || item.quantidade <= 0) continue;

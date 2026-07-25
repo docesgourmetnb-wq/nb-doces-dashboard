@@ -20,7 +20,7 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       status: 'confirmado',
       itens: [
         { brigadeiro_nome: 'Brulee 30g', quantidade: 12 },
@@ -30,7 +30,7 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
     {
       id: 'pedido-2',
       cliente: 'Sotaque Bar',
-      data_entrega: '2026-07-18',
+      data_entrega: '2026-08-18',
       status: 'em-producao',
       itens: [
         { brigadeiro_nome: 'Brulee 30g', quantidade: 20 },
@@ -39,7 +39,7 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
     {
       id: 'pedido-3',
       cliente: 'Pedido pronto',
-      data_entrega: '2026-07-17',
+      data_entrega: '2026-08-17',
       status: 'pronto',
       itens: [
         { brigadeiro_nome: 'Brulee 30g', quantidade: 99 },
@@ -56,7 +56,7 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
       quantidadePedido: 32,
       estoqueDisponivel: 0,
       pedidos: 2,
-      proximaEntrega: '2026-07-18',
+      proximaEntrega: '2026-08-18',
     },
     {
       brigadeiroId: null,
@@ -66,7 +66,7 @@ test('aggregateProductionDemand groups items by flavor and keeps nearest deliver
       quantidadePedido: 8,
       estoqueDisponivel: 0,
       pedidos: 1,
-      proximaEntrega: '2026-07-20',
+      proximaEntrega: '2026-08-20',
     },
   ]);
 });
@@ -76,7 +76,7 @@ test('aggregateProductionDemand subtracts ready final product stock', () => {
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       status: 'confirmado',
       itens: [
         { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 18 },
@@ -97,7 +97,7 @@ test('aggregateProductionDemand subtracts ready final product stock', () => {
       quantidadePedido: 18,
       estoqueDisponivel: 6,
       pedidos: 1,
-      proximaEntrega: '2026-07-20',
+      proximaEntrega: '2026-08-20',
     },
   ]);
 });
@@ -107,7 +107,7 @@ test('aggregateProductionDemand can match stock by normalized name without ids',
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       status: 'confirmado',
       itens: [
         { brigadeiro_nome: 'Brulée 30g', quantidade: 18 },
@@ -125,7 +125,7 @@ test('summarizeProductionDemand reports demand covered by ready stock', () => {
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       status: 'confirmado',
       itens: [
         { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 18 },
@@ -149,7 +149,7 @@ test('summarizeProductionDemand reports demand covered by ready stock', () => {
       quantidadePedido: 18,
       estoqueDisponivel: 6,
       pedidos: 1,
-      proximaEntrega: '2026-07-20',
+      proximaEntrega: '2026-08-20',
     },
   ]);
 });
@@ -159,7 +159,7 @@ test('aggregateProductionDemand displays explicit product size when name is clea
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       status: 'confirmado',
       itens: [
         {
@@ -182,7 +182,7 @@ test('summarizeProductionDemand does not reuse stock reserved by ready orders', 
     {
       id: 'pedido-1',
       cliente: 'Pedido confirmado',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       status: 'confirmado',
       itens: [
         { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 12 },
@@ -191,7 +191,7 @@ test('summarizeProductionDemand does not reuse stock reserved by ready orders', 
     {
       id: 'pedido-2',
       cliente: 'Pedido pronto',
-      data_entrega: '2026-07-18',
+      data_entrega: '2026-08-18',
       status: 'pronto',
       itens: [
         { brigadeiro_id: 'brigadeiro-1', brigadeiro_nome: 'Brulée 30g', quantidade: 10 },
@@ -207,4 +207,32 @@ test('summarizeProductionDemand does not reuse stock reserved by ready orders', 
   assert.equal(result.totalCobertoPorEstoque, 0);
   assert.equal(result.totalAProduzir, 12);
   assert.equal(result.items[0]?.quantidade, 12);
+});
+
+test('summarizeProductionDemand excludes historical orders from pending production', () => {
+  const result = summarizeProductionDemand([
+    {
+      id: 'pedido-atual',
+      cliente: 'Daniela',
+      data_entrega: '2026-08-16',
+      status: 'confirmado',
+      itens: [
+        { brigadeiro_nome: 'Branquinho 25g', quantidade: 200 },
+      ],
+    },
+    {
+      id: 'pedido-historico',
+      cliente: 'Sotaque Bar',
+      data_entrega: '2026-07-31',
+      status: 'confirmado',
+      itens: [
+        { brigadeiro_nome: 'Branquinho 25g', quantidade: 51 },
+      ],
+    },
+  ]);
+
+  assert.equal(result.totalPedido, 200);
+  assert.equal(result.totalAProduzir, 200);
+  assert.equal(result.items[0]?.pedidos, 1);
+  assert.equal(result.items[0]?.proximaEntrega, '2026-08-16');
 });

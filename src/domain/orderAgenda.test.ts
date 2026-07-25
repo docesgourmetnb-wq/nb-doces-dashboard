@@ -28,7 +28,7 @@ test('buildOrderAgenda sorts open orders and labels urgency', () => {
     {
       id: 'pedido-3',
       cliente: 'Bárbaros',
-      data_entrega: '2026-07-20',
+      data_entrega: '2026-08-20',
       tipo_entrega: 'retirada',
       status: 'confirmado',
       status_financeiro: 'parcial',
@@ -39,7 +39,7 @@ test('buildOrderAgenda sorts open orders and labels urgency', () => {
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-16',
+      data_entrega: '2026-08-16',
       tipo_entrega: 'entrega',
       status: 'pronto',
       status_financeiro: 'pago',
@@ -50,7 +50,7 @@ test('buildOrderAgenda sorts open orders and labels urgency', () => {
     {
       id: 'pedido-2',
       cliente: 'Sotaque Bar',
-      data_entrega: '2026-07-17',
+      data_entrega: '2026-08-17',
       tipo_entrega: 'retirada',
       status: 'entregue',
       status_financeiro: 'pago',
@@ -58,7 +58,7 @@ test('buildOrderAgenda sorts open orders and labels urgency', () => {
       saldo_restante: 0,
       itens_total: 51,
     },
-  ], '2026-07-17');
+  ], '2026-08-17');
 
   assert.deepEqual(result.map((pedido) => ({
     id: pedido.id,
@@ -75,7 +75,7 @@ test('buildOrderAgenda flags ready orders with remaining balance', () => {
     {
       id: 'pedido-1',
       cliente: 'Juliana',
-      data_entrega: '2026-07-17',
+      data_entrega: '2026-08-17',
       tipo_entrega: 'retirada',
       status: 'pronto',
       status_financeiro: 'parcial',
@@ -86,7 +86,7 @@ test('buildOrderAgenda flags ready orders with remaining balance', () => {
     {
       id: 'pedido-2',
       cliente: 'Sotaque Bar',
-      data_entrega: '2026-07-17',
+      data_entrega: '2026-08-17',
       tipo_entrega: 'retirada',
       status: 'confirmado',
       status_financeiro: 'parcial',
@@ -94,7 +94,7 @@ test('buildOrderAgenda flags ready orders with remaining balance', () => {
       saldo_restante: 40,
       itens_total: 20,
     },
-  ], '2026-07-17');
+  ], '2026-08-17');
 
   assert.deepEqual(result.map((pedido) => ({
     id: pedido.id,
@@ -111,7 +111,7 @@ test('buildOrderAgendaSummary counts all open orders even when visible items are
     {
       id: 'pedido-1',
       cliente: 'Atrasado',
-      data_entrega: '2026-07-16',
+      data_entrega: '2026-08-16',
       tipo_entrega: 'retirada',
       status: 'confirmado',
       status_financeiro: 'parcial',
@@ -122,7 +122,7 @@ test('buildOrderAgendaSummary counts all open orders even when visible items are
     {
       id: 'pedido-2',
       cliente: 'Hoje',
-      data_entrega: '2026-07-17',
+      data_entrega: '2026-08-17',
       tipo_entrega: 'retirada',
       status: 'confirmado',
       status_financeiro: 'parcial',
@@ -133,7 +133,7 @@ test('buildOrderAgendaSummary counts all open orders even when visible items are
     {
       id: 'pedido-3',
       cliente: 'Pronto pendente',
-      data_entrega: '2026-07-18',
+      data_entrega: '2026-08-18',
       tipo_entrega: 'retirada',
       status: 'pronto',
       status_financeiro: 'parcial',
@@ -141,10 +141,42 @@ test('buildOrderAgendaSummary counts all open orders even when visible items are
       saldo_restante: 60,
       itens_total: 30,
     },
-  ], '2026-07-17', 1);
+  ], '2026-08-17', 1);
 
   assert.deepEqual(result.items.map((pedido) => pedido.id), ['pedido-1']);
   assert.equal(result.pedidosAtrasados, 1);
   assert.equal(result.pedidosHoje, 1);
   assert.equal(result.pedidosBloqueadosPorSaldo, 1);
+});
+
+test('buildOrderAgendaSummary excludes historical orders from operational agenda counters', () => {
+  const result = buildOrderAgendaSummary([
+    {
+      id: 'historico-aberto',
+      cliente: 'Sotaque Bar',
+      data_entrega: '2026-07-31',
+      tipo_entrega: 'retirada',
+      status: 'confirmado',
+      status_financeiro: 'pago',
+      valor_total: 204,
+      saldo_restante: 0,
+      itens_total: 51,
+    },
+    {
+      id: 'pedido-atual',
+      cliente: 'Daniela',
+      data_entrega: '2026-08-01',
+      tipo_entrega: 'retirada',
+      status: 'confirmado',
+      status_financeiro: 'parcial',
+      valor_total: 612.5,
+      saldo_restante: 306.25,
+      itens_total: 200,
+    },
+  ], '2026-08-01', 10);
+
+  assert.deepEqual(result.items.map((pedido) => pedido.id), ['pedido-atual']);
+  assert.equal(result.pedidosHoje, 1);
+  assert.equal(result.pedidosAtrasados, 0);
+  assert.equal(result.pedidosBloqueadosPorSaldo, 0);
 });

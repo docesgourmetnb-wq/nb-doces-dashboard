@@ -11,6 +11,7 @@ import {
 type AgendaPedidoRow = {
   id: string;
   cliente: string;
+  data: string;
   data_entrega: string;
   tipo_entrega: string;
   status: string;
@@ -60,7 +61,7 @@ export function useOrderAgenda(limit = 6) {
     try {
       const { data, error } = await supabase
         .from('pedidos')
-        .select('id, cliente, data_entrega, tipo_entrega, status, status_operacional, status_financeiro, valor_total, saldo_restante, itens_pedido(quantidade)')
+        .select('id, cliente, data, data_entrega, tipo_entrega, status, status_operacional, status_financeiro, valor_total, saldo_restante, itens_pedido(quantidade)')
         .is('archived_at', null)
         .not('status_operacional', 'in', '("entregue","cancelado")')
         .order('data_entrega', { ascending: true });
@@ -70,6 +71,7 @@ export function useOrderAgenda(limit = 6) {
       const pedidos = ((data || []) as AgendaPedidoRow[]).map<AgendaPedidoInput>((pedido) => ({
         id: pedido.id,
         cliente: pedido.cliente,
+        data: pedido.data,
         data_entrega: pedido.data_entrega,
         tipo_entrega: pedido.tipo_entrega,
         status: pedido.status_operacional || pedido.status,
