@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Eye, Archive, ArchiveRestore, Loader2, ShoppingBag, AlertTriangle } from 'lucide-react';
+import { Search, Eye, Archive, ArchiveRestore, Loader2, ShoppingBag, AlertTriangle, CopyPlus } from 'lucide-react';
 import { PedidoHistorico } from '@/components/PedidoHistorico';
 import { usePedidos, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
 import { usePaginatedPedidos } from '@/hooks/usePaginatedPedidos';
@@ -418,6 +418,21 @@ export function VendasPage() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
+                          <NovoPedidoForm
+                            onSuccess={refetch}
+                            pedidoModelo={pedido}
+                            trigger={(
+                              <button
+                                type="button"
+                                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                title="Duplicar pedido"
+                                aria-label={`Duplicar pedido de ${getClienteDisplayName(pedido)}`}
+                              >
+                                <CopyPlus size={18} className="text-muted-foreground" />
+                              </button>
+                            )}
+                          />
+
                           {/* View details */}
                           <Dialog>
                             <DialogTrigger asChild>

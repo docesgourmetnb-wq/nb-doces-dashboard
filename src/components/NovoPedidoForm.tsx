@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Plus, Trash2, Loader2, UserPlus, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useClientes } from '@/hooks/useClientes';
-import { usePedidos, ItemPedido, Pedido } from '@/hooks/usePedidos';
+import { usePedidos, ItemPedido, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
 import {
   CANAIS_VENDA,
   CANAL_VENDA_LABELS,
@@ -49,6 +49,8 @@ import { cn, formatCurrencyBRL } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
   onSuccess?: () => void;
+  pedidoModelo?: Pedido;
+  trigger?: ReactNode;
 }
 
 function getTamanhoSortValue(tamanho: string | null) {
@@ -64,7 +66,7 @@ function getPedidoItemProdutoInfo(item: ItemPedido, produtosPorId: Map<string, B
   return { nomeBase, tamanho };
 }
 
-export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
+export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoFormProps) {
   const { brigadeiros } = useBrigadeiros();
   const { clientes, addCliente } = useClientes();
   const { addPedido } = usePedidos();
@@ -146,6 +148,39 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
     ? clientes.find(c => c.id === clienteId)?.nome || ''
     : clienteNovo.trim();
   const canSubmit = Boolean(clienteNome) && itensDoPedido.length > 0 && valorPagoValido && enderecoEntregaValido;
+
+  const applyPedidoModelo = () => {
+    if (!pedidoModelo) return;
+
+    const clienteModelo = pedidoModelo.cliente_id
+      ? clientes.find((cliente) => cliente.id === pedidoModelo.cliente_id)
+      : clientes.find((cliente) => cliente.nome.toLowerCase() === getClienteDisplayName(pedidoModelo).toLowerCase());
+
+    if (clienteModelo) {
+      setModoCliente('existente');
+      setClienteId(clienteModelo.id);
+      setClienteNovo('');
+    } else {
+      setModoCliente('novo');
+      setClienteId('');
+      setClienteNovo(getClienteDisplayName(pedidoModelo));
+    }
+
+    setClienteNovoTelefone('');
+    setClienteNovoEmail('');
+    setDataPedido(new Date());
+    setTipoPedido(pedidoModelo.tipo_pedido);
+    setTipoEntrega(pedidoModelo.tipo_entrega);
+    setEnderecoEntrega(pedidoModelo.endereco_entrega || '');
+    setCanalVenda(pedidoModelo.canal_venda);
+    setFormaPagamento(pedidoModelo.forma_pagamento);
+    setValorPago('');
+    setObservacoes(pedidoModelo.observacoes || '');
+    setItens((pedidoModelo.itens || []).map((item) => ({ ...item })));
+    setSelectedBrigadeiro('');
+    setTamanhoProdutoFilter('todos');
+    setQuantidade(1);
+  };
 
   const handleAddItem = () => {
     if (!selectedBrigadeiro || quantidade <= 0) return;
@@ -261,18 +296,25 @@ export function NovoPedidoForm({ onSuccess }: NovoPedidoFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
+      if (isOpen && pedidoModelo) {
+        applyPedidoModelo();
+      }
       setOpen(isOpen);
       if (!isOpen) resetForm();
     }}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus size={18} />
-          Novo Pedido
-        </Button>
+        {trigger ?? (
+          <Button className="gap-2">
+            <Plus size={18} />
+            Novo Pedido
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Novo Pedido</DialogTitle>
+          <DialogTitle className="font-display text-2xl">
+            {pedidoModelo ? 'Duplicar Pedido' : 'Novo Pedido'}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
