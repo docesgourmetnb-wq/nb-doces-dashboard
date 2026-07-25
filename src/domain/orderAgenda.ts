@@ -1,8 +1,10 @@
 import type { PedidoStatus } from './pedidos';
+import { isHistoricalOrder } from './financeiro.ts';
 
 export interface AgendaPedidoInput {
   id: string;
   cliente: string;
+  data?: string | null;
   data_entrega: string;
   tipo_entrega: string;
   status: PedidoStatus | string;
@@ -33,6 +35,10 @@ export function isPedidoNaAgenda(status: string) {
   return status !== 'entregue' && status !== 'cancelado';
 }
 
+export function isPedidoOperacionalNaAgenda(pedido: AgendaPedidoInput) {
+  return isPedidoNaAgenda(pedido.status) && !isHistoricalOrder(pedido);
+}
+
 function getUrgency(dataEntrega: string, today: string): AgendaUrgency {
   if (dataEntrega < today) return 'atrasado';
   if (dataEntrega === today) return 'hoje';
@@ -51,7 +57,7 @@ export function buildOrderAgenda(pedidos: AgendaPedidoInput[], today: string, li
 
 export function buildOrderAgendaSummary(pedidos: AgendaPedidoInput[], today: string, limit = 6): OrderAgendaSummary {
   const sortedItems = pedidos
-    .filter((pedido) => isPedidoNaAgenda(pedido.status))
+    .filter(isPedidoOperacionalNaAgenda)
     .map((pedido) => ({
       ...pedido,
       urgency: getUrgency(pedido.data_entrega, today),

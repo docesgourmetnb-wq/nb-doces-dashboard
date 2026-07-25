@@ -7,10 +7,12 @@ import {
   type ProductionDemandItem,
   type ProductionDemandPedidoInput,
 } from '@/domain/productionDemand';
+import { isHistoricalOrder } from '@/domain/financeiro';
 
 type PedidoDemandRow = {
   id: string;
   cliente: string;
+  data: string;
   data_entrega: string;
   status: string;
   status_operacional: string | null;
@@ -73,7 +75,7 @@ export function useProductionDemand() {
       const [pedidosResult, estoqueResult] = await Promise.all([
         supabase
           .from('pedidos')
-          .select('id, cliente, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade, brigadeiros(categoria, tamanho_g))')
+          .select('id, cliente, data, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade, brigadeiros(categoria, tamanho_g))')
           .is('archived_at', null)
           .in('status_operacional', ['confirmado', 'em-producao', 'pronto'])
           .order('data_entrega', { ascending: true }),
@@ -89,6 +91,7 @@ export function useProductionDemand() {
       const pedidos = ((pedidosResult.data || []) as PedidoDemandRow[]).map<ProductionDemandPedidoInput>((pedido) => ({
         id: pedido.id,
         cliente: pedido.cliente,
+        data: pedido.data,
         data_entrega: pedido.data_entrega,
         status: pedido.status_operacional || pedido.status,
         itens: (pedido.itens_pedido || []).map((item) => ({
@@ -99,8 +102,9 @@ export function useProductionDemand() {
           quantidade: item.quantidade,
         })),
       }));
+      const pedidosOperacionais = pedidos.filter((pedido) => !isHistoricalOrder(pedido));
       const estoquePronto = ((estoqueResult.data || []) as EstoqueProdutoRow[]).map(parseLegacyProdutoEstoque);
-      const estoqueReservado = pedidos
+      const estoqueReservado = pedidosOperacionais
         .filter((pedido) => pedido.status === 'pronto')
         .flatMap((pedido) => pedido.itens || [])
         .map((item) => ({
@@ -108,7 +112,7 @@ export function useProductionDemand() {
           nome: item.brigadeiro_nome,
           quantidade: item.quantidade,
         }));
-      const summary = summarizeProductionDemand(pedidos, estoquePronto, estoqueReservado);
+      const summary = summarizeProductionDemand(pedidosOperacionais, estoquePronto, estoqueReservado);
 
       setItems(summary.items);
       setTotalPedido(summary.totalPedido);

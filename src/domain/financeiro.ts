@@ -9,6 +9,41 @@ export function isHistoricalFinancialOrder(dataEntrega: string) {
   return !isFinancialControlDate(dataEntrega);
 }
 
+export interface HistoricalOrderInput {
+  data_entrega?: string | null;
+  data?: string | null;
+}
+
+export function getOrderFinancialReferenceDate(order: HistoricalOrderInput) {
+  return order.data_entrega || order.data || '';
+}
+
+export function isHistoricalOrder(order: HistoricalOrderInput) {
+  const referenceDate = getOrderFinancialReferenceDate(order);
+  if (!referenceDate) return false;
+  return isHistoricalFinancialOrder(referenceDate);
+}
+
+export interface HistoricalCommercialOrderInput extends HistoricalOrderInput {
+  archived_at?: string | null;
+  status?: string | null;
+  status_operacional?: string | null;
+  status_financeiro?: string | null;
+  valor_total?: number | null;
+}
+
+export function isHistoricalCommercialOrder(order: HistoricalCommercialOrderInput) {
+  const status = order.status_operacional || order.status;
+  return (
+    isHistoricalOrder(order) &&
+    !order.archived_at &&
+    status === 'entregue' &&
+    order.status_financeiro === 'pago' &&
+    Number.isFinite(order.valor_total ?? Number.NaN) &&
+    (order.valor_total ?? 0) > 0
+  );
+}
+
 export function isTransactionInFinancialPeriod(transactionDate: string, year: number, month: number) {
   const monthKey = String(month).padStart(2, '0');
   return transactionDate.startsWith(`${year}-${monthKey}-`);
