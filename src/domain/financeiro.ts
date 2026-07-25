@@ -44,6 +44,25 @@ export function isHistoricalCommercialOrder(order: HistoricalCommercialOrderInpu
   );
 }
 
+export interface PreStartOrderPaymentInput extends HistoricalOrderInput {
+  archived_at?: string | null;
+  referencia?: string | null;
+  tipo?: string | null;
+  data_transacao?: string | null;
+}
+
+export function isPreStartOrderPaymentHistorical(payment: PreStartOrderPaymentInput) {
+  return (
+    payment.tipo === 'entrada' &&
+    !!payment.data_transacao &&
+    !isFinancialControlDate(payment.data_transacao) &&
+    !payment.archived_at &&
+    !isHistoricalOrder(payment) &&
+    (payment.referencia ?? '').startsWith('pedido:') &&
+    (payment.referencia ?? '').includes(':pagamento:')
+  );
+}
+
 export function isTransactionInFinancialPeriod(transactionDate: string, year: number, month: number) {
   const monthKey = String(month).padStart(2, '0');
   return transactionDate.startsWith(`${year}-${monthKey}-`);

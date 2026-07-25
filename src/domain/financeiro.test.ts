@@ -9,6 +9,7 @@ import {
   isFinancialControlDate,
   isHistoricalCommercialOrder,
   isHistoricalOrder,
+  isPreStartOrderPaymentHistorical,
 } from './financeiro.ts';
 
 test('isFinancialControlDate starts official finance on 2026-08-01', () => {
@@ -43,6 +44,23 @@ test('isHistoricalCommercialOrder requires historical, delivered, paid and not a
   assert.equal(isHistoricalCommercialOrder({ ...baseOrder, status_operacional: 'confirmado' }), false);
   assert.equal(isHistoricalCommercialOrder({ ...baseOrder, status_financeiro: 'parcial' }), false);
   assert.equal(isHistoricalCommercialOrder({ ...baseOrder, archived_at: '2026-07-31T10:00:00Z' }), false);
+});
+
+test('isPreStartOrderPaymentHistorical marks July payment for future order as commercial history', () => {
+  const basePayment = {
+    data_entrega: '2026-08-16',
+    archived_at: null,
+    tipo: 'entrada',
+    data_transacao: '2026-07-25',
+    referencia: 'pedido:123:pagamento:entrada',
+  };
+
+  assert.equal(isPreStartOrderPaymentHistorical(basePayment), true);
+  assert.equal(isPreStartOrderPaymentHistorical({ ...basePayment, data_transacao: '2026-08-01' }), false);
+  assert.equal(isPreStartOrderPaymentHistorical({ ...basePayment, data_entrega: '2026-07-31' }), false);
+  assert.equal(isPreStartOrderPaymentHistorical({ ...basePayment, tipo: 'saida' }), false);
+  assert.equal(isPreStartOrderPaymentHistorical({ ...basePayment, referencia: 'pedido:123:venda:1' }), false);
+  assert.equal(isPreStartOrderPaymentHistorical({ ...basePayment, archived_at: '2026-07-31T10:00:00Z' }), false);
 });
 
 test('isTransactionInFinancialPeriod uses transaction date instead of delivery date', () => {
