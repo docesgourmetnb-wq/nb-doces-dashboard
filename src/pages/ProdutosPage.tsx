@@ -59,6 +59,7 @@ export function ProdutosPage() {
     deleteProduto,
   } = useProdutosCatalogo();
   const [search, setSearch] = useState('');
+  const [boloSearch, setBoloSearch] = useState('');
   const [tamanhoFilter, setTamanhoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [categoriaView, setCategoriaView] = useState<ProdutoCategoria>('brigadeiro');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -103,6 +104,23 @@ export function ProdutosPage() {
   const bolosCatalogo = useMemo(() => {
     return produtosCatalogo.filter((produto) => produto.categoria_codigo === 'bolo');
   }, [produtosCatalogo]);
+  const filteredBolosCatalogo = useMemo(() => {
+    const searchTerm = boloSearch.trim().toLowerCase();
+    if (!searchTerm) return bolosCatalogo;
+
+    return bolosCatalogo.filter((bolo) => {
+      const matchesProduto = bolo.nome.toLowerCase().includes(searchTerm);
+      const matchesVariacao = bolo.variacoes.some((variacao) => {
+        return [
+          variacao.nome,
+          variacao.tamanho,
+          variacao.cobertura,
+        ].some((value) => value?.toLowerCase().includes(searchTerm));
+      });
+
+      return matchesProduto || matchesVariacao;
+    });
+  }, [bolosCatalogo, boloSearch]);
 
   const filteredBrigadeiros = useMemo(() => {
     const searchTerm = search.trim().toLowerCase();
@@ -1004,23 +1022,43 @@ export function ProdutosPage() {
             </div>
           </div>
 
-          {bolosCatalogo.length === 0 ? (
-            <section className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                <CakeSlice className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+          <section aria-labelledby="bolos-lista-heading" className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <h2 id="bolos-lista-heading" className="sr-only">Lista de bolos</h2>
+              <div className="relative w-full max-w-md">
+                <Label htmlFor="bolo-busca" className="sr-only">Buscar bolos</Label>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <Input
+                  id="bolo-busca"
+                  value={boloSearch}
+                  onChange={(event) => setBoloSearch(event.target.value)}
+                  placeholder="Buscar bolos..."
+                  className="pl-10"
+                />
               </div>
-              <h2 className="font-display text-xl font-semibold text-foreground">Nenhum bolo cadastrado</h2>
-              <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-                Cadastre o primeiro bolo com uma variação inicial para deixá-lo disponível nos pedidos.
-              </p>
-            </section>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {bolosCatalogo.map((bolo) => {
-                const variacaoPrincipal = bolo.variacoes[0];
-                const margem = variacaoPrincipal && variacaoPrincipal.preco_venda > 0
-                  ? ((variacaoPrincipal.preco_venda - variacaoPrincipal.custo_calculado) / variacaoPrincipal.preco_venda) * 100
-                  : 0;
+            </div>
+
+            {filteredBolosCatalogo.length === 0 ? (
+              <section className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <CakeSlice className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+                </div>
+                <h2 className="font-display text-xl font-semibold text-foreground">
+                  {boloSearch ? 'Nenhum bolo encontrado' : 'Nenhum bolo cadastrado'}
+                </h2>
+                <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+                  {boloSearch
+                    ? 'Tente ajustar a busca por nome, tamanho ou cobertura.'
+                    : 'Cadastre o primeiro bolo com uma variação inicial para deixá-lo disponível nos pedidos.'}
+                </p>
+              </section>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {filteredBolosCatalogo.map((bolo) => {
+                  const variacaoPrincipal = bolo.variacoes[0];
+                  const margem = variacaoPrincipal && variacaoPrincipal.preco_venda > 0
+                    ? ((variacaoPrincipal.preco_venda - variacaoPrincipal.custo_calculado) / variacaoPrincipal.preco_venda) * 100
+                    : 0;
 
                 return (
                   <div key={bolo.id} className="bg-card border border-border rounded-lg p-4 card-hover shadow-sm">
@@ -1162,6 +1200,7 @@ export function ProdutosPage() {
               })}
             </div>
           )}
+          </section>
         </TabsContent>
       </Tabs>
     </div>
