@@ -41,7 +41,7 @@ import {
   BRIGADEIRO_TAMANHO_FILTERS,
   type BrigadeiroTamanhoFilter,
   filterProdutosBrigadeiro,
-  getProdutoNomeBase,
+  getProdutoNomeComercial,
   getProdutoTamanhoComercial,
   matchesBrigadeiroTamanhoFilter,
   type ProdutoCategoriaInput,
@@ -72,10 +72,6 @@ function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
 
-function getProdutoCatalogoNome(produto: { nome?: string | null | undefined }) {
-  return produto.nome || '';
-}
-
 function formatInsumoQuantidade(value: number) {
   return value.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 }
@@ -85,9 +81,7 @@ function formatCurrencyBRLPrecise(value: number) {
 }
 
 function sortByProdutoNomeETamanho<T extends ProdutoCategoriaInput>(a: T, b: T) {
-  const nomeA = getProdutoCatalogoNome(a);
-  const nomeB = getProdutoCatalogoNome(b);
-  const nomeBaseCompare = getProdutoNomeBase(nomeA).localeCompare(getProdutoNomeBase(nomeB), 'pt-BR');
+  const nomeBaseCompare = getProdutoNomeComercial(a).localeCompare(getProdutoNomeComercial(b), 'pt-BR');
   if (nomeBaseCompare !== 0) return nomeBaseCompare;
   return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
 }
@@ -797,8 +791,8 @@ function MassasTab() {
   const saboresDisponiveis = Array.from(
     new Set(
       brigadeiros
-        .filter(b => b.ativo)
-        .map(b => getProdutoNomeBase(b.nome))
+        .filter(b => b.ativo && b.categoria === 'brigadeiro')
+        .map(b => getProdutoNomeComercial(b))
         .filter(Boolean)
     )
   ).sort((a, b) => a.localeCompare(b));
@@ -1056,7 +1050,7 @@ function ProdutosTab() {
                    <option value="">Selecione um produto...</option>
                    {availableBrigadeiros.map((brigadeiro) => {
                      const tamanho = getProdutoTamanhoComercial(brigadeiro);
-                     const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+                     const nomeBase = getProdutoNomeComercial(brigadeiro);
                      const label = tamanho ? `${nomeBase} • ${tamanho}` : brigadeiro.nome;
 
                      return (
@@ -1082,8 +1076,7 @@ function ProdutosTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {produtosOrdenados.map(produto => {
           const produtoCatalogo = getProdutoFinalCatalogo(produto, brigadeirosPorId);
-          const produtoNome = produtoCatalogo.nome;
-          const produtoBase = getProdutoNomeBase(produtoNome);
+          const produtoBase = getProdutoNomeComercial(produtoCatalogo);
           const produtoTamanho = getProdutoTamanhoComercial(produtoCatalogo);
 
           return (

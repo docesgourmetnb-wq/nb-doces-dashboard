@@ -4,6 +4,7 @@ import {
   findProdutosSemParDeTamanho,
   filterProdutosBrigadeiro,
   getProdutoNomeBase,
+  getProdutoNomeComercial,
   getProdutoTamanho,
   getProdutoTamanhoComercial,
   inferProdutoTamanhoGramas,
@@ -20,6 +21,11 @@ test('getProdutoNomeBase removes gram suffix from product names', () => {
 
 test('getProdutoNomeBase preserves names without gram suffix', () => {
   assert.equal(getProdutoNomeBase('Mini cento sortido'), 'Mini cento sortido');
+});
+
+test('getProdutoNomeComercial only removes gram suffix from brigadeiros', () => {
+  assert.equal(getProdutoNomeComercial({ nome: 'Branquinho 25g', categoria: 'brigadeiro' }), 'Branquinho');
+  assert.equal(getProdutoNomeComercial({ nome: 'Bolo de cenoura 30g', categoria: 'bolo' }), 'Bolo de cenoura 30g');
 });
 
 test('getProdutoTamanho extracts gram suffix from product names', () => {
@@ -101,6 +107,7 @@ test('findProdutosSemParDeTamanho reports flavors missing 25g or 30g pair', () =
     { nome: 'Branquinho 30g' },
     { nome: 'Brulée 30g' },
     { nome: 'Pistache 25g' },
+    { nome: 'Bolo de cenoura 30g', categoria: 'bolo' },
     { nome: 'Combo sortido' },
   ]), [
     { nomeBase: 'Brulée', faltando: ['25g'] },

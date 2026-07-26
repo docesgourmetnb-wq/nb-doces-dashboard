@@ -28,8 +28,21 @@ export interface ProdutoCategoriaInput {
   tamanho_g?: number | null;
 }
 
+export const PRODUTO_CATEGORIAS = ['brigadeiro', 'bolo'] as const;
+export type ProdutoCategoria = (typeof PRODUTO_CATEGORIAS)[number];
+
+export const PRODUTO_CATEGORIA_LABELS: Record<ProdutoCategoria, string> = {
+  brigadeiro: 'Brigadeiro',
+  bolo: 'Bolo',
+};
+
 export function isProdutoBrigadeiro(produto: ProdutoCategoriaInput) {
   return (produto.categoria ?? 'brigadeiro') === 'brigadeiro';
+}
+
+export function getProdutoNomeComercial(produto: ProdutoCategoriaInput) {
+  if (!isProdutoBrigadeiro(produto)) return produto.nome.trim();
+  return getProdutoNomeBase(produto.nome);
 }
 
 export function filterProdutosBrigadeiro<T extends ProdutoCategoriaInput>(produtos: T[]) {
@@ -105,7 +118,7 @@ export function findProdutosSemParDeTamanho(produtos: ProdutoResumoInput[]): Pro
   const tamanhosPorSabor = new Map<string, Set<string>>();
 
   for (const produto of produtos) {
-    const nomeBase = getProdutoNomeBase(produto.nome);
+    const nomeBase = getProdutoNomeComercial(produto);
     const tamanho = getProdutoTamanhoComercial(produto);
     if (!nomeBase || !tamanho) continue;
 

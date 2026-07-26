@@ -1,6 +1,6 @@
 import type { PedidoStatus } from './pedidos';
 import { isHistoricalOrder } from './financeiro.ts';
-import { getProdutoNomeBase, getProdutoTamanhoComercial } from './produtos.ts';
+import { getProdutoNomeComercial, getProdutoTamanhoComercial } from './produtos.ts';
 import { normalizeProductionMatchName } from './producaoIntegrada.ts';
 
 export interface ProductionDemandItemInput {
@@ -98,7 +98,11 @@ export function summarizeProductionDemand(
 
       const current = demandByName.get(key) ?? {
         brigadeiroId: item.brigadeiro_id ?? null,
-        nome: getProdutoNomeBase(item.brigadeiro_nome),
+        nome: getProdutoNomeComercial({
+          nome: item.brigadeiro_nome,
+          categoria: item.brigadeiro_categoria ?? 'brigadeiro',
+          tamanho_g: item.brigadeiro_tamanho_g ?? null,
+        }),
         tamanho: getProdutoTamanhoComercial({
           nome: item.brigadeiro_nome,
           categoria: item.brigadeiro_categoria ?? 'brigadeiro',
