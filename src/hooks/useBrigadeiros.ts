@@ -13,6 +13,8 @@ export interface Brigadeiro {
   preco_venda: number;
   custo_unitario: number;
   margem_lucro: number;
+  produto_id?: string | null;
+  produto_variacao_id?: string | null;
   descricao?: string | null;
   ativo: boolean;
 }

@@ -55,6 +55,8 @@ export type Database = {
           margem_lucro: number | null
           nome: string
           preco_venda: number
+          produto_id: string | null
+          produto_variacao_id: string | null
           tamanho_g: number | null
           tipo: string
           updated_at: string
@@ -70,6 +72,8 @@ export type Database = {
           margem_lucro?: number | null
           nome: string
           preco_venda?: number
+          produto_id?: string | null
+          produto_variacao_id?: string | null
           tamanho_g?: number | null
           tipo?: string
           updated_at?: string
@@ -85,10 +89,69 @@ export type Database = {
           margem_lucro?: number | null
           nome?: string
           preco_venda?: number
+          produto_id?: string | null
+          produto_variacao_id?: string | null
           tamanho_g?: number | null
           tipo?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brigadeiros_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brigadeiros_produto_variacao_id_fkey"
+            columns: ["produto_variacao_id"]
+            isOneToOne: false
+            referencedRelation: "produto_variacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categorias_produto: {
+        Row: {
+          ativa: boolean
+          codigo: string
+          controla_validade: boolean
+          created_at: string
+          nome: string
+          ordem: number
+          permite_pronta_entrega: boolean
+          permite_sob_encomenda: boolean
+          permite_variacoes: boolean
+          unidade_comercial_padrao: string
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          codigo: string
+          controla_validade?: boolean
+          created_at?: string
+          nome: string
+          ordem?: number
+          permite_pronta_entrega?: boolean
+          permite_sob_encomenda?: boolean
+          permite_variacoes?: boolean
+          unidade_comercial_padrao?: string
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          codigo?: string
+          controla_validade?: boolean
+          created_at?: string
+          nome?: string
+          ordem?: number
+          permite_pronta_entrega?: boolean
+          permite_sob_encomenda?: boolean
+          permite_variacoes?: boolean
+          unidade_comercial_padrao?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -483,6 +546,155 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_variacoes: {
+        Row: {
+          ativo: boolean
+          brigadeiro_id: string | null
+          codigo_interno: string | null
+          cobertura: string | null
+          created_at: string
+          custo_calculado: number
+          disponivel_pronta_entrega: boolean
+          disponivel_sob_encomenda: boolean
+          formato: string | null
+          id: string
+          nome: string
+          peso_aproximado_g: number | null
+          prazo_minimo_dias: number | null
+          preco_venda: number
+          produto_id: string
+          rendimento_fatias: number | null
+          tamanho: string | null
+          tipo_embalagem: string | null
+          updated_at: string
+          user_id: string
+          validade_dias: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          brigadeiro_id?: string | null
+          codigo_interno?: string | null
+          cobertura?: string | null
+          created_at?: string
+          custo_calculado?: number
+          disponivel_pronta_entrega?: boolean
+          disponivel_sob_encomenda?: boolean
+          formato?: string | null
+          id?: string
+          nome: string
+          peso_aproximado_g?: number | null
+          prazo_minimo_dias?: number | null
+          preco_venda?: number
+          produto_id: string
+          rendimento_fatias?: number | null
+          tamanho?: string | null
+          tipo_embalagem?: string | null
+          updated_at?: string
+          user_id: string
+          validade_dias?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          brigadeiro_id?: string | null
+          codigo_interno?: string | null
+          cobertura?: string | null
+          created_at?: string
+          custo_calculado?: number
+          disponivel_pronta_entrega?: boolean
+          disponivel_sob_encomenda?: boolean
+          formato?: string | null
+          id?: string
+          nome?: string
+          peso_aproximado_g?: number | null
+          prazo_minimo_dias?: number | null
+          preco_venda?: number
+          produto_id?: string
+          rendimento_fatias?: number | null
+          tamanho?: string | null
+          tipo_embalagem?: string | null
+          updated_at?: string
+          user_id?: string
+          validade_dias?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_variacoes_brigadeiro_id_fkey"
+            columns: ["brigadeiro_id"]
+            isOneToOne: false
+            referencedRelation: "brigadeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_variacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          ativo: boolean
+          categoria_codigo: string
+          created_at: string
+          descricao_curta: string | null
+          id: string
+          imagem_url: string | null
+          modelo_producao: string
+          necessita_refrigeracao: boolean
+          nome: string
+          observacoes_internas: string | null
+          ordem: number
+          prazo_minimo_dias: number | null
+          updated_at: string
+          user_id: string
+          validade_dias: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_codigo: string
+          created_at?: string
+          descricao_curta?: string | null
+          id?: string
+          imagem_url?: string | null
+          modelo_producao?: string
+          necessita_refrigeracao?: boolean
+          nome: string
+          observacoes_internas?: string | null
+          ordem?: number
+          prazo_minimo_dias?: number | null
+          updated_at?: string
+          user_id: string
+          validade_dias?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria_codigo?: string
+          created_at?: string
+          descricao_curta?: string | null
+          id?: string
+          imagem_url?: string | null
+          modelo_producao?: string
+          necessita_refrigeracao?: boolean
+          nome?: string
+          observacoes_internas?: string | null
+          ordem?: number
+          prazo_minimo_dias?: number | null
+          updated_at?: string
+          user_id?: string
+          validade_dias?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_categoria_codigo_fkey"
+            columns: ["categoria_codigo"]
+            isOneToOne: false
+            referencedRelation: "categorias_produto"
+            referencedColumns: ["codigo"]
           },
         ]
       }
