@@ -99,6 +99,15 @@ export function usePaginatedPedidos() {
     }
   }, [user, toast, showArchived, statusFilter, search, page]);
 
+  const refetchFirstPage = useCallback(async () => {
+    if (page === 0) {
+      await fetchPedidos();
+      return;
+    }
+
+    setPage(0);
+  }, [fetchPedidos, page]);
+
   useEffect(() => {
     fetchPedidos();
   }, [fetchPedidos]);
@@ -122,5 +131,6 @@ export function usePaginatedPedidos() {
     search,
     setSearch,
     refetch: fetchPedidos,
+    refetchFirstPage,
   };
 }

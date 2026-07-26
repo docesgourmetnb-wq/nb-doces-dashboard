@@ -53,6 +53,7 @@ export function VendasPage() {
     statusFilter, setStatusFilter,
     search, setSearch,
     refetch,
+    refetchFirstPage,
   } = usePaginatedPedidos();
 
   const [archiveReason, setArchiveReason] = useState('');
@@ -153,7 +154,7 @@ export function VendasPage() {
           <h1 className="font-display text-3xl font-semibold text-foreground">Vendas</h1>
           <p className="text-muted-foreground mt-1">Gerencie seus pedidos</p>
         </div>
-        <NovoPedidoForm onSuccess={refetch} />
+        <NovoPedidoForm onSuccess={refetchFirstPage} />
       </div>
 
       <section aria-labelledby="vendas-lista-heading" className="space-y-4">
@@ -326,7 +327,7 @@ export function VendasPage() {
                 ? 'Tente ajustar os filtros de busca.'
                 : 'Crie seu primeiro pedido para começar a gerenciar suas vendas.'}
             </p>
-            {!search && statusFilter === 'todos' && <NovoPedidoForm onSuccess={refetch} />}
+            {!search && statusFilter === 'todos' && <NovoPedidoForm onSuccess={refetchFirstPage} />}
           </div>
         ) : (
           <>
@@ -421,7 +422,7 @@ export function VendasPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-1">
                           <NovoPedidoForm
-                            onSuccess={refetch}
+                            onSuccess={refetchFirstPage}
                             pedidoModelo={pedido}
                             trigger={(
                               <button
