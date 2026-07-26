@@ -23,6 +23,9 @@ type PedidoDemandRow = {
       categoria: string | null;
       tamanho_g: number | null;
     } | null;
+    produtos?: {
+      categoria_codigo: string | null;
+    } | null;
     quantidade: number;
   }> | null;
 };
@@ -75,7 +78,7 @@ export function useProductionDemand() {
       const [pedidosResult, estoqueResult] = await Promise.all([
         supabase
           .from('pedidos')
-          .select('id, cliente, data, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade, brigadeiros(categoria, tamanho_g))')
+          .select('id, cliente, data, data_entrega, status, status_operacional, itens_pedido(brigadeiro_id, brigadeiro_nome, quantidade, brigadeiros(categoria, tamanho_g), produtos(categoria_codigo))')
           .is('archived_at', null)
           .in('status_operacional', ['confirmado', 'em-producao', 'pronto'])
           .order('data_entrega', { ascending: true }),
@@ -97,7 +100,7 @@ export function useProductionDemand() {
         itens: (pedido.itens_pedido || []).map((item) => ({
           brigadeiro_id: item.brigadeiro_id,
           brigadeiro_nome: item.brigadeiro_nome,
-          brigadeiro_categoria: item.brigadeiros?.categoria ?? null,
+          brigadeiro_categoria: item.produtos?.categoria_codigo ?? item.brigadeiros?.categoria ?? null,
           brigadeiro_tamanho_g: item.brigadeiros?.tamanho_g ?? null,
           quantidade: item.quantidade,
         })),

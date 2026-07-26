@@ -3,6 +3,7 @@ import { Plus, Trash2, Loader2, UserPlus, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { type ProdutoCatalogoVariacao, useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
 import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
 import {
@@ -42,6 +43,7 @@ import {
   getProdutoNomeComercial,
   getProdutoTamanhoComercial,
   matchesBrigadeiroTamanhoFilter,
+  type ProdutoCategoria,
 } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
@@ -56,7 +58,46 @@ function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
 
+const PEDIDO_PRODUTO_CATEGORIAS: Array<{ value: ProdutoCategoria; label: string }> = [
+  { value: 'brigadeiro', label: 'Brigadeiros' },
+  { value: 'bolo', label: 'Bolos' },
+];
+
+interface PedidoProdutoOption {
+  key: string;
+  categoria: ProdutoCategoria;
+  nome: string;
+  nomeOriginal: string;
+  detalhe: string | null;
+  preco: number;
+  brigadeiroId?: string | null;
+  produtoId?: string | null;
+  produtoVariacaoId?: string | null;
+}
+
+function getBoloVariacaoLabel(variacao: ProdutoCatalogoVariacao) {
+  return [variacao.tamanho, variacao.cobertura]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(' • ') || variacao.nome;
+}
+
+function getPedidoItemKey(item: Pick<ItemPedido, 'brigadeiro_id' | 'produto_variacao_id' | 'brigadeiro_nome'>) {
+  if (item.produto_variacao_id) return `variacao:${item.produto_variacao_id}`;
+  if (item.brigadeiro_id) return `brigadeiro:${item.brigadeiro_id}`;
+  return `manual:${item.brigadeiro_nome.toLowerCase().trim()}`;
+}
+
 function getPedidoItemProdutoInfo(item: ItemPedido, produtosPorId: Map<string, Brigadeiro>) {
+  if ((item.produto_categoria ?? item.brigadeiro_categoria) === 'bolo') {
+    const nomeBase = item.produto_nome || item.brigadeiro_nome || 'Bolo';
+    const tamanho = item.produto_variacao_nome && item.produto_variacao_nome !== nomeBase
+      ? item.produto_variacao_nome
+      : item.produto_variacao_tamanho || item.produto_variacao_cobertura || null;
+
+    return { nomeBase, tamanho };
+  }
+
   const produto = item.brigadeiro_id ? produtosPorId.get(item.brigadeiro_id) : undefined;
   const nome = produto?.nome ?? item.brigadeiro_nome ?? '';
   const nomeBase = produto
@@ -79,6 +120,7 @@ function getPedidoItemProdutoInfo(item: ItemPedido, produtosPorId: Map<string, B
 
 export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoFormProps) {
   const { brigadeiros } = useBrigadeiros();
+  const { produtos: produtosCatalogo } = useProdutosCatalogo();
   const { clientes, addCliente } = useClientes();
   const { addPedido } = usePedidos();
   const [open, setOpen] = useState(false);
@@ -101,36 +143,77 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   
   // For adding new item
   const [selectedBrigadeiro, setSelectedBrigadeiro] = useState('');
+  const [categoriaProduto, setCategoriaProduto] = useState<ProdutoCategoria>('brigadeiro');
   const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [quantidade, setQuantidade] = useState(1);
   const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
 
+  const produtosBolo = useMemo(() => {
+    return produtosCatalogo
+      .filter((produto) => produto.categoria_codigo === 'bolo')
+      .flatMap((produto) => produto.variacoes.map<PedidoProdutoOption>((variacao) => ({
+        key: `variacao:${variacao.id}`,
+        categoria: 'bolo',
+        nome: produto.nome,
+        nomeOriginal: `${produto.nome} • ${getBoloVariacaoLabel(variacao)}`,
+        detalhe: getBoloVariacaoLabel(variacao),
+        preco: variacao.preco_venda,
+        brigadeiroId: variacao.brigadeiro_id,
+        produtoId: produto.id,
+        produtoVariacaoId: variacao.id,
+      })))
+      .sort((a, b) => {
+        const nomeCompare = a.nome.localeCompare(b.nome, 'pt-BR');
+        if (nomeCompare !== 0) return nomeCompare;
+        return (a.detalhe ?? '').localeCompare(b.detalhe ?? '', 'pt-BR');
+      });
+  }, [produtosCatalogo]);
+
   const produtosDisponiveis = useMemo(() => {
+    if (categoriaProduto === 'bolo') return produtosBolo;
+
     return produtosBrigadeiro
       .filter((brigadeiro) => matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoProdutoFilter))
       .sort((a, b) => {
         const nomeBaseCompare = getProdutoNomeComercial(a).localeCompare(getProdutoNomeComercial(b), 'pt-BR');
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
         return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
-      });
-  }, [produtosBrigadeiro, tamanhoProdutoFilter]);
+      })
+      .map<PedidoProdutoOption>((brigadeiro) => ({
+        key: `brigadeiro:${brigadeiro.id}`,
+        categoria: 'brigadeiro',
+        nome: getProdutoNomeComercial(brigadeiro),
+        nomeOriginal: brigadeiro.nome,
+        detalhe: getProdutoTamanhoComercial(brigadeiro),
+        preco: brigadeiro.preco_venda,
+        brigadeiroId: brigadeiro.id,
+        produtoId: brigadeiro.produto_id ?? null,
+        produtoVariacaoId: brigadeiro.produto_variacao_id ?? null,
+      }));
+  }, [categoriaProduto, produtosBolo, produtosBrigadeiro, tamanhoProdutoFilter]);
 
   const produtosPorId = useMemo(() => {
     return new Map(produtosBrigadeiro.map((produto) => [produto.id, produto]));
   }, [produtosBrigadeiro]);
 
-  const selectedBrigadeiroData = produtosBrigadeiro.find(b => b.id === selectedBrigadeiro) || null;
-  const itemPendente: ItemPedido | null = selectedBrigadeiroData && quantidade > 0
+  const selectedProdutoData = produtosDisponiveis.find((produto) => produto.key === selectedBrigadeiro) || null;
+  const itemPendente: ItemPedido | null = selectedProdutoData && quantidade > 0
     ? {
-        brigadeiro_id: selectedBrigadeiroData.id,
-        brigadeiro_nome: selectedBrigadeiroData.nome,
+        brigadeiro_id: selectedProdutoData.brigadeiroId ?? null,
+        brigadeiro_nome: selectedProdutoData.nomeOriginal,
+        brigadeiro_categoria: selectedProdutoData.categoria,
+        produto_id: selectedProdutoData.produtoId ?? null,
+        produto_variacao_id: selectedProdutoData.produtoVariacaoId ?? null,
+        produto_categoria: selectedProdutoData.categoria,
+        produto_nome: selectedProdutoData.nome,
+        produto_variacao_nome: selectedProdutoData.detalhe,
         quantidade,
-        preco_unitario: selectedBrigadeiroData.preco_venda,
+        preco_unitario: selectedProdutoData.preco,
       }
     : null;
   const itensDoPedido = itemPendente ? (() => {
     const updated = [...itens];
-    const existingIndex = updated.findIndex(item => item.brigadeiro_id === itemPendente.brigadeiro_id);
+    const existingIndex = updated.findIndex(item => getPedidoItemKey(item) === getPedidoItemKey(itemPendente));
 
     if (existingIndex >= 0) {
       const existingItem = updated[existingIndex];
@@ -189,6 +272,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setObservacoes(pedidoModelo.observacoes || '');
     setItens((pedidoModelo.itens || []).map((item) => ({ ...item })));
     setSelectedBrigadeiro('');
+    setCategoriaProduto('brigadeiro');
     setTamanhoProdutoFilter('todos');
     setQuantidade(1);
   };
@@ -196,11 +280,23 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const handleAddItem = () => {
     if (!selectedBrigadeiro || quantidade <= 0) return;
     
-    const brigadeiro = produtosBrigadeiro.find(b => b.id === selectedBrigadeiro);
-    if (!brigadeiro) return;
+    const produto = produtosDisponiveis.find((option) => option.key === selectedBrigadeiro);
+    if (!produto) return;
 
     // Check if already exists
-    const existingIndex = itens.findIndex(i => i.brigadeiro_id === selectedBrigadeiro);
+    const newItem: ItemPedido = {
+      brigadeiro_id: produto.brigadeiroId ?? null,
+      brigadeiro_nome: produto.nomeOriginal,
+      brigadeiro_categoria: produto.categoria,
+      produto_id: produto.produtoId ?? null,
+      produto_variacao_id: produto.produtoVariacaoId ?? null,
+      produto_categoria: produto.categoria,
+      produto_nome: produto.nome,
+      produto_variacao_nome: produto.detalhe,
+      quantidade,
+      preco_unitario: produto.preco,
+    };
+    const existingIndex = itens.findIndex(i => getPedidoItemKey(i) === getPedidoItemKey(newItem));
     if (existingIndex >= 0) {
       const updated = [...itens];
       const existingItem = updated[existingIndex];
@@ -208,12 +304,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
       existingItem.quantidade += quantidade;
       setItens(updated);
     } else {
-      setItens([...itens, {
-        brigadeiro_id: brigadeiro.id,
-        brigadeiro_nome: brigadeiro.nome,
-        quantidade,
-        preco_unitario: brigadeiro.preco_venda,
-      }]);
+      setItens([...itens, newItem]);
     }
     
     setSelectedBrigadeiro('');
@@ -301,6 +392,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setObservacoes('');
     setItens([]);
     setSelectedBrigadeiro('');
+    setCategoriaProduto('brigadeiro');
     setTamanhoProdutoFilter('todos');
     setQuantidade(1);
   };
@@ -499,22 +591,41 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
           <div className="space-y-4">
             <Label htmlFor="pedido-produto">Adicionar Itens *</Label>
             <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
-              {BRIGADEIRO_TAMANHO_FILTERS.map((filter) => (
+              {PEDIDO_PRODUTO_CATEGORIAS.map((categoria) => (
                 <Button
-                  key={filter.value}
+                  key={categoria.value}
                   type="button"
                   size="sm"
-                  variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
+                  variant={categoriaProduto === categoria.value ? 'default' : 'ghost'}
                   className="flex-1 sm:flex-none px-4"
                   onClick={() => {
-                    setTamanhoProdutoFilter(filter.value);
+                    setCategoriaProduto(categoria.value);
                     setSelectedBrigadeiro('');
                   }}
                 >
-                  {filter.label}
+                  {categoria.label}
                 </Button>
               ))}
             </div>
+            {categoriaProduto === 'brigadeiro' && (
+              <div className="flex w-full sm:w-fit rounded-lg border border-border bg-muted/40 p-1">
+                {BRIGADEIRO_TAMANHO_FILTERS.map((filter) => (
+                  <Button
+                    key={filter.value}
+                    type="button"
+                    size="sm"
+                    variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
+                    className="flex-1 sm:flex-none px-4"
+                    onClick={() => {
+                      setTamanhoProdutoFilter(filter.value);
+                      setSelectedBrigadeiro('');
+                    }}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row gap-3">
               <Select value={selectedBrigadeiro} onValueChange={setSelectedBrigadeiro}>
                 <SelectTrigger id="pedido-produto" className="flex-1">
@@ -523,18 +634,16 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
                 <SelectContent>
                   {produtosDisponiveis.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground text-center">
-                      Nenhum produto nesse tamanho
+                      {categoriaProduto === 'bolo' ? 'Nenhum bolo cadastrado' : 'Nenhum produto nesse tamanho'}
                     </div>
                   ) : (
-                    produtosDisponiveis.map((b) => {
-                      const tamanho = getProdutoTamanhoComercial(b);
-                      const nomeBase = getProdutoNomeComercial(b);
-                      const label = tamanhoProdutoFilter === 'todos' && tamanho
-                        ? `${nomeBase} • ${tamanho}`
-                        : nomeBase;
+                    produtosDisponiveis.map((produto) => {
+                      const label = produto.detalhe && (categoriaProduto === 'bolo' || tamanhoProdutoFilter === 'todos')
+                        ? `${produto.nome} • ${produto.detalhe}`
+                        : produto.nome;
 
                       return (
-                        <SelectItem key={b.id} value={b.id}>
+                        <SelectItem key={produto.key} value={produto.key}>
                           {label}
                         </SelectItem>
                       );
