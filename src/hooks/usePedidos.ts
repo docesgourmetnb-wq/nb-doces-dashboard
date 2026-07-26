@@ -207,17 +207,21 @@ export function usePedidos() {
     fetchPedidos();
   }, [fetchPedidos]);
 
-  const updatePedidoStatus = async (id: string, status: Pedido['status']) => {
+  const updatePedidoStatus = async (
+    id: string,
+    status: Pedido['status'],
+    currentPedido?: Pick<Pedido, 'id' | 'status' | 'saldo_restante'>,
+  ) => {
     try {
-      const pedido = pedidos.find(p => p.id === id);
-      if (pedido?.status === status) return; // idempotency guard
+      const pedido = currentPedido ?? pedidos.find(p => p.id === id);
+      if (pedido?.status === status) return true; // idempotency guard
       if (status === 'entregue' && pedido && pedido.saldo_restante > 0) {
         toast({
           title: 'Saldo pendente',
           description: 'Este pedido ainda possui saldo pendente e não pode ser marcado como entregue.',
           variant: 'destructive',
         });
-        return;
+        return false;
       }
 
       const updateStatusRpc = supabase.rpc.bind(supabase) as unknown as UpdatePedidoStatusRpc;
@@ -230,12 +234,14 @@ export function usePedidos() {
 
       setPedidos(pedidos.map(p => p.id === id ? { ...p, status, status_operacional: status } : p));
       toast({ title: 'Status atualizado!' });
+      return true;
     } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar status',
         description: getPedidoStatusUpdateErrorMessage(getErrorMessage(error)),
         variant: 'destructive',
       });
+      return false;
     }
   };
 

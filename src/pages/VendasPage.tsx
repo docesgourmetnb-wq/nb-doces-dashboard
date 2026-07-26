@@ -96,9 +96,11 @@ export function VendasPage() {
     refetch();
   };
 
-  const handleStatusChange = async (id: string, status: Pedido['status']) => {
-    await updatePedidoStatus(id, status);
-    refetch();
+  const handleStatusChange = async (pedido: Pedido, status: Pedido['status']) => {
+    const updated = await updatePedidoStatus(pedido.id, status, pedido);
+    if (updated) {
+      await refetch();
+    }
   };
 
   const handleUnarchive = async (id: string) => {
@@ -401,7 +403,7 @@ export function VendasPage() {
                       <td className="p-4">
                         <Select
                           value={pedido.status}
-                          onValueChange={(value: Pedido['status']) => handleStatusChange(pedido.id, value)}
+                          onValueChange={(value: Pedido['status']) => handleStatusChange(pedido, value)}
                         >
                           <SelectTrigger className={cn(
                             "h-8 text-xs font-medium rounded-full px-3",
