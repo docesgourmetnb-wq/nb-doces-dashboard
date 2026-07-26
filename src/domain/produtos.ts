@@ -74,16 +74,28 @@ export function getProdutoCatalogoVariacoesAtivas<T extends ProdutoVariacaoCatal
 
 export function summarizeProdutoCatalogo(produtos: ProdutoCatalogoInput[]) {
   const produtosAtivos = produtos.filter((produto) => produto.ativo !== false);
+  const produtosBrigadeiros = produtosAtivos.filter((produto) => produto.categoria_codigo === 'brigadeiro');
+  const produtosBolos = produtosAtivos.filter((produto) => produto.categoria_codigo === 'bolo');
   const totalVariacoesAtivas = produtosAtivos.reduce(
+    (total, produto) => total + getProdutoCatalogoVariacoesAtivas(produto.variacoes).length,
+    0,
+  );
+  const totalVariacoesBrigadeiros = produtosBrigadeiros.reduce(
+    (total, produto) => total + getProdutoCatalogoVariacoesAtivas(produto.variacoes).length,
+    0,
+  );
+  const totalVariacoesBolos = produtosBolos.reduce(
     (total, produto) => total + getProdutoCatalogoVariacoesAtivas(produto.variacoes).length,
     0,
   );
 
   return {
     totalProdutos: produtosAtivos.length,
-    totalBrigadeiros: produtosAtivos.filter((produto) => produto.categoria_codigo === 'brigadeiro').length,
-    totalBolos: produtosAtivos.filter((produto) => produto.categoria_codigo === 'bolo').length,
+    totalBrigadeiros: produtosBrigadeiros.length,
+    totalBolos: produtosBolos.length,
     totalVariacoesAtivas,
+    totalVariacoesBrigadeiros,
+    totalVariacoesBolos,
   };
 }
 

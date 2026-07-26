@@ -117,6 +117,8 @@ test('summarizeProdutoCatalogo counts active products and active variations by c
     totalBrigadeiros: 1,
     totalBolos: 1,
     totalVariacoesAtivas: 3,
+    totalVariacoesBrigadeiros: 2,
+    totalVariacoesBolos: 1,
   });
 });
 
