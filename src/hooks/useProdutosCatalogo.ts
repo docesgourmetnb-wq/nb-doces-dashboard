@@ -9,6 +9,45 @@ export type ProdutoCatalogoVariacao = Tables<'produto_variacoes'>;
 export type ProdutoCatalogo = Tables<'produtos'> & {
   variacoes: ProdutoCatalogoVariacao[];
 };
+export interface ProdutoComVariacaoInput {
+  categoria_codigo: string;
+  nome: string;
+  modelo_producao: string;
+  validade_dias: number | null;
+  prazo_minimo_dias: number | null;
+  necessita_refrigeracao: boolean;
+  variacao_nome: string;
+  variacao_tamanho: string | null;
+  variacao_cobertura: string | null;
+  variacao_preco_venda: number;
+  variacao_custo_calculado: number;
+  variacao_sob_encomenda: boolean;
+  variacao_pronta_entrega: boolean;
+}
+
+interface CreateProductWithVariationRpc {
+  (
+    fn: 'create_product_with_variation',
+    params: {
+      p_categoria_codigo: string;
+      p_nome: string;
+      p_modelo_producao: string;
+      p_validade_dias: number | null;
+      p_prazo_minimo_dias: number | null;
+      p_necessita_refrigeracao: boolean;
+      p_variacao_nome: string;
+      p_variacao_tamanho: string | null;
+      p_variacao_cobertura: string | null;
+      p_variacao_preco_venda: number;
+      p_variacao_custo_calculado: number;
+      p_variacao_sob_encomenda: boolean;
+      p_variacao_pronta_entrega: boolean;
+    },
+  ): Promise<{
+    data: string | null;
+    error: Error | null;
+  }>;
+}
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -95,6 +134,61 @@ export function useProdutosCatalogo() {
     fetchProdutosCatalogo();
   }, [fetchProdutosCatalogo]);
 
+  const addProdutoComVariacao = async (input: ProdutoComVariacaoInput) => {
+    if (!user) return undefined;
+
+    try {
+      const createProductRpc = supabase.rpc.bind(supabase) as unknown as CreateProductWithVariationRpc;
+      const { data: produtoId, error } = await createProductRpc('create_product_with_variation', {
+        p_categoria_codigo: input.categoria_codigo,
+        p_nome: input.nome,
+        p_modelo_producao: input.modelo_producao,
+        p_validade_dias: input.validade_dias,
+        p_prazo_minimo_dias: input.prazo_minimo_dias,
+        p_necessita_refrigeracao: input.necessita_refrigeracao,
+        p_variacao_nome: input.variacao_nome,
+        p_variacao_tamanho: input.variacao_tamanho,
+        p_variacao_cobertura: input.variacao_cobertura,
+        p_variacao_preco_venda: input.variacao_preco_venda,
+        p_variacao_custo_calculado: input.variacao_custo_calculado,
+        p_variacao_sob_encomenda: input.variacao_sob_encomenda,
+        p_variacao_pronta_entrega: input.variacao_pronta_entrega,
+      });
+
+      if (error) throw error;
+
+      await fetchProdutosCatalogo();
+      toast({ title: 'Produto adicionado!' });
+      return produtoId;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao adicionar produto',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return undefined;
+    }
+  };
+
+  const deleteProduto = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .update({ ativo: false })
+        .eq('id', id);
+
+      if (error) throw error;
+      setProdutos((current) => current.filter((produto) => produto.id !== id));
+      toast({ title: 'Produto inativado!' });
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao inativar produto',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    }
+  };
+
   const resumo = useMemo(() => summarizeProdutoCatalogo(produtos), [produtos]);
   const variacoesAtivas = useMemo(
     () => produtos.flatMap((produto) => getProdutoCatalogoVariacoesAtivas(produto.variacoes)),
@@ -106,6 +200,8 @@ export function useProdutosCatalogo() {
     variacoesAtivas,
     resumo,
     loading,
+    addProdutoComVariacao,
+    deleteProduto,
     refetch: fetchProdutosCatalogo,
   };
 }
