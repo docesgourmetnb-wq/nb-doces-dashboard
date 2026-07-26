@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp, AlertTriangle, CakeSlice } from 'lucide-react';
 import { useBrigadeiros, Brigadeiro } from '@/hooks/useBrigadeiros';
+import { useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,6 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
   BRIGADEIRO_TAMANHOS_COMERCIAIS,
@@ -33,6 +35,7 @@ import {
   isBrigadeiroTamanhoGramas,
   matchesBrigadeiroTamanhoFilter,
   summarizeProdutos,
+  type ProdutoCategoria,
 } from '@/domain/produtos';
 import { parseDecimalInput } from '@/domain/numeros';
 import { formatCurrencyBRL } from '@/lib/utils';
@@ -44,8 +47,10 @@ function getTamanhoSortValue(tamanho: string | null) {
 
 export function ProdutosPage() {
   const { brigadeiros, loading, addBrigadeiro, updateBrigadeiro, deleteBrigadeiro } = useBrigadeiros();
+  const { resumo: catalogoResumo, loading: loadingCatalogo } = useProdutosCatalogo();
   const [search, setSearch] = useState('');
   const [tamanhoFilter, setTamanhoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
+  const [categoriaView, setCategoriaView] = useState<ProdutoCategoria>('brigadeiro');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBrigadeiro, setEditingBrigadeiro] = useState<Brigadeiro | null>(null);
   const [saving, setSaving] = useState(false);
@@ -179,7 +184,7 @@ export function ProdutosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">Produtos</h1>
-          <p className="text-muted-foreground mt-1">Gerencie seus brigadeiros</p>
+          <p className="text-muted-foreground mt-1">Gerencie brigadeiros e prepare novas categorias</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -291,6 +296,13 @@ export function ProdutosPage() {
         </Dialog>
       </div>
 
+      <Tabs value={categoriaView} onValueChange={(value) => setCategoriaView(value as ProdutoCategoria)}>
+        <TabsList className="grid h-auto w-full max-w-md grid-cols-2 rounded-lg border border-border bg-muted/40 p-1">
+          <TabsTrigger value="brigadeiro" className="rounded-md">Brigadeiros</TabsTrigger>
+          <TabsTrigger value="bolo" className="rounded-md">Bolos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="brigadeiro" className="mt-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
@@ -476,6 +488,63 @@ export function ProdutosPage() {
           </div>
         )}
       </section>
+        </TabsContent>
+
+        <TabsContent value="bolo" className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase text-muted-foreground">Bolos ativos</p>
+                  <p className="mt-2 font-display text-3xl font-semibold text-foreground">
+                    {loadingCatalogo ? '—' : catalogoResumo.totalBolos}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Produtos da categoria Bolo</p>
+                </div>
+                <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                  <CakeSlice size={22} aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase text-muted-foreground">Variações</p>
+                  <p className="mt-2 font-display text-3xl font-semibold text-foreground">
+                    {loadingCatalogo ? '—' : catalogoResumo.totalVariacoesBolos}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Variações de bolos</p>
+                </div>
+                <div className="rounded-xl bg-accent/20 p-3 text-accent">
+                  <Package size={22} aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase text-muted-foreground">Estrutura</p>
+                  <p className="mt-2 font-display text-3xl font-semibold text-foreground">Pronta</p>
+                  <p className="text-sm text-muted-foreground">Cadastro será ativado no próximo bloco</p>
+                </div>
+                <div className="rounded-xl bg-success/10 p-3 text-success">
+                  <TrendingUp size={22} aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <section className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <CakeSlice className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <h2 className="font-display text-xl font-semibold text-foreground">Categoria de bolos preparada</h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+              A base de produto e variações já está pronta. O próximo passo é liberar o cadastro de bolos com tamanhos, cobertura, validade e modelo de produção sem usar regras de 25g ou 30g.
+            </p>
+          </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
