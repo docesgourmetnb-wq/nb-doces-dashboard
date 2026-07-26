@@ -19,3 +19,20 @@ export function getInsumoUnidadeLabel(unidade: string) {
 export function getInsumoQuantidadePlaceholder(unidade: string) {
   return INSUMO_UNIDADES.find((option) => option.value === unidade)?.placeholder ?? 'Ex: 1';
 }
+
+export interface InsumoCadastroInput {
+  nome: string;
+  unidade: string;
+  quantidadeMinima: number;
+}
+
+export function buildInsumoCadastroDefaults(input: InsumoCadastroInput) {
+  return {
+    nome: input.nome.trim(),
+    unidade: input.unidade,
+    quantidade_atual: 0,
+    quantidade_minima: input.quantidadeMinima,
+    consumo_medio: 0,
+    preco_unitario: 0,
+  };
+}

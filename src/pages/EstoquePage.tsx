@@ -247,10 +247,7 @@ function InsumosTab() {
         await addInsumo({
           nome: formData.nome.trim(),
           unidade: formData.unidade,
-          quantidade_atual: 0,
           quantidade_minima: quantidadeMinima,
-          consumo_medio: 0,
-          preco_unitario: 0,
         });
       }
       setIsDialogOpen(false);

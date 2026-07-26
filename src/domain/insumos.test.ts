@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildInsumoCadastroDefaults,
   getInsumoQuantidadePlaceholder,
   getInsumoUnidadeLabel,
   isInsumoUnidadePadrao,
@@ -22,4 +23,22 @@ test('getInsumoQuantidadePlaceholder follows the selected unit', () => {
   assert.equal(getInsumoQuantidadePlaceholder('g'), 'Ex: 395');
   assert.equal(getInsumoQuantidadePlaceholder('kg'), 'Ex: 1,5');
   assert.equal(getInsumoQuantidadePlaceholder('desconhecida'), 'Ex: 1');
+});
+
+test('buildInsumoCadastroDefaults creates stock-neutral cadastro data', () => {
+  assert.deepEqual(
+    buildInsumoCadastroDefaults({
+      nome: '  Leite Condensado ',
+      unidade: 'g',
+      quantidadeMinima: 395,
+    }),
+    {
+      nome: 'Leite Condensado',
+      unidade: 'g',
+      quantidade_atual: 0,
+      quantidade_minima: 395,
+      consumo_medio: 0,
+      preco_unitario: 0,
+    },
+  );
 });
