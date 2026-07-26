@@ -2,25 +2,13 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json, Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
+import { getAuditActionLabel } from '@/domain/auditLog';
 
 export type AuditLogEntry = Tables<'audit_log'>;
 export type AuditLogMetadata = Record<string, Json>;
 
-const ACTION_LABELS: Record<string, string> = {
-  status_changed: 'Status alterado',
-  archived: 'Pedido arquivado',
-  unarchived: 'Pedido desarquivado',
-  venda_created: 'Venda registrada',
-  estorno_created: 'Estorno registrado',
-  payment_created: 'Pagamento registrado',
-  historical_payment_recorded: 'Pagamento histórico registrado',
-  stock_consumed: 'Estoque baixado',
-  final_product_stock_adjusted: 'Estoque final ajustado',
-  final_product_stock_inactivated: 'Produto final inativado',
-};
-
 export function getActionLabel(action: string): string {
-  return ACTION_LABELS[action] || action;
+  return getAuditActionLabel(action);
 }
 
 export function useAuditLog() {
