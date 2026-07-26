@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   derivePedidoFinanceiroStatus,
+  buildPedidoSearchFilter,
   calculateNextPedidoValorPago,
   getPedidoStatusUpdateErrorMessage,
   getPedidoStatusBadgeClass,
@@ -10,6 +11,7 @@ import {
   getPedidoStatusLabel,
   isPedidoTerminal,
   shouldGenerateRevenue,
+  sanitizePedidoSearchTerm,
 } from './pedidos.ts';
 
 test('getPedidoStatusLabel returns labels for known statuses and preserves unknown values', () => {
@@ -73,4 +75,20 @@ test('getPedidoStatusUpdateErrorMessage explains pending balance', () => {
     getPedidoStatusUpdateErrorMessage('Este pedido ainda possui saldo pendente'),
     'Este pedido ainda possui saldo pendente. Registre o pagamento antes de marcar como entregue.',
   );
+});
+
+test('sanitizePedidoSearchTerm prepares search text for PostgREST filters', () => {
+  assert.equal(sanitizePedidoSearchTerm('  Daniela, Martins (VIP)  '), 'Daniela Martins VIP');
+});
+
+test('buildPedidoSearchFilter searches legacy customer text and linked customer ids', () => {
+  assert.equal(
+    buildPedidoSearchFilter('Daniela', ['11111111-1111-1111-1111-111111111111']),
+    'cliente.ilike.%Daniela%,cliente_id.in.(11111111-1111-1111-1111-111111111111)',
+  );
+});
+
+test('buildPedidoSearchFilter returns null for empty terms and skips empty linked ids', () => {
+  assert.equal(buildPedidoSearchFilter('   '), null);
+  assert.equal(buildPedidoSearchFilter('Sotaque'), 'cliente.ilike.%Sotaque%');
 });

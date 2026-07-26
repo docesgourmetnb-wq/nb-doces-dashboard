@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Pedido, toPedidoWithItems } from '@/hooks/usePedidos';
+import { buildPedidoSearchFilter, sanitizePedidoSearchTerm } from '@/domain/pedidos';
 
 const PAGE_SIZE = 20;
 
@@ -32,6 +33,20 @@ export function usePaginatedPedidos() {
     }
     setLoading(true);
     try {
+      const searchTerm = sanitizePedidoSearchTerm(search);
+      let clienteIds: string[] = [];
+      if (searchTerm) {
+        const { data: clientesData, error: clientesError } = await supabase
+          .from('clientes')
+          .select('id')
+          .ilike('nome', `%${searchTerm}%`)
+          .limit(50);
+
+        if (clientesError) throw clientesError;
+        clienteIds = (clientesData || []).map((cliente) => cliente.id);
+      }
+      const searchFilter = buildPedidoSearchFilter(searchTerm, clienteIds);
+
       // Count query
       let countQuery = supabase
         .from('pedidos')
@@ -43,8 +58,8 @@ export function usePaginatedPedidos() {
       if (statusFilter !== 'todos') {
         countQuery = countQuery.eq('status_operacional', statusFilter);
       }
-      if (search) {
-        countQuery = countQuery.ilike('cliente', `%${search}%`);
+      if (searchFilter) {
+        countQuery = countQuery.or(searchFilter);
       }
 
       const { count, error: countError } = await countQuery;
@@ -67,8 +82,8 @@ export function usePaginatedPedidos() {
       if (statusFilter !== 'todos') {
         dataQuery = dataQuery.eq('status_operacional', statusFilter);
       }
-      if (search) {
-        dataQuery = dataQuery.ilike('cliente', `%${search}%`);
+      if (searchFilter) {
+        dataQuery = dataQuery.or(searchFilter);
       }
 
       const { data: pedidosData, error } = await dataQuery;
