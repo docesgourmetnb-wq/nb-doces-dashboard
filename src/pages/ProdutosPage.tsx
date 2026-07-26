@@ -41,19 +41,28 @@ import { parseDecimalInput } from '@/domain/numeros';
 import { formatCurrencyBRL } from '@/lib/utils';
 
 type ProdutoFormErrors = Partial<Record<'nome' | 'tamanho_g' | 'preco_venda' | 'custo_unitario', string>>;
+type BoloFormErrors = Partial<Record<'nome' | 'variacao' | 'preco_venda' | 'custo_calculado', string>>;
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
 
 export function ProdutosPage() {
   const { brigadeiros, loading, addBrigadeiro, updateBrigadeiro, deleteBrigadeiro } = useBrigadeiros();
-  const { resumo: catalogoResumo, loading: loadingCatalogo } = useProdutosCatalogo();
+  const {
+    produtos: produtosCatalogo,
+    resumo: catalogoResumo,
+    loading: loadingCatalogo,
+    addProdutoComVariacao,
+    deleteProduto,
+  } = useProdutosCatalogo();
   const [search, setSearch] = useState('');
   const [tamanhoFilter, setTamanhoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [categoriaView, setCategoriaView] = useState<ProdutoCategoria>('brigadeiro');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBoloDialogOpen, setIsBoloDialogOpen] = useState(false);
   const [editingBrigadeiro, setEditingBrigadeiro] = useState<Brigadeiro | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingBolo, setSavingBolo] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     tamanho_g: '30',
@@ -62,7 +71,21 @@ export function ProdutosPage() {
     custo_unitario: '',
     descricao: '',
   });
+  const [boloFormData, setBoloFormData] = useState({
+    nome: '',
+    variacao: '',
+    tamanho: '',
+    cobertura: '',
+    preco_venda: '',
+    custo_calculado: '',
+    validade_dias: '',
+    prazo_minimo_dias: '',
+    modelo_producao: 'sob_encomenda',
+  });
   const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
+  const bolosCatalogo = useMemo(() => {
+    return produtosCatalogo.filter((produto) => produto.categoria_codigo === 'bolo');
+  }, [produtosCatalogo]);
 
   const filteredBrigadeiros = useMemo(() => {
     const searchTerm = search.trim().toLowerCase();
@@ -111,6 +134,7 @@ export function ProdutosPage() {
   };
 
   const [formErrors, setFormErrors] = useState<ProdutoFormErrors>({});
+  const [boloFormErrors, setBoloFormErrors] = useState<BoloFormErrors>({});
   const precoVendaNumber = parseDecimalInput(formData.preco_venda);
   const custoUnitarioNumber = parseDecimalInput(formData.custo_unitario);
   const canShowMargin =
@@ -170,6 +194,61 @@ export function ProdutosPage() {
     }
   };
 
+  const handleOpenBoloDialog = () => {
+    setBoloFormData({
+      nome: '',
+      variacao: '',
+      tamanho: '',
+      cobertura: '',
+      preco_venda: '',
+      custo_calculado: '',
+      validade_dias: '',
+      prazo_minimo_dias: '',
+      modelo_producao: 'sob_encomenda',
+    });
+    setBoloFormErrors({});
+    setIsBoloDialogOpen(true);
+  };
+
+  const handleSaveBolo = async () => {
+    const errors: BoloFormErrors = {};
+    const precoVenda = parseDecimalInput(boloFormData.preco_venda);
+    const custoCalculado = parseDecimalInput(boloFormData.custo_calculado);
+    const validadeDias = boloFormData.validade_dias.trim() ? Number(boloFormData.validade_dias) : null;
+    const prazoMinimoDias = boloFormData.prazo_minimo_dias.trim() ? Number(boloFormData.prazo_minimo_dias) : null;
+
+    if (!boloFormData.nome.trim()) errors.nome = 'Informe o nome do bolo';
+    if (!boloFormData.variacao.trim()) errors.variacao = 'Informe a variação';
+    if (!Number.isFinite(precoVenda) || precoVenda <= 0) errors.preco_venda = 'Preço de venda deve ser maior que zero';
+    if (!Number.isFinite(custoCalculado) || custoCalculado < 0) errors.custo_calculado = 'Custo não pode ser negativo';
+
+    setBoloFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSavingBolo(true);
+    try {
+      const created = await addProdutoComVariacao({
+        categoria_codigo: 'bolo',
+        nome: boloFormData.nome.trim(),
+        modelo_producao: boloFormData.modelo_producao,
+        validade_dias: Number.isFinite(validadeDias) ? validadeDias : null,
+        prazo_minimo_dias: Number.isFinite(prazoMinimoDias) ? prazoMinimoDias : null,
+        necessita_refrigeracao: Boolean(boloFormData.cobertura.trim()),
+        variacao_nome: boloFormData.variacao.trim(),
+        variacao_tamanho: boloFormData.tamanho.trim() || null,
+        variacao_cobertura: boloFormData.cobertura.trim() || null,
+        variacao_preco_venda: precoVenda,
+        variacao_custo_calculado: custoCalculado,
+        variacao_sob_encomenda: boloFormData.modelo_producao !== 'pronta_entrega',
+        variacao_pronta_entrega: boloFormData.modelo_producao !== 'sob_encomenda',
+      });
+
+      if (created) setIsBoloDialogOpen(false);
+    } finally {
+      setSavingBolo(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -186,6 +265,7 @@ export function ProdutosPage() {
           <h1 className="font-display text-3xl font-semibold text-foreground">Produtos</h1>
           <p className="text-muted-foreground mt-1">Gerencie brigadeiros e prepare novas categorias</p>
         </div>
+        {categoriaView === 'brigadeiro' ? (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()} className="gap-2">
@@ -294,6 +374,156 @@ export function ProdutosPage() {
             </div>
           </DialogContent>
         </Dialog>
+        ) : (
+          <Dialog open={isBoloDialogOpen} onOpenChange={setIsBoloDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleOpenBoloDialog} className="gap-2">
+                <Plus size={18} />
+                Novo Bolo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="font-display">Novo Bolo</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-nome">Nome do bolo</Label>
+                    <Input
+                      id="bolo-nome"
+                      value={boloFormData.nome}
+                      onChange={(e) => {
+                        setBoloFormData({ ...boloFormData, nome: e.target.value });
+                        if (boloFormErrors.nome) setBoloFormErrors({ ...boloFormErrors, nome: '' });
+                      }}
+                      placeholder="Ex: Bolo de cenoura"
+                      aria-invalid={!!boloFormErrors.nome}
+                      aria-describedby={boloFormErrors.nome ? 'bolo-nome-error' : undefined}
+                    />
+                    {boloFormErrors.nome && <p id="bolo-nome-error" className="text-xs text-destructive">{boloFormErrors.nome}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-variacao">Variação</Label>
+                    <Input
+                      id="bolo-variacao"
+                      value={boloFormData.variacao}
+                      onChange={(e) => {
+                        setBoloFormData({ ...boloFormData, variacao: e.target.value });
+                        if (boloFormErrors.variacao) setBoloFormErrors({ ...boloFormErrors, variacao: '' });
+                      }}
+                      placeholder="Ex: Pequeno com cobertura"
+                      aria-invalid={!!boloFormErrors.variacao}
+                      aria-describedby={boloFormErrors.variacao ? 'bolo-variacao-error' : undefined}
+                    />
+                    {boloFormErrors.variacao && <p id="bolo-variacao-error" className="text-xs text-destructive">{boloFormErrors.variacao}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-tamanho">Tamanho</Label>
+                    <Input
+                      id="bolo-tamanho"
+                      value={boloFormData.tamanho}
+                      onChange={(e) => setBoloFormData({ ...boloFormData, tamanho: e.target.value })}
+                      placeholder="Ex: Pequeno"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-cobertura">Cobertura</Label>
+                    <Input
+                      id="bolo-cobertura"
+                      value={boloFormData.cobertura}
+                      onChange={(e) => setBoloFormData({ ...boloFormData, cobertura: e.target.value })}
+                      placeholder="Ex: Chocolate"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-modelo-producao">Produção</Label>
+                    <select
+                      id="bolo-modelo-producao"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      value={boloFormData.modelo_producao}
+                      onChange={(e) => setBoloFormData({ ...boloFormData, modelo_producao: e.target.value })}
+                    >
+                      <option value="sob_encomenda">Sob encomenda</option>
+                      <option value="pronta_entrega">Pronta entrega</option>
+                      <option value="ambos">Ambos</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-preco-venda">Preço de venda (R$)</Label>
+                    <Input
+                      id="bolo-preco-venda"
+                      type="text"
+                      inputMode="decimal"
+                      value={boloFormData.preco_venda}
+                      onChange={(e) => {
+                        setBoloFormData({ ...boloFormData, preco_venda: e.target.value });
+                        if (boloFormErrors.preco_venda) setBoloFormErrors({ ...boloFormErrors, preco_venda: '' });
+                      }}
+                      placeholder="Ex: 35,00"
+                      aria-invalid={!!boloFormErrors.preco_venda}
+                      aria-describedby={boloFormErrors.preco_venda ? 'bolo-preco-error' : undefined}
+                    />
+                    {boloFormErrors.preco_venda && <p id="bolo-preco-error" className="text-xs text-destructive">{boloFormErrors.preco_venda}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-custo">Custo estimado (R$)</Label>
+                    <Input
+                      id="bolo-custo"
+                      type="text"
+                      inputMode="decimal"
+                      value={boloFormData.custo_calculado}
+                      onChange={(e) => {
+                        setBoloFormData({ ...boloFormData, custo_calculado: e.target.value });
+                        if (boloFormErrors.custo_calculado) setBoloFormErrors({ ...boloFormErrors, custo_calculado: '' });
+                      }}
+                      placeholder="Ex: 14,50"
+                      aria-invalid={!!boloFormErrors.custo_calculado}
+                      aria-describedby={boloFormErrors.custo_calculado ? 'bolo-custo-error' : undefined}
+                    />
+                    {boloFormErrors.custo_calculado && <p id="bolo-custo-error" className="text-xs text-destructive">{boloFormErrors.custo_calculado}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-validade">Validade (dias)</Label>
+                    <Input
+                      id="bolo-validade"
+                      type="number"
+                      min="0"
+                      value={boloFormData.validade_dias}
+                      onChange={(e) => setBoloFormData({ ...boloFormData, validade_dias: e.target.value })}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bolo-prazo">Prazo mínimo (dias)</Label>
+                    <Input
+                      id="bolo-prazo"
+                      type="number"
+                      min="0"
+                      value={boloFormData.prazo_minimo_dias}
+                      onChange={(e) => setBoloFormData({ ...boloFormData, prazo_minimo_dias: e.target.value })}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveBolo} className="w-full" disabled={savingBolo}>
+                  {savingBolo ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Adicionar Bolo
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Tabs value={categoriaView} onValueChange={(value) => setCategoriaView(value as ProdutoCategoria)}>
@@ -534,15 +764,94 @@ export function ProdutosPage() {
             </div>
           </div>
 
-          <section className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-              <CakeSlice className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+          {bolosCatalogo.length === 0 ? (
+            <section className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                <CakeSlice className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <h2 className="font-display text-xl font-semibold text-foreground">Nenhum bolo cadastrado</h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+                Cadastre o primeiro bolo com uma variação inicial. Esses produtos ainda não aparecem nos pedidos até liberarmos a próxima etapa.
+              </p>
+            </section>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {bolosCatalogo.map((bolo) => {
+                const variacaoPrincipal = bolo.variacoes[0];
+                const margem = variacaoPrincipal && variacaoPrincipal.preco_venda > 0
+                  ? ((variacaoPrincipal.preco_venda - variacaoPrincipal.custo_calculado) / variacaoPrincipal.preco_venda) * 100
+                  : 0;
+
+                return (
+                  <div key={bolo.id} className="bg-card border border-border rounded-lg p-4 card-hover shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                          Bolo
+                        </span>
+                        <h3 className="mt-3 line-clamp-2 min-h-[3rem] font-display text-lg font-semibold leading-tight">
+                          {bolo.nome}
+                        </h3>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="rounded-md p-1.5 transition-colors hover:bg-destructive/10"
+                            aria-label={`Inativar ${bolo.nome}`}
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Inativar bolo?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {bolo.nome} sairá dos cadastros operacionais, mas registros antigos continuarão preservados.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteProduto(bolo.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Inativar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+
+                    {variacaoPrincipal ? (
+                      <>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span>{variacaoPrincipal.nome}</span>
+                          {variacaoPrincipal.tamanho ? <span>• {variacaoPrincipal.tamanho}</span> : null}
+                          {variacaoPrincipal.cobertura ? <span>• {variacaoPrincipal.cobertura}</span> : null}
+                        </div>
+                        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Venda</p>
+                            <p className="text-sm font-semibold text-success">{formatCurrencyBRL(variacaoPrincipal.preco_venda)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Custo</p>
+                            <p className="text-sm font-medium">{formatCurrencyBRL(variacaoPrincipal.custo_calculado)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Margem</p>
+                            <p className="text-sm font-medium text-accent">{margem.toFixed(1)}%</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-3 text-sm text-muted-foreground">Sem variação ativa cadastrada.</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <h2 className="font-display text-xl font-semibold text-foreground">Categoria de bolos preparada</h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-              A base de produto e variações já está pronta. O próximo passo é liberar o cadastro de bolos com tamanhos, cobertura, validade e modelo de produção sem usar regras de 25g ou 30g.
-            </p>
-          </section>
+          )}
         </TabsContent>
       </Tabs>
     </div>
