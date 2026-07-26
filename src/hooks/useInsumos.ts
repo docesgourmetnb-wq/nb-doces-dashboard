@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { buildInsumoCadastroDefaults } from '@/domain/insumos';
 
 export interface Insumo {
   id: string;
@@ -16,6 +17,8 @@ export interface Insumo {
 }
 
 type InsumoInsert = TablesInsert<'insumos'>;
+export type InsumoCadastroInput = Pick<Insumo, 'nome' | 'unidade' | 'quantidade_minima'>;
+export type InsumoCadastroUpdate = Partial<InsumoCadastroInput>;
 
 interface RegisterInsumoEntryRpc {
   (
@@ -73,22 +76,19 @@ export function useInsumos() {
     fetchInsumos();
   }, [fetchInsumos]);
 
-  const addInsumo = async (insumo: Omit<Insumo, 'id'>) => {
+  const addInsumo = async (insumo: InsumoCadastroInput) => {
     if (!user) return undefined;
     
     try {
-      const insertData: InsumoInsert = {
+      const cadastroData = buildInsumoCadastroDefaults({
         nome: insumo.nome,
         unidade: insumo.unidade,
-        quantidade_atual: insumo.quantidade_atual,
-        quantidade_minima: insumo.quantidade_minima,
-        consumo_medio: insumo.consumo_medio,
-        preco_unitario: insumo.preco_unitario,
+        quantidadeMinima: insumo.quantidade_minima,
+      });
+      const insertData: InsumoInsert = {
+        ...cadastroData,
         user_id: user.id,
       };
-      if (insumo.ultima_compra !== undefined) {
-        insertData.ultima_compra = insumo.ultima_compra;
-      }
 
       const { data, error } = await supabase
         .from('insumos')
@@ -111,11 +111,16 @@ export function useInsumos() {
     }
   };
 
-  const updateInsumo = async (id: string, updates: Partial<Insumo>) => {
+  const updateInsumo = async (id: string, updates: InsumoCadastroUpdate) => {
     try {
+      const cadastroUpdates: InsumoCadastroUpdate = {};
+      if (updates.nome !== undefined) cadastroUpdates.nome = updates.nome.trim();
+      if (updates.unidade !== undefined) cadastroUpdates.unidade = updates.unidade;
+      if (updates.quantidade_minima !== undefined) cadastroUpdates.quantidade_minima = updates.quantidade_minima;
+
       const { data, error } = await supabase
         .from('insumos')
-        .update(updates)
+        .update(cadastroUpdates)
         .eq('id', id)
         .select()
         .single();
