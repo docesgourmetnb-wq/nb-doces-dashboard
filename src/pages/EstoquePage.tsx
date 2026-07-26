@@ -535,11 +535,13 @@ function InsumosTab() {
         <div className="flex flex-col gap-4 mb-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h3 className="font-display font-semibold text-lg">Compras recentes</h3>
-            <p className="text-sm text-muted-foreground">Histórico das últimas entradas registradas no estoque.</p>
+            <p className="text-sm text-muted-foreground">
+              Histórico das últimas entradas registradas no estoque. Os filtros abaixo afetam apenas este histórico.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[640px] lg:grid-cols-[1fr_1fr_auto]">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Insumo da compra</Label>
+              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar histórico por insumo</Label>
               <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
                 <SelectTrigger id="purchase-insumo-filter">
                   <SelectValue placeholder="Todos os insumos" />
@@ -553,7 +555,7 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Fornecedor da compra</Label>
+              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Filtrar histórico por fornecedor</Label>
               <Select value={purchaseFornecedorFilter} onValueChange={setPurchaseFornecedorFilter}>
                 <SelectTrigger id="purchase-fornecedor-filter">
                   <SelectValue placeholder="Todos os fornecedores" />
