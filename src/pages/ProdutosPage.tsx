@@ -368,14 +368,14 @@ export function ProdutosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">Produtos</h1>
-          <p className="text-muted-foreground mt-1">Gerencie brigadeiros e prepare novas categorias</p>
+          <p className="text-muted-foreground mt-1">Gerencie o catálogo de brigadeiros e bolos</p>
         </div>
         {categoriaView === 'brigadeiro' ? (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()} className="gap-2">
               <Plus size={18} />
-              Novo Brigadeiro
+              Novo Produto
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
@@ -777,9 +777,9 @@ export function ProdutosPage() {
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase text-muted-foreground">Produtos ativos</p>
+              <p className="text-sm font-semibold uppercase text-muted-foreground">Brigadeiros ativos</p>
               <p className="mt-2 font-display text-3xl font-semibold text-foreground">{produtosResumo.total}</p>
-              <p className="text-sm text-muted-foreground">Brigadeiros cadastrados</p>
+              <p className="text-sm text-muted-foreground">Produtos da aba Brigadeiros</p>
             </div>
             <div className="rounded-xl bg-primary/10 p-3 text-primary">
               <Package size={22} aria-hidden="true" />
@@ -789,7 +789,7 @@ export function ProdutosPage() {
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase text-muted-foreground">Tamanhos</p>
+              <p className="text-sm font-semibold uppercase text-muted-foreground">Tamanhos de brigadeiros</p>
               <p className="mt-2 font-display text-3xl font-semibold text-foreground">
                 {produtosResumo.total25g} / {produtosResumo.total30g}
               </p>
@@ -830,13 +830,13 @@ export function ProdutosPage() {
         {/* Search and filters */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="relative w-full max-w-md">
-            <Label htmlFor="produto-busca" className="sr-only">Buscar brigadeiros</Label>
+            <Label htmlFor="produto-busca" className="sr-only">Buscar produtos</Label>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <Input
               id="produto-busca"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar brigadeiros..."
+              placeholder="Buscar produtos..."
               className="pl-10"
             />
           </div>
@@ -864,7 +864,7 @@ export function ProdutosPage() {
             </div>
             <h3 className="font-display font-semibold text-lg text-foreground mb-1">Nenhum produto encontrado</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {search ? 'Tente ajustar a busca.' : 'Clique em "Novo Brigadeiro" para adicionar seu primeiro produto.'}
+              {search ? 'Tente ajustar a busca.' : 'Clique em "Novo Produto" para adicionar seu primeiro produto.'}
             </p>
           </div>
         ) : (
