@@ -18,7 +18,7 @@ test('getAuditActionLabel hides internal action names from users', () => {
 test('formatAuditLogDetail formats status changes with friendly labels', () => {
   assert.equal(
     formatAuditLogDetail('status_changed', { from: 'confirmado', to: 'entregue' }, formatCurrency, formatDate),
-    'Confirmado -> Entregue',
+    'de Confirmado para Entregue',
   );
 });
 

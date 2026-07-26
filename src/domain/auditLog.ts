@@ -42,7 +42,7 @@ export function formatAuditLogDetail(
 
   switch (action) {
     case 'status_changed':
-      return `${getPedidoStatusLabel(metadataText(metadata, 'from') || '')} -> ${getPedidoStatusLabel(metadataText(metadata, 'to') || '')}`;
+      return `de ${getPedidoStatusLabel(metadataText(metadata, 'from') || '')} para ${getPedidoStatusLabel(metadataText(metadata, 'to') || '')}`;
     case 'archived': {
       const reason = metadataText(metadata, 'reason');
       return reason ? `Motivo: ${reason}` : null;
