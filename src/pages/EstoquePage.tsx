@@ -1102,7 +1102,7 @@ function ProdutosTab() {
                  size="icon"
                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
                  onClick={() => setDeleteProdutoConfirm(produto)}
-                 aria-label={`Excluir produto ${produto.brigadeiro?.nome || ''}`}
+                 aria-label={`Inativar produto ${produto.brigadeiro?.nome || ''}`}
                >
                  <Trash2 className="w-4 h-4" />
                </Button>
@@ -1149,9 +1149,9 @@ function ProdutosTab() {
       <AlertDialog open={!!deleteProdutoConfirm} onOpenChange={(open) => !open && setDeleteProdutoConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover produto final?</AlertDialogTitle>
+            <AlertDialogTitle>Inativar produto final?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover {deleteProdutoConfirm?.brigadeiro?.nome || 'este produto'} do estoque de produtos finais? Esta ação não pode ser desfeita.
+              {deleteProdutoConfirm?.brigadeiro?.nome || 'Este produto'} sairá do controle operacional de produtos finais, mas o histórico será preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1160,7 +1160,7 @@ function ProdutosTab() {
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Remover
+              Inativar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

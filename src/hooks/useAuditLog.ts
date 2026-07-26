@@ -15,6 +15,8 @@ const ACTION_LABELS: Record<string, string> = {
   payment_created: 'Pagamento registrado',
   historical_payment_recorded: 'Pagamento histórico registrado',
   stock_consumed: 'Estoque baixado',
+  final_product_stock_adjusted: 'Estoque final ajustado',
+  final_product_stock_inactivated: 'Produto final inativado',
 };
 
 export function getActionLabel(action: string): string {
