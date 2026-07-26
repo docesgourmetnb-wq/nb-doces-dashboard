@@ -3,55 +3,24 @@ import { History, Loader2 } from 'lucide-react';
 import { useAuditLog, AuditLogEntry, getActionLabel } from '@/hooks/useAuditLog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-import { getPedidoStatusLabel } from '@/domain/pedidos';
 import type { Json } from '@/integrations/supabase/types';
 import { formatCurrencyBRL } from '@/lib/utils';
+import { formatAuditLogDetail, type AuditMetadataRecord } from '@/domain/auditLog';
 
 function isMetadataRecord(metadata: Json): metadata is { [key: string]: Json | undefined } {
   return !!metadata && typeof metadata === 'object' && !Array.isArray(metadata);
-}
-
-function metadataText(metadata: { [key: string]: Json | undefined }, key: string) {
-  const value = metadata[key];
-  return typeof value === 'string' ? value : null;
-}
-
-function metadataNumber(metadata: { [key: string]: Json | undefined }, key: string) {
-  const value = metadata[key];
-  return typeof value === 'number' ? value : null;
 }
 
 function formatMeta(entry: AuditLogEntry): string | null {
   const m = entry.metadata;
   if (!m || !isMetadataRecord(m)) return null;
 
-  switch (entry.action) {
-    case 'status_changed':
-      return `${getPedidoStatusLabel(metadataText(m, 'from') || '')} → ${getPedidoStatusLabel(metadataText(m, 'to') || '')}`;
-    case 'archived':
-      return metadataText(m, 'reason') ? `Motivo: ${metadataText(m, 'reason')}` : null;
-    case 'payment_created':
-    case 'historical_payment_recorded': {
-      const valor = metadataNumber(m, 'delta');
-      const dataPagamento = metadataText(m, 'data_pagamento');
-      const partes = [
-        valor !== null ? formatCurrencyBRL(valor) : null,
-        dataPagamento ? format(new Date(`${dataPagamento}T00:00:00`), 'dd/MM/yyyy', { locale: ptBR }) : null,
-      ].filter(Boolean);
-
-      return partes.length > 0 ? partes.join(' • ') : null;
-    }
-    case 'venda_created':
-    case 'estorno_created': {
-      const valor = metadataNumber(m, 'valor');
-      return valor !== null
-        ? formatCurrencyBRL(valor)
-        : null;
-    }
-    default:
-      return null;
-  }
+  return formatAuditLogDetail(
+    entry.action,
+    m as AuditMetadataRecord,
+    formatCurrencyBRL,
+    (date) => format(new Date(`${date}T00:00:00`), 'dd/MM/yyyy', { locale: ptBR }),
+  );
 }
 
 export function PedidoHistorico({ pedidoId }: { pedidoId: string }) {
