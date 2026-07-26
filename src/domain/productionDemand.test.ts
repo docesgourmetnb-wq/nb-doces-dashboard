@@ -177,6 +177,29 @@ test('aggregateProductionDemand displays explicit product size when name is clea
   assert.equal(result[0]?.tamanho, '25g');
 });
 
+test('aggregateProductionDemand preserves non-brigadeiro product names', () => {
+  const result = aggregateProductionDemand([
+    {
+      id: 'pedido-bolo',
+      cliente: 'Cliente bolo',
+      data_entrega: '2026-08-20',
+      status: 'confirmado',
+      itens: [
+        {
+          brigadeiro_id: 'bolo-1',
+          brigadeiro_nome: 'Bolo de cenoura 30g',
+          brigadeiro_categoria: 'bolo',
+          brigadeiro_tamanho_g: 30,
+          quantidade: 1,
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(result[0]?.nome, 'Bolo de cenoura 30g');
+  assert.equal(result[0]?.tamanho, null);
+});
+
 test('summarizeProductionDemand does not reuse stock reserved by ready orders', () => {
   const result = summarizeProductionDemand([
     {

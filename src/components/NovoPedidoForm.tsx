@@ -39,8 +39,7 @@ import {
   BRIGADEIRO_TAMANHO_FILTERS,
   type BrigadeiroTamanhoFilter,
   filterProdutosBrigadeiro,
-  getProdutoNomeBase,
-  getProdutoTamanho,
+  getProdutoNomeComercial,
   getProdutoTamanhoComercial,
   matchesBrigadeiroTamanhoFilter,
 } from '@/domain/produtos';
@@ -60,8 +59,20 @@ function getTamanhoSortValue(tamanho: string | null) {
 function getPedidoItemProdutoInfo(item: ItemPedido, produtosPorId: Map<string, Brigadeiro>) {
   const produto = item.brigadeiro_id ? produtosPorId.get(item.brigadeiro_id) : undefined;
   const nome = produto?.nome ?? item.brigadeiro_nome ?? '';
-  const nomeBase = getProdutoNomeBase(nome) || item.brigadeiro_nome || 'Produto';
-  const tamanho = produto ? getProdutoTamanhoComercial(produto) : getProdutoTamanho(nome);
+  const nomeBase = produto
+    ? getProdutoNomeComercial(produto)
+    : getProdutoNomeComercial({
+        nome,
+        categoria: item.brigadeiro_categoria ?? null,
+        tamanho_g: item.brigadeiro_tamanho_g ?? null,
+      }) || item.brigadeiro_nome || 'Produto';
+  const tamanho = produto
+    ? getProdutoTamanhoComercial(produto)
+    : getProdutoTamanhoComercial({
+        nome,
+        categoria: item.brigadeiro_categoria ?? null,
+        tamanho_g: item.brigadeiro_tamanho_g ?? null,
+      });
 
   return { nomeBase, tamanho };
 }
@@ -98,7 +109,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     return produtosBrigadeiro
       .filter((brigadeiro) => matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoProdutoFilter))
       .sort((a, b) => {
-        const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
+        const nomeBaseCompare = getProdutoNomeComercial(a).localeCompare(getProdutoNomeComercial(b), 'pt-BR');
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
         return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
@@ -517,7 +528,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
                   ) : (
                     produtosDisponiveis.map((b) => {
                       const tamanho = getProdutoTamanhoComercial(b);
-                      const nomeBase = getProdutoNomeBase(b.nome);
+                      const nomeBase = getProdutoNomeComercial(b);
                       const label = tamanhoProdutoFilter === 'todos' && tamanho
                         ? `${nomeBase} • ${tamanho}`
                         : nomeBase;

@@ -27,7 +27,7 @@ import {
   BRIGADEIRO_TAMANHOS_COMERCIAIS,
   type BrigadeiroTamanhoFilter,
   filterProdutosBrigadeiro,
-  getProdutoNomeBase,
+  getProdutoNomeComercial,
   getProdutoTamanhoComercial,
   inferProdutoTamanhoGramas,
   isBrigadeiroTamanhoGramas,
@@ -69,7 +69,7 @@ export function ProdutosPage() {
         return matchesSearch && matchesTamanho;
       })
       .sort((a, b) => {
-        const nomeBaseCompare = getProdutoNomeBase(a.nome).localeCompare(getProdutoNomeBase(b.nome), 'pt-BR');
+        const nomeBaseCompare = getProdutoNomeComercial(a).localeCompare(getProdutoNomeComercial(b), 'pt-BR');
         if (nomeBaseCompare !== 0) return nomeBaseCompare;
         return getTamanhoSortValue(getProdutoTamanhoComercial(a)) - getTamanhoSortValue(getProdutoTamanhoComercial(b));
       });
@@ -389,7 +389,7 @@ export function ProdutosPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {filteredBrigadeiros.map((brigadeiro) => {
               const tamanho = getProdutoTamanhoComercial(brigadeiro);
-              const nomeBase = getProdutoNomeBase(brigadeiro.nome);
+              const nomeBase = getProdutoNomeComercial(brigadeiro);
               const produtoSemPar = saboresSemParPorNome.get(nomeBase);
 
             return (
