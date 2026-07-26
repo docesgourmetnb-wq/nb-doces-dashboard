@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Brigadeiro } from './useBrigadeiros';
 
 type InsumoRow = Tables<'insumos'>;
@@ -46,6 +47,7 @@ export function useEstoqueProdutos() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { log: auditLog } = useAuditLog();
 
   const fetchProdutos = useCallback(async () => {
     if (!user) {
@@ -58,7 +60,8 @@ export function useEstoqueProdutos() {
       const { data, error } = await supabase
         .from('insumos')
         .select('*')
-        .eq('unidade', 'SYS_PROD');
+        .eq('unidade', 'SYS_PROD')
+        .eq('ativo', true);
 
       if (error) throw error;
       
@@ -89,14 +92,15 @@ export function useEstoqueProdutos() {
     try {
       const { data, error } = await supabase
         .from('insumos')
-        .insert([{ 
-           nome: `[PRODUTO] ${brigadeiro_id}::${brigadeiro_nome}`, 
-           unidade: 'SYS_PROD',
-           quantidade_atual: quantidade_un,
-           quantidade_minima: 0,
-           consumo_medio: 0,
-           preco_unitario: 0,
-           user_id: user.id 
+        .insert([{
+          nome: `[PRODUTO] ${brigadeiro_id}::${brigadeiro_nome}`,
+          unidade: 'SYS_PROD',
+          quantidade_atual: quantidade_un,
+          quantidade_minima: 0,
+          consumo_medio: 0,
+          preco_unitario: 0,
+          ativo: true,
+          user_id: user.id,
         }])
         .select()
         .single();
@@ -148,6 +152,13 @@ export function useEstoqueProdutos() {
       if (error) throw error;
 
       setProdutos(prev => prev.map(p => p.id === id ? { ...p, quantidade_un: novaQuantidade } : p));
+      await auditLog('estoque_produto_final', id, 'final_product_stock_adjusted', {
+        produto_nome: produto.brigadeiro?.nome || null,
+        quantidade_anterior: produto.quantidade_un,
+        quantidade_delta: quantidadeDelta,
+        quantidade_atual: novaQuantidade,
+        tipo: quantidadeDelta > 0 ? 'entrada' : 'saida',
+      });
       toast({
         title: 'Estoque atualizado',
         description: `Saldo de unidades atualizado com sucesso.`,
@@ -167,20 +178,25 @@ export function useEstoqueProdutos() {
     try {
       const { error } = await supabase
         .from('insumos')
-        .delete()
+        .update({ ativo: false, updated_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
 
+      const produto = produtos.find(p => p.id === id);
       setProdutos(prev => prev.filter(p => p.id !== id));
+      await auditLog('estoque_produto_final', id, 'final_product_stock_inactivated', {
+        produto_nome: produto?.brigadeiro?.nome || null,
+        quantidade_atual: produto?.quantidade_un ?? null,
+      });
       toast({
-        title: 'Registro excluído',
-        description: 'Produto removido do estoque.',
+        title: 'Produto final inativado',
+        description: 'Produto removido da operação, com histórico preservado.',
       });
       return true;
     } catch (error: unknown) {
       toast({
-        title: 'Erro ao excluir',
+        title: 'Erro ao inativar produto final',
         description: getErrorMessage(error),
         variant: 'destructive',
       });
