@@ -39,6 +39,7 @@ export function useBrigadeiros() {
       const { data, error } = await supabase
         .from('brigadeiros')
         .select('*')
+        .eq('ativo', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -125,15 +126,15 @@ export function useBrigadeiros() {
     try {
       const { error } = await supabase
         .from('brigadeiros')
-        .delete()
+        .update({ ativo: false })
         .eq('id', id);
 
       if (error) throw error;
       setBrigadeiros(brigadeiros.filter(b => b.id !== id));
-      toast({ title: 'Produto removido!' });
+      toast({ title: 'Produto inativado!' });
     } catch (error: unknown) {
       toast({
-        title: 'Erro ao remover produto',
+        title: 'Erro ao inativar produto',
         description: getErrorMessage(error),
         variant: 'destructive',
       });
