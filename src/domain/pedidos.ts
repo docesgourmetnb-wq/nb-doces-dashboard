@@ -75,6 +75,26 @@ export function getPedidoStatusUpdateErrorMessage(message: string) {
   return message || 'Erro inesperado';
 }
 
+export function sanitizePedidoSearchTerm(search: string) {
+  return search
+    .trim()
+    .replace(/[(),]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function buildPedidoSearchFilter(search: string, clienteIds: string[] = []) {
+  const searchTerm = sanitizePedidoSearchTerm(search);
+  if (!searchTerm) return null;
+
+  const filters = [`cliente.ilike.%${searchTerm}%`];
+  if (clienteIds.length > 0) {
+    filters.push(`cliente_id.in.(${clienteIds.join(',')})`);
+  }
+
+  return filters.join(',');
+}
+
 export const PAGAMENTO_LABELS: Record<string, string> = {
   'pix': 'PIX',
   'cartao': 'Cartão',
