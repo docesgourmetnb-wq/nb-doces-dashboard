@@ -1011,7 +1011,7 @@ export function ProdutosPage() {
               </div>
               <h2 className="font-display text-xl font-semibold text-foreground">Nenhum bolo cadastrado</h2>
               <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-                Cadastre o primeiro bolo com uma variação inicial. Esses produtos ainda não aparecem nos pedidos até liberarmos a próxima etapa.
+                Cadastre o primeiro bolo com uma variação inicial para deixá-lo disponível nos pedidos.
               </p>
             </section>
           ) : (
