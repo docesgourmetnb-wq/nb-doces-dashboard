@@ -25,6 +25,19 @@ export interface ProdutoComVariacaoInput {
   variacao_pronta_entrega: boolean;
 }
 
+export interface ProdutoVariacaoInput {
+  produto_id: string;
+  variacao_nome: string;
+  variacao_tamanho: string | null;
+  variacao_cobertura: string | null;
+  variacao_preco_venda: number;
+  variacao_custo_calculado: number;
+  variacao_sob_encomenda: boolean;
+  variacao_pronta_entrega: boolean;
+  validade_dias: number | null;
+  prazo_minimo_dias: number | null;
+}
+
 interface CreateProductWithVariationRpc {
   (
     fn: 'create_product_with_variation',
@@ -42,6 +55,27 @@ interface CreateProductWithVariationRpc {
       p_variacao_custo_calculado: number;
       p_variacao_sob_encomenda: boolean;
       p_variacao_pronta_entrega: boolean;
+    },
+  ): Promise<{
+    data: string | null;
+    error: Error | null;
+  }>;
+}
+
+interface AddProductVariationRpc {
+  (
+    fn: 'add_product_variation',
+    params: {
+      p_produto_id: string;
+      p_variacao_nome: string;
+      p_variacao_tamanho: string | null;
+      p_variacao_cobertura: string | null;
+      p_variacao_preco_venda: number;
+      p_variacao_custo_calculado: number;
+      p_variacao_sob_encomenda: boolean;
+      p_variacao_pronta_entrega: boolean;
+      p_validade_dias: number | null;
+      p_prazo_minimo_dias: number | null;
     },
   ): Promise<{
     data: string | null;
@@ -189,6 +223,39 @@ export function useProdutosCatalogo() {
     }
   };
 
+  const addVariacaoProduto = async (input: ProdutoVariacaoInput) => {
+    if (!user) return undefined;
+
+    try {
+      const addVariationRpc = supabase.rpc.bind(supabase) as unknown as AddProductVariationRpc;
+      const { data: variacaoId, error } = await addVariationRpc('add_product_variation', {
+        p_produto_id: input.produto_id,
+        p_variacao_nome: input.variacao_nome,
+        p_variacao_tamanho: input.variacao_tamanho,
+        p_variacao_cobertura: input.variacao_cobertura,
+        p_variacao_preco_venda: input.variacao_preco_venda,
+        p_variacao_custo_calculado: input.variacao_custo_calculado,
+        p_variacao_sob_encomenda: input.variacao_sob_encomenda,
+        p_variacao_pronta_entrega: input.variacao_pronta_entrega,
+        p_validade_dias: input.validade_dias,
+        p_prazo_minimo_dias: input.prazo_minimo_dias,
+      });
+
+      if (error) throw error;
+
+      await fetchProdutosCatalogo();
+      toast({ title: 'Variação adicionada!' });
+      return variacaoId;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao adicionar variação',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return undefined;
+    }
+  };
+
   const resumo = useMemo(() => summarizeProdutoCatalogo(produtos), [produtos]);
   const variacoesAtivas = useMemo(
     () => produtos.flatMap((produto) => getProdutoCatalogoVariacoesAtivas(produto.variacoes)),
@@ -201,6 +268,7 @@ export function useProdutosCatalogo() {
     resumo,
     loading,
     addProdutoComVariacao,
+    addVariacaoProduto,
     deleteProduto,
     refetch: fetchProdutosCatalogo,
   };
