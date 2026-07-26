@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp, AlertTriangle, CakeSlice } from 'lucide-react';
 import { useBrigadeiros, Brigadeiro } from '@/hooks/useBrigadeiros';
-import { type ProdutoCatalogo, useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
+import { type ProdutoCatalogo, type ProdutoCatalogoVariacao, useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -54,6 +54,8 @@ export function ProdutosPage() {
     loading: loadingCatalogo,
     addProdutoComVariacao,
     addVariacaoProduto,
+    updateVariacaoProduto,
+    deleteVariacaoProduto,
     deleteProduto,
   } = useProdutosCatalogo();
   const [search, setSearch] = useState('');
@@ -64,6 +66,7 @@ export function ProdutosPage() {
   const [isVariacaoDialogOpen, setIsVariacaoDialogOpen] = useState(false);
   const [editingBrigadeiro, setEditingBrigadeiro] = useState<Brigadeiro | null>(null);
   const [selectedBoloForVariation, setSelectedBoloForVariation] = useState<ProdutoCatalogo | null>(null);
+  const [editingBoloVariation, setEditingBoloVariation] = useState<ProdutoCatalogoVariacao | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingBolo, setSavingBolo] = useState(false);
   const [savingVariacao, setSavingVariacao] = useState(false);
@@ -227,6 +230,7 @@ export function ProdutosPage() {
 
   const handleOpenVariacaoDialog = (bolo: ProdutoCatalogo) => {
     setSelectedBoloForVariation(bolo);
+    setEditingBoloVariation(null);
     setVariacaoFormData({
       variacao: '',
       tamanho: '',
@@ -236,6 +240,29 @@ export function ProdutosPage() {
       validade_dias: bolo.validade_dias?.toString() ?? '',
       prazo_minimo_dias: bolo.prazo_minimo_dias?.toString() ?? '',
       modelo_producao: bolo.modelo_producao,
+    });
+    setVariacaoFormErrors({});
+    setIsVariacaoDialogOpen(true);
+  };
+
+  const handleOpenEditVariacaoDialog = (bolo: ProdutoCatalogo, variacao: ProdutoCatalogoVariacao) => {
+    const modeloProducao = variacao.disponivel_sob_encomenda && variacao.disponivel_pronta_entrega
+      ? 'ambos'
+      : variacao.disponivel_pronta_entrega
+        ? 'pronta_entrega'
+        : 'sob_encomenda';
+
+    setSelectedBoloForVariation(bolo);
+    setEditingBoloVariation(variacao);
+    setVariacaoFormData({
+      variacao: variacao.nome,
+      tamanho: variacao.tamanho ?? '',
+      cobertura: variacao.cobertura ?? '',
+      preco_venda: variacao.preco_venda.toString(),
+      custo_calculado: variacao.custo_calculado.toString(),
+      validade_dias: variacao.validade_dias?.toString() ?? '',
+      prazo_minimo_dias: variacao.prazo_minimo_dias?.toString() ?? '',
+      modelo_producao: modeloProducao,
     });
     setVariacaoFormErrors({});
     setIsVariacaoDialogOpen(true);
@@ -298,8 +325,7 @@ export function ProdutosPage() {
 
     setSavingVariacao(true);
     try {
-      const created = await addVariacaoProduto({
-        produto_id: selectedBoloForVariation.id,
+      const payload = {
         variacao_nome: variacaoFormData.variacao.trim(),
         variacao_tamanho: variacaoFormData.tamanho.trim() || null,
         variacao_cobertura: variacaoFormData.cobertura.trim() || null,
@@ -309,11 +335,19 @@ export function ProdutosPage() {
         variacao_pronta_entrega: variacaoFormData.modelo_producao !== 'sob_encomenda',
         validade_dias: Number.isFinite(validadeDias) ? validadeDias : null,
         prazo_minimo_dias: Number.isFinite(prazoMinimoDias) ? prazoMinimoDias : null,
-      });
+      };
 
-      if (created) {
+      const saved = editingBoloVariation
+        ? await updateVariacaoProduto(editingBoloVariation.id, payload)
+        : await addVariacaoProduto({
+            produto_id: selectedBoloForVariation.id,
+            ...payload,
+          });
+
+      if (saved) {
         setIsVariacaoDialogOpen(false);
         setSelectedBoloForVariation(null);
+        setEditingBoloVariation(null);
       }
     } finally {
       setSavingVariacao(false);
@@ -599,12 +633,16 @@ export function ProdutosPage() {
 
       <Dialog open={isVariacaoDialogOpen} onOpenChange={(isOpen) => {
         setIsVariacaoDialogOpen(isOpen);
-        if (!isOpen) setSelectedBoloForVariation(null);
+        if (!isOpen) {
+          setSelectedBoloForVariation(null);
+          setEditingBoloVariation(null);
+        }
       }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display">
-              Nova variação{selectedBoloForVariation ? ` — ${selectedBoloForVariation.nome}` : ''}
+              {editingBoloVariation ? 'Editar variação' : 'Nova variação'}
+              {selectedBoloForVariation ? ` — ${selectedBoloForVariation.nome}` : ''}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -722,7 +760,7 @@ export function ProdutosPage() {
 
             <Button onClick={handleSaveVariacaoBolo} className="w-full" disabled={savingVariacao}>
               {savingVariacao ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Adicionar variação
+              {editingBoloVariation ? 'Salvar variação' : 'Adicionar variação'}
             </Button>
           </div>
         </DialogContent>
@@ -1052,7 +1090,46 @@ export function ProdutosPage() {
                                     {variacao.cobertura ? <span>• {variacao.cobertura}</span> : null}
                                   </div>
                                 </div>
-                                <p className="shrink-0 text-sm font-semibold text-success">{formatCurrencyBRL(variacao.preco_venda)}</p>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <p className="mr-1 text-sm font-semibold text-success">{formatCurrencyBRL(variacao.preco_venda)}</p>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => handleOpenEditVariacaoDialog(bolo, variacao)}
+                                    aria-label={`Editar variação ${variacao.nome}`}
+                                  >
+                                    <Pencil size={14} />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <button
+                                        className="rounded-md p-1.5 transition-colors hover:bg-destructive/10"
+                                        aria-label={`Inativar variação ${variacao.nome}`}
+                                      >
+                                        <Trash2 size={14} className="text-destructive" />
+                                      </button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Inativar variação?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          {variacao.nome} sairá das opções de venda, mas pedidos antigos continuarão preservados.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deleteVariacaoProduto(variacao.id)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Inativar
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </div>
                             </div>
                           ))}
