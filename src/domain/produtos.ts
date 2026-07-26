@@ -36,8 +36,55 @@ export const PRODUTO_CATEGORIA_LABELS: Record<ProdutoCategoria, string> = {
   bolo: 'Bolo',
 };
 
+export interface ProdutoVariacaoCatalogoInput {
+  ativo?: boolean | null;
+}
+
+export interface ProdutoCatalogoInput {
+  categoria_codigo: string;
+  ativo?: boolean | null;
+  variacoes?: ProdutoVariacaoCatalogoInput[] | null;
+}
+
 export function isProdutoBrigadeiro(produto: ProdutoCategoriaInput) {
   return (produto.categoria ?? 'brigadeiro') === 'brigadeiro';
+}
+
+export function isProdutoCategoria(categoria: string | null | undefined): categoria is ProdutoCategoria {
+  return PRODUTO_CATEGORIAS.includes(categoria as ProdutoCategoria);
+}
+
+export function getProdutoCategoriaLabel(categoria: string | null | undefined) {
+  return isProdutoCategoria(categoria) ? PRODUTO_CATEGORIA_LABELS[categoria] : 'Produto';
+}
+
+export function filterProdutoCatalogoByCategoria<T extends ProdutoCatalogoInput>(
+  produtos: T[],
+  categoria: ProdutoCategoria | 'todos',
+) {
+  if (categoria === 'todos') return produtos;
+  return produtos.filter((produto) => produto.categoria_codigo === categoria);
+}
+
+export function getProdutoCatalogoVariacoesAtivas<T extends ProdutoVariacaoCatalogoInput>(
+  variacoes: T[] | null | undefined,
+) {
+  return (variacoes ?? []).filter((variacao) => variacao.ativo !== false);
+}
+
+export function summarizeProdutoCatalogo(produtos: ProdutoCatalogoInput[]) {
+  const produtosAtivos = produtos.filter((produto) => produto.ativo !== false);
+  const totalVariacoesAtivas = produtosAtivos.reduce(
+    (total, produto) => total + getProdutoCatalogoVariacoesAtivas(produto.variacoes).length,
+    0,
+  );
+
+  return {
+    totalProdutos: produtosAtivos.length,
+    totalBrigadeiros: produtosAtivos.filter((produto) => produto.categoria_codigo === 'brigadeiro').length,
+    totalBolos: produtosAtivos.filter((produto) => produto.categoria_codigo === 'bolo').length,
+    totalVariacoesAtivas,
+  };
 }
 
 export function getProdutoNomeComercial(produto: ProdutoCategoriaInput) {
