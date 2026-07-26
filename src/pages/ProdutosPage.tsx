@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, Search, Loader2, Package, Scale, TrendingUp, AlertTriangle, CakeSlice } from 'lucide-react';
 import { useBrigadeiros, Brigadeiro } from '@/hooks/useBrigadeiros';
-import { useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
+import { type ProdutoCatalogo, useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -53,6 +53,7 @@ export function ProdutosPage() {
     resumo: catalogoResumo,
     loading: loadingCatalogo,
     addProdutoComVariacao,
+    addVariacaoProduto,
     deleteProduto,
   } = useProdutosCatalogo();
   const [search, setSearch] = useState('');
@@ -60,9 +61,12 @@ export function ProdutosPage() {
   const [categoriaView, setCategoriaView] = useState<ProdutoCategoria>('brigadeiro');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isBoloDialogOpen, setIsBoloDialogOpen] = useState(false);
+  const [isVariacaoDialogOpen, setIsVariacaoDialogOpen] = useState(false);
   const [editingBrigadeiro, setEditingBrigadeiro] = useState<Brigadeiro | null>(null);
+  const [selectedBoloForVariation, setSelectedBoloForVariation] = useState<ProdutoCatalogo | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingBolo, setSavingBolo] = useState(false);
+  const [savingVariacao, setSavingVariacao] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     tamanho_g: '30',
@@ -73,6 +77,16 @@ export function ProdutosPage() {
   });
   const [boloFormData, setBoloFormData] = useState({
     nome: '',
+    variacao: '',
+    tamanho: '',
+    cobertura: '',
+    preco_venda: '',
+    custo_calculado: '',
+    validade_dias: '',
+    prazo_minimo_dias: '',
+    modelo_producao: 'sob_encomenda',
+  });
+  const [variacaoFormData, setVariacaoFormData] = useState({
     variacao: '',
     tamanho: '',
     cobertura: '',
@@ -135,6 +149,7 @@ export function ProdutosPage() {
 
   const [formErrors, setFormErrors] = useState<ProdutoFormErrors>({});
   const [boloFormErrors, setBoloFormErrors] = useState<BoloFormErrors>({});
+  const [variacaoFormErrors, setVariacaoFormErrors] = useState<BoloFormErrors>({});
   const precoVendaNumber = parseDecimalInput(formData.preco_venda);
   const custoUnitarioNumber = parseDecimalInput(formData.custo_unitario);
   const canShowMargin =
@@ -210,6 +225,22 @@ export function ProdutosPage() {
     setIsBoloDialogOpen(true);
   };
 
+  const handleOpenVariacaoDialog = (bolo: ProdutoCatalogo) => {
+    setSelectedBoloForVariation(bolo);
+    setVariacaoFormData({
+      variacao: '',
+      tamanho: '',
+      cobertura: '',
+      preco_venda: '',
+      custo_calculado: '',
+      validade_dias: bolo.validade_dias?.toString() ?? '',
+      prazo_minimo_dias: bolo.prazo_minimo_dias?.toString() ?? '',
+      modelo_producao: bolo.modelo_producao,
+    });
+    setVariacaoFormErrors({});
+    setIsVariacaoDialogOpen(true);
+  };
+
   const handleSaveBolo = async () => {
     const errors: BoloFormErrors = {};
     const precoVenda = parseDecimalInput(boloFormData.preco_venda);
@@ -246,6 +277,46 @@ export function ProdutosPage() {
       if (created) setIsBoloDialogOpen(false);
     } finally {
       setSavingBolo(false);
+    }
+  };
+
+  const handleSaveVariacaoBolo = async () => {
+    if (!selectedBoloForVariation) return;
+
+    const errors: BoloFormErrors = {};
+    const precoVenda = parseDecimalInput(variacaoFormData.preco_venda);
+    const custoCalculado = parseDecimalInput(variacaoFormData.custo_calculado);
+    const validadeDias = variacaoFormData.validade_dias.trim() ? Number(variacaoFormData.validade_dias) : null;
+    const prazoMinimoDias = variacaoFormData.prazo_minimo_dias.trim() ? Number(variacaoFormData.prazo_minimo_dias) : null;
+
+    if (!variacaoFormData.variacao.trim()) errors.variacao = 'Informe a variação';
+    if (!Number.isFinite(precoVenda) || precoVenda <= 0) errors.preco_venda = 'Preço de venda deve ser maior que zero';
+    if (!Number.isFinite(custoCalculado) || custoCalculado < 0) errors.custo_calculado = 'Custo não pode ser negativo';
+
+    setVariacaoFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSavingVariacao(true);
+    try {
+      const created = await addVariacaoProduto({
+        produto_id: selectedBoloForVariation.id,
+        variacao_nome: variacaoFormData.variacao.trim(),
+        variacao_tamanho: variacaoFormData.tamanho.trim() || null,
+        variacao_cobertura: variacaoFormData.cobertura.trim() || null,
+        variacao_preco_venda: precoVenda,
+        variacao_custo_calculado: custoCalculado,
+        variacao_sob_encomenda: variacaoFormData.modelo_producao !== 'pronta_entrega',
+        variacao_pronta_entrega: variacaoFormData.modelo_producao !== 'sob_encomenda',
+        validade_dias: Number.isFinite(validadeDias) ? validadeDias : null,
+        prazo_minimo_dias: Number.isFinite(prazoMinimoDias) ? prazoMinimoDias : null,
+      });
+
+      if (created) {
+        setIsVariacaoDialogOpen(false);
+        setSelectedBoloForVariation(null);
+      }
+    } finally {
+      setSavingVariacao(false);
     }
   };
 
@@ -526,6 +597,137 @@ export function ProdutosPage() {
         )}
       </div>
 
+      <Dialog open={isVariacaoDialogOpen} onOpenChange={(isOpen) => {
+        setIsVariacaoDialogOpen(isOpen);
+        if (!isOpen) setSelectedBoloForVariation(null);
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Nova variação{selectedBoloForVariation ? ` — ${selectedBoloForVariation.nome}` : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bolo-variacao-extra">Variação</Label>
+              <Input
+                id="bolo-variacao-extra"
+                value={variacaoFormData.variacao}
+                onChange={(e) => {
+                  setVariacaoFormData({ ...variacaoFormData, variacao: e.target.value });
+                  if (variacaoFormErrors.variacao) setVariacaoFormErrors({ ...variacaoFormErrors, variacao: '' });
+                }}
+                placeholder="Ex: Pequeno com cobertura"
+                aria-invalid={!!variacaoFormErrors.variacao}
+                aria-describedby={variacaoFormErrors.variacao ? 'bolo-variacao-extra-error' : undefined}
+              />
+              {variacaoFormErrors.variacao && <p id="bolo-variacao-extra-error" className="text-xs text-destructive">{variacaoFormErrors.variacao}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bolo-tamanho-extra">Tamanho</Label>
+                <Input
+                  id="bolo-tamanho-extra"
+                  value={variacaoFormData.tamanho}
+                  onChange={(e) => setVariacaoFormData({ ...variacaoFormData, tamanho: e.target.value })}
+                  placeholder="Ex: Pequeno"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bolo-cobertura-extra">Cobertura</Label>
+                <Input
+                  id="bolo-cobertura-extra"
+                  value={variacaoFormData.cobertura}
+                  onChange={(e) => setVariacaoFormData({ ...variacaoFormData, cobertura: e.target.value })}
+                  placeholder="Ex: Chocolate"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bolo-modelo-producao-extra">Produção</Label>
+                <select
+                  id="bolo-modelo-producao-extra"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={variacaoFormData.modelo_producao}
+                  onChange={(e) => setVariacaoFormData({ ...variacaoFormData, modelo_producao: e.target.value })}
+                >
+                  <option value="sob_encomenda">Sob encomenda</option>
+                  <option value="pronta_entrega">Pronta entrega</option>
+                  <option value="ambos">Ambos</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bolo-preco-venda-extra">Preço de venda (R$)</Label>
+                <Input
+                  id="bolo-preco-venda-extra"
+                  type="text"
+                  inputMode="decimal"
+                  value={variacaoFormData.preco_venda}
+                  onChange={(e) => {
+                    setVariacaoFormData({ ...variacaoFormData, preco_venda: e.target.value });
+                    if (variacaoFormErrors.preco_venda) setVariacaoFormErrors({ ...variacaoFormErrors, preco_venda: '' });
+                  }}
+                  placeholder="Ex: 35,00"
+                  aria-invalid={!!variacaoFormErrors.preco_venda}
+                  aria-describedby={variacaoFormErrors.preco_venda ? 'bolo-preco-extra-error' : undefined}
+                />
+                {variacaoFormErrors.preco_venda && <p id="bolo-preco-extra-error" className="text-xs text-destructive">{variacaoFormErrors.preco_venda}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bolo-custo-extra">Custo estimado (R$)</Label>
+                <Input
+                  id="bolo-custo-extra"
+                  type="text"
+                  inputMode="decimal"
+                  value={variacaoFormData.custo_calculado}
+                  onChange={(e) => {
+                    setVariacaoFormData({ ...variacaoFormData, custo_calculado: e.target.value });
+                    if (variacaoFormErrors.custo_calculado) setVariacaoFormErrors({ ...variacaoFormErrors, custo_calculado: '' });
+                  }}
+                  placeholder="Ex: 14,50"
+                  aria-invalid={!!variacaoFormErrors.custo_calculado}
+                  aria-describedby={variacaoFormErrors.custo_calculado ? 'bolo-custo-extra-error' : undefined}
+                />
+                {variacaoFormErrors.custo_calculado && <p id="bolo-custo-extra-error" className="text-xs text-destructive">{variacaoFormErrors.custo_calculado}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bolo-validade-extra">Validade (dias)</Label>
+                <Input
+                  id="bolo-validade-extra"
+                  type="number"
+                  min="0"
+                  value={variacaoFormData.validade_dias}
+                  onChange={(e) => setVariacaoFormData({ ...variacaoFormData, validade_dias: e.target.value })}
+                  placeholder="Opcional"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bolo-prazo-extra">Prazo mínimo (dias)</Label>
+                <Input
+                  id="bolo-prazo-extra"
+                  type="number"
+                  min="0"
+                  value={variacaoFormData.prazo_minimo_dias}
+                  onChange={(e) => setVariacaoFormData({ ...variacaoFormData, prazo_minimo_dias: e.target.value })}
+                  placeholder="Opcional"
+                />
+              </div>
+            </div>
+
+            <Button onClick={handleSaveVariacaoBolo} className="w-full" disabled={savingVariacao}>
+              {savingVariacao ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Adicionar variação
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Tabs value={categoriaView} onValueChange={(value) => setCategoriaView(value as ProdutoCategoria)}>
         <TabsList className="grid h-auto w-full max-w-md grid-cols-2 rounded-lg border border-border bg-muted/40 p-1">
           <TabsTrigger value="brigadeiro" className="rounded-md">Brigadeiros</TabsTrigger>
@@ -755,7 +957,7 @@ export function ProdutosPage() {
                 <div>
                   <p className="text-sm font-semibold uppercase text-muted-foreground">Estrutura</p>
                   <p className="mt-2 font-display text-3xl font-semibold text-foreground">Pronta</p>
-                  <p className="text-sm text-muted-foreground">Cadastro será ativado no próximo bloco</p>
+                  <p className="text-sm text-muted-foreground">Produtos e variações em uso</p>
                 </div>
                 <div className="rounded-xl bg-success/10 p-3 text-success">
                   <TrendingUp size={22} aria-hidden="true" />
@@ -792,42 +994,73 @@ export function ProdutosPage() {
                         <h3 className="mt-3 line-clamp-2 min-h-[3rem] font-display text-lg font-semibold leading-tight">
                           {bolo.nome}
                         </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {bolo.variacoes.length} variação{bolo.variacoes.length === 1 ? '' : 'ões'}
+                        </p>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            className="rounded-md p-1.5 transition-colors hover:bg-destructive/10"
-                            aria-label={`Inativar ${bolo.nome}`}
-                          >
-                            <Trash2 size={16} className="text-destructive" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Inativar bolo?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {bolo.nome} sairá dos cadastros operacionais, mas registros antigos continuarão preservados.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteProduto(bolo.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleOpenVariacaoDialog(bolo)}
+                          aria-label={`Adicionar variação para ${bolo.nome}`}
+                        >
+                          <Plus size={16} />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              className="rounded-md p-1.5 transition-colors hover:bg-destructive/10"
+                              aria-label={`Inativar ${bolo.nome}`}
                             >
-                              Inativar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 size={16} className="text-destructive" />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Inativar bolo?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {bolo.nome} sairá dos cadastros operacionais, mas registros antigos continuarão preservados.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteProduto(bolo.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Inativar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
 
                     {variacaoPrincipal ? (
                       <>
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                          <span>{variacaoPrincipal.nome}</span>
-                          {variacaoPrincipal.tamanho ? <span>• {variacaoPrincipal.tamanho}</span> : null}
-                          {variacaoPrincipal.cobertura ? <span>• {variacaoPrincipal.cobertura}</span> : null}
+                        <div className="mt-3 space-y-2">
+                          {bolo.variacoes.slice(0, 3).map((variacao) => (
+                            <div key={variacao.id} className="rounded-md border border-border bg-muted/30 px-3 py-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium">{variacao.nome}</p>
+                                  <div className="mt-0.5 flex flex-wrap gap-1 text-xs text-muted-foreground">
+                                    {variacao.tamanho ? <span>{variacao.tamanho}</span> : null}
+                                    {variacao.cobertura ? <span>• {variacao.cobertura}</span> : null}
+                                  </div>
+                                </div>
+                                <p className="shrink-0 text-sm font-semibold text-success">{formatCurrencyBRL(variacao.preco_venda)}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {bolo.variacoes.length > 3 && (
+                            <p className="text-xs text-muted-foreground">
+                              + {bolo.variacoes.length - 3} variação{bolo.variacoes.length - 3 === 1 ? '' : 'ões'}
+                            </p>
+                          )}
                         </div>
                         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3">
                           <div>
