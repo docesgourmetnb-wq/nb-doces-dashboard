@@ -72,7 +72,7 @@ export function usePaginatedPedidos() {
 
       let dataQuery = supabase
         .from('pedidos')
-        .select('*, clientes(nome), itens_pedido(*, brigadeiros(categoria, tamanho_g))')
+        .select('*, clientes(nome), itens_pedido(*, brigadeiros(categoria, tamanho_g), produtos(categoria_codigo, nome), produto_variacoes(nome, tamanho, cobertura))')
         .order('data_entrega', { ascending: false })
         .range(from, to);
 

@@ -378,6 +378,8 @@ export type Database = {
           id: string
           pedido_id: string
           preco_unitario: number
+          produto_id: string | null
+          produto_variacao_id: string | null
           quantidade: number
         }
         Insert: {
@@ -386,6 +388,8 @@ export type Database = {
           id?: string
           pedido_id: string
           preco_unitario?: number
+          produto_id?: string | null
+          produto_variacao_id?: string | null
           quantidade?: number
         }
         Update: {
@@ -394,6 +398,8 @@ export type Database = {
           id?: string
           pedido_id?: string
           preco_unitario?: number
+          produto_id?: string | null
+          produto_variacao_id?: string | null
           quantidade?: number
         }
         Relationships: [
@@ -409,6 +415,20 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_pedido_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_pedido_produto_variacao_id_fkey"
+            columns: ["produto_variacao_id"]
+            isOneToOne: false
+            referencedRelation: "produto_variacoes"
             referencedColumns: ["id"]
           },
         ]

@@ -495,12 +495,14 @@ export function VendasPage() {
                                     <div className="space-y-2">
                                       {pedido.itens.map((item, index) => {
                                         const produtoInfo = {
-                                          nome: item.brigadeiro_nome,
-                                          categoria: item.brigadeiro_categoria ?? null,
+                                          nome: item.produto_nome ?? item.brigadeiro_nome,
+                                          categoria: item.produto_categoria ?? item.brigadeiro_categoria ?? null,
                                           tamanho_g: item.brigadeiro_tamanho_g ?? null,
                                         };
                                         const produtoBase = getProdutoNomeComercial(produtoInfo);
-                                        const produtoTamanho = getProdutoTamanhoComercial(produtoInfo);
+                                        const produtoTamanho = item.produto_categoria === 'bolo'
+                                          ? item.produto_variacao_nome
+                                          : getProdutoTamanhoComercial(produtoInfo);
                                         const precoUnitario = formatCurrencyBRL(item.preco_unitario);
                                         const subtotal = formatCurrencyBRL(item.quantidade * item.preco_unitario);
 

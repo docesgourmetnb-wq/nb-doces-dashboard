@@ -18,6 +18,13 @@ export interface ItemPedido {
   brigadeiro_nome: string;
   brigadeiro_categoria?: 'brigadeiro' | 'bolo' | null;
   brigadeiro_tamanho_g?: number | null;
+  produto_id?: string | null;
+  produto_variacao_id?: string | null;
+  produto_categoria?: 'brigadeiro' | 'bolo' | null;
+  produto_nome?: string | null;
+  produto_variacao_nome?: string | null;
+  produto_variacao_tamanho?: string | null;
+  produto_variacao_cobertura?: string | null;
   quantidade: number;
   preco_unitario: number;
 }
@@ -52,8 +59,12 @@ type PedidoRow = Tables<'pedidos'>;
 type PedidoUpdate = TablesUpdate<'pedidos'>;
 type ClienteRow = Pick<Tables<'clientes'>, 'nome'>;
 type ItemPedidoRow = Tables<'itens_pedido'>;
+type ItemPedidoCategoria = Exclude<ItemPedido['brigadeiro_categoria'], undefined>;
+type ItemPedidoProdutoCategoria = Exclude<ItemPedido['produto_categoria'], undefined>;
 type ItemPedidoWithProduto = ItemPedidoRow & {
   brigadeiros?: Pick<Tables<'brigadeiros'>, 'categoria' | 'tamanho_g'> | null;
+  produtos?: Pick<Tables<'produtos'>, 'categoria_codigo' | 'nome'> | null;
+  produto_variacoes?: Pick<Tables<'produto_variacoes'>, 'nome' | 'tamanho' | 'cobertura'> | null;
 };
 type PedidoWithRelations = PedidoRow & {
   clientes?: ClienteRow | null;
@@ -102,6 +113,8 @@ interface CreatePedidoWithItemsRpc {
       p_itens: Array<{
         brigadeiro_id?: string | null;
         brigadeiro_nome: string;
+        produto_id?: string | null;
+        produto_variacao_id?: string | null;
         quantidade: number;
         preco_unitario: number;
       }>;
@@ -123,6 +136,32 @@ function getErrorMessage(error: unknown) {
 
 export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
   const p = pedido as unknown as Record<string, unknown>;
+  const itens = (pedido.itens_pedido || []).map((item): ItemPedido => {
+    const categoria = (
+      item.produtos?.categoria_codigo ??
+      item.brigadeiros?.categoria ??
+      null
+    ) as ItemPedidoCategoria;
+    const produtoCategoria = (item.produtos?.categoria_codigo ?? null) as ItemPedidoProdutoCategoria;
+
+    return {
+      id: item.id,
+      brigadeiro_id: item.brigadeiro_id,
+      brigadeiro_nome: item.brigadeiro_nome,
+      brigadeiro_categoria: categoria,
+      brigadeiro_tamanho_g: item.brigadeiros?.tamanho_g ?? null,
+      produto_id: item.produto_id ?? null,
+      produto_variacao_id: item.produto_variacao_id ?? null,
+      produto_categoria: produtoCategoria,
+      produto_nome: item.produtos?.nome ?? null,
+      produto_variacao_nome: item.produto_variacoes?.nome ?? null,
+      produto_variacao_tamanho: item.produto_variacoes?.tamanho ?? null,
+      produto_variacao_cobertura: item.produto_variacoes?.cobertura ?? null,
+      quantidade: item.quantidade,
+      preco_unitario: item.preco_unitario,
+    };
+  });
+
   return {
     id: pedido.id,
     cliente: pedido.cliente,
@@ -142,15 +181,7 @@ export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
     status_operacional: ((p['status_operacional'] as string) || pedido.status) as Pedido['status'],
     status_financeiro: ((p['status_financeiro'] as PedidoFinanceiroStatus) ?? 'nao_pago') as PedidoFinanceiroStatus,
     observacoes: pedido.observacoes,
-    itens: (pedido.itens_pedido || []).map((item) => ({
-      id: item.id,
-      brigadeiro_id: item.brigadeiro_id,
-      brigadeiro_nome: item.brigadeiro_nome,
-      brigadeiro_categoria: (item.brigadeiros?.categoria as ItemPedido['brigadeiro_categoria']) ?? null,
-      brigadeiro_tamanho_g: item.brigadeiros?.tamanho_g ?? null,
-      quantidade: item.quantidade,
-      preco_unitario: item.preco_unitario,
-    })),
+    itens,
     archived_at: pedido.archived_at,
     archived_reason: pedido.archived_reason,
   };
@@ -178,7 +209,7 @@ export function usePedidos() {
     try {
       let query = supabase
         .from('pedidos')
-        .select('*, clientes(nome), itens_pedido(*, brigadeiros(categoria, tamanho_g))')
+        .select('*, clientes(nome), itens_pedido(*, brigadeiros(categoria, tamanho_g), produtos(categoria_codigo, nome), produto_variacoes(nome, tamanho, cobertura))')
         .order('data', { ascending: true });
 
       if (!showArchived) {
@@ -288,6 +319,8 @@ export function usePedidos() {
         p_itens: itens.map(item => ({
             brigadeiro_id: item.brigadeiro_id ?? null,
             brigadeiro_nome: item.brigadeiro_nome,
+            produto_id: item.produto_id ?? null,
+            produto_variacao_id: item.produto_variacao_id ?? null,
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
           })),
