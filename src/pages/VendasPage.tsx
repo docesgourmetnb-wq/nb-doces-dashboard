@@ -445,7 +445,10 @@ export function VendasPage() {
                                 <Eye size={18} className="text-muted-foreground" />
                               </button>
                             </DialogTrigger>
-                            <DialogContent className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-y-auto">
+                            <DialogContent
+                              className="!top-4 max-h-[calc(100vh-2rem)] max-w-3xl !translate-y-0 overflow-y-auto"
+                              onOpenAutoFocus={(event) => event.preventDefault()}
+                            >
                               <DialogHeader>
                                 <DialogTitle className="font-display">
                                   Pedido - {getClienteDisplayName(pedido)}
