@@ -420,16 +420,16 @@ export function ProdutosPage() {
                       <AlertDialogTrigger asChild>
                         <button
                           className="rounded-md p-1.5 transition-colors hover:bg-destructive/10"
-                          aria-label={`Excluir ${brigadeiro.nome}`}
+                          aria-label={`Inativar ${brigadeiro.nome}`}
                         >
                           <Trash2 size={16} className="text-destructive" />
                         </button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+                          <AlertDialogTitle>Inativar produto?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tem certeza que deseja remover {brigadeiro.nome}? Esta ação não pode ser desfeita.
+                            {brigadeiro.nome} sairá dos cadastros operacionais, mas pedidos e registros antigos continuarão preservados.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -438,7 +438,7 @@ export function ProdutosPage() {
                             onClick={() => deleteBrigadeiro(brigadeiro.id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
-                            Remover
+                            Inativar
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

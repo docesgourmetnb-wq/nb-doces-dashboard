@@ -9,6 +9,7 @@ export interface Insumo {
   id: string;
   nome: string;
   unidade: string;
+  ativo: boolean;
   quantidade_atual: number;
   quantidade_minima: number;
   consumo_medio: number;
@@ -57,6 +58,7 @@ export function useInsumos() {
         .from('insumos')
         .select('*')
         .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
+        .eq('ativo', true)
         .order('nome');
 
       if (error) throw error;
@@ -87,6 +89,7 @@ export function useInsumos() {
       });
       const insertData: InsumoInsert = {
         ...cadastroData,
+        ativo: true,
         user_id: user.id,
       };
 
@@ -176,15 +179,15 @@ export function useInsumos() {
     try {
       const { error } = await supabase
         .from('insumos')
-        .delete()
+        .update({ ativo: false })
         .eq('id', id);
 
       if (error) throw error;
       setInsumos(insumos.filter(i => i.id !== id));
-      toast({ title: 'Insumo removido!' });
+      toast({ title: 'Insumo inativado!' });
     } catch (error: unknown) {
       toast({
-        title: 'Erro ao remover insumo',
+        title: 'Erro ao inativar insumo',
         description: getErrorMessage(error),
         variant: 'destructive',
       });
