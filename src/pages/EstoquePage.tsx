@@ -1016,7 +1016,7 @@ function ProdutosTab() {
       <div className="flex justify-between items-center border-b border-border pb-4">
         <div>
            <h2 className="text-xl font-display font-semibold">Produtos Finais (Prontos)</h2>
-           <p className="text-muted-foreground text-sm">Controle de brigadeiros já enrolados e prontos para entrega</p>
+           <p className="text-muted-foreground text-sm">Controle de itens prontos para entrega. No momento, o cadastro usa os brigadeiros como base.</p>
         </div>
         <Dialog open={isRegisterOpen} onOpenChange={(open) => {
           setIsRegisterOpen(open);
@@ -1047,7 +1047,7 @@ function ProdutosTab() {
                 ))}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estoque-produto-base">Produto Base</Label>
+                <Label htmlFor="estoque-produto-base">Brigadeiro base</Label>
                 <select id="estoque-produto-base" className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" value={brigadeiroId} onChange={e => setBrigadeiroId(e.target.value)}>
                    <option value="">Selecione um produto...</option>
                    {availableBrigadeiros.map((brigadeiro) => {
@@ -1071,7 +1071,7 @@ function ProdutosTab() {
       </div>
 
       <div className="bg-card border border-border p-4 rounded-xl flex items-center justify-between mb-6 shadow-sm">
-         <span className="text-muted-foreground font-medium">Estoque Total de Brigadeiros</span>
+         <span className="text-muted-foreground font-medium">Total em produtos finais</span>
          <span className="text-2xl font-display font-bold">{totalUnidades} un</span>
       </div>
 
@@ -1110,7 +1110,7 @@ function ProdutosTab() {
              </div>
              <div className="grid grid-cols-2 gap-2 mt-auto">
                 <Button variant="outline" className="text-success border-success/30 hover:bg-success/10 bg-success/5" onClick={() => { setActionProduto(produto); setActionType('add'); }}>
-                   <ArrowUpCircle className="w-4 h-4 mr-2" /> Enrolado (+un)
+                   <ArrowUpCircle className="w-4 h-4 mr-2" /> Entrada (+un)
                 </Button>
                 <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => { setActionProduto(produto); setActionType('sub'); }}>
                    <ArrowDownCircle className="w-4 h-4 mr-2" /> Saída (-un)
@@ -1127,7 +1127,7 @@ function ProdutosTab() {
       {/* Action Dialog */}
       <Dialog open={!!actionProduto} onOpenChange={(open) => !open && setActionProduto(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{actionType === 'add' ? 'Registrar Produção Pronta' : 'Registrar Saída de Produto'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{actionType === 'add' ? 'Registrar Entrada de Produto' : 'Registrar Saída de Produto'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">Produto: <strong>{actionProduto?.brigadeiro?.nome}</strong></p>
             <div className="space-y-2">
