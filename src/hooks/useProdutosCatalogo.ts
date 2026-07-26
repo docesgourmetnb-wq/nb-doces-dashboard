@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { getProdutoCatalogoVariacoesAtivas, summarizeProdutoCatalogo } from '@/domain/produtos';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,8 @@ export interface ProdutoVariacaoInput {
   validade_dias: number | null;
   prazo_minimo_dias: number | null;
 }
+
+export type ProdutoVariacaoUpdateInput = Omit<ProdutoVariacaoInput, 'produto_id'>;
 
 interface CreateProductWithVariationRpc {
   (
@@ -256,6 +258,62 @@ export function useProdutosCatalogo() {
     }
   };
 
+  const updateVariacaoProduto = async (id: string, input: ProdutoVariacaoUpdateInput) => {
+    try {
+      const updates: TablesUpdate<'produto_variacoes'> = {
+        nome: input.variacao_nome,
+        tamanho: input.variacao_tamanho,
+        cobertura: input.variacao_cobertura,
+        preco_venda: input.variacao_preco_venda,
+        custo_calculado: input.variacao_custo_calculado,
+        disponivel_sob_encomenda: input.variacao_sob_encomenda,
+        disponivel_pronta_entrega: input.variacao_pronta_entrega,
+        validade_dias: input.validade_dias,
+        prazo_minimo_dias: input.prazo_minimo_dias,
+      };
+
+      const { error } = await supabase
+        .from('produto_variacoes')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchProdutosCatalogo();
+      toast({ title: 'Variação atualizada!' });
+      return true;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao atualizar variação',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const deleteVariacaoProduto = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('produto_variacoes')
+        .update({ ativo: false })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchProdutosCatalogo();
+      toast({ title: 'Variação inativada!' });
+      return true;
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao inativar variação',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   const resumo = useMemo(() => summarizeProdutoCatalogo(produtos), [produtos]);
   const variacoesAtivas = useMemo(
     () => produtos.flatMap((produto) => getProdutoCatalogoVariacoesAtivas(produto.variacoes)),
@@ -269,6 +327,8 @@ export function useProdutosCatalogo() {
     loading,
     addProdutoComVariacao,
     addVariacaoProduto,
+    updateVariacaoProduto,
+    deleteVariacaoProduto,
     deleteProduto,
     refetch: fetchProdutosCatalogo,
   };
