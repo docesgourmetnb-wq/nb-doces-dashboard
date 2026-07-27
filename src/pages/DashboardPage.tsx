@@ -257,7 +257,7 @@ export function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sabor</TableHead>
+                  <TableHead>Produto</TableHead>
                   <TableHead className="text-right">Qtd pedida</TableHead>
                   <TableHead className="text-right">Estoque</TableHead>
                   <TableHead className="text-right">A produzir</TableHead>
@@ -335,7 +335,7 @@ export function DashboardPage() {
 
         {/* Flavors Chart */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h2 className="font-display font-semibold text-lg mb-4">Sabores Mais Vendidos</h2>
+          <h2 className="font-display font-semibold text-lg mb-4">Produtos Mais Vendidos</h2>
           {saboresMaisVendidos.length > 0 ? (
             <div className="flex flex-col lg:flex-row gap-4">
               <p className="sr-only">Total vendido no período: {totalSaboresVendidos} unidades. {saboresMaisVendidosDescricao}</p>
