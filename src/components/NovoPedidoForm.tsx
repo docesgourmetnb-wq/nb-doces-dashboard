@@ -634,7 +634,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
                 <SelectContent>
                   {produtosDisponiveis.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground text-center">
-                      {categoriaProduto === 'bolo' ? 'Nenhum bolo cadastrado' : 'Nenhum produto nesse tamanho'}
+                      {categoriaProduto === 'bolo' ? 'Nenhuma variação de bolo disponível' : 'Nenhum produto nesse tamanho'}
                     </div>
                   ) : (
                     produtosDisponiveis.map((produto) => {
