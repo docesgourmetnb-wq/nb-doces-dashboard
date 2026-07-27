@@ -44,6 +44,25 @@ import { getProdutoNomeComercial, getProdutoTamanhoComercial } from '@/domain/pr
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+function getPedidoItemDetalhe(
+  item: NonNullable<Pedido['itens']>[number],
+  produtoInfo: { nome: string; categoria: string | null; tamanho_g: number | null },
+) {
+  if (item.produto_categoria === 'bolo') {
+    const detalhes = [
+      item.produto_variacao_nome,
+      item.produto_variacao_tamanho,
+      item.produto_variacao_cobertura,
+    ]
+      .map((value) => value?.trim())
+      .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+
+    return detalhes.join(' • ') || null;
+  }
+
+  return getProdutoTamanhoComercial(produtoInfo);
+}
+
 export function VendasPage() {
   const { updatePedidoStatus, updatePedidoPayment, archivePedido, unarchivePedido } = usePedidos();
   const {
@@ -504,9 +523,7 @@ export function VendasPage() {
                                           tamanho_g: item.brigadeiro_tamanho_g ?? null,
                                         };
                                         const produtoBase = getProdutoNomeComercial(produtoInfo);
-                                        const produtoTamanho = item.produto_categoria === 'bolo'
-                                          ? item.produto_variacao_nome
-                                          : getProdutoTamanhoComercial(produtoInfo);
+                                        const produtoTamanho = getPedidoItemDetalhe(item, produtoInfo);
                                         const precoUnitario = formatCurrencyBRL(item.preco_unitario);
                                         const subtotal = formatCurrencyBRL(item.quantidade * item.preco_unitario);
 
