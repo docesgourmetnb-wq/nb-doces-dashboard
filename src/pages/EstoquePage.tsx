@@ -65,10 +65,11 @@ type InsumoFormErrors = Partial<Record<
 >>;
 
 type InsumoEntryErrors = Partial<Record<
-  'quantidade_embalagens' | 'conteudo_por_embalagem' | 'valor_total' | 'data_compra',
+  'quantidade_embalagens' | 'conteudo_por_embalagem' | 'quantidade_total' | 'valor_total' | 'data_compra',
   string
 >>;
 
+type InsumoEntryMode = 'embalagens' | 'quantidade';
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
 type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
 
@@ -123,6 +124,7 @@ function InsumosTab() {
   const [entrySaving, setEntrySaving] = useState(false);
   const [formErrors, setFormErrors] = useState<InsumoFormErrors>({});
   const [entryErrors, setEntryErrors] = useState<InsumoEntryErrors>({});
+  const [entryMode, setEntryMode] = useState<InsumoEntryMode>('embalagens');
   const [formData, setFormData] = useState({
     nome: '',
     unidade: 'g',
@@ -131,6 +133,7 @@ function InsumosTab() {
   const [entryFormData, setEntryFormData] = useState({
     quantidade_embalagens: '',
     conteudo_por_embalagem: '',
+    quantidade_total: '',
     valor_total: '',
     data_compra: '',
     fornecedor_id: 'sem-fornecedor',
@@ -229,9 +232,11 @@ function InsumosTab() {
 
   const handleOpenEntryDialog = (insumo: Insumo) => {
     setEntryInsumo(insumo);
+    setEntryMode('embalagens');
     setEntryFormData({
       quantidade_embalagens: '',
       conteudo_por_embalagem: '',
+      quantidade_total: '',
       valor_total: '',
       data_compra: '',
       fornecedor_id: 'sem-fornecedor',
@@ -277,15 +282,47 @@ function InsumosTab() {
 
     const quantidadeEmbalagens = parseDecimalInput(entryFormData.quantidade_embalagens);
     const conteudoPorEmbalagem = parseDecimalInput(entryFormData.conteudo_por_embalagem);
+    const quantidadeTotal = parseDecimalInput(entryFormData.quantidade_total);
     const valorTotalEntrada = entryFormData.valor_total.trim() ? parseDecimalInput(entryFormData.valor_total) : 0;
     const errors: InsumoEntryErrors = {};
+    let quantidadeEntrada = 0;
+    let quantidadeEmbalagensRegistro: number | null = null;
+    let conteudoPorEmbalagemRegistro: number | null = null;
 
-    if (!Number.isFinite(quantidadeEmbalagens) || quantidadeEmbalagens <= 0) {
-      errors.quantidade_embalagens = 'Informe uma quantidade maior que zero';
+    if (entryMode === 'embalagens') {
+      if (!Number.isFinite(quantidadeEmbalagens) || quantidadeEmbalagens <= 0) {
+        errors.quantidade_embalagens = 'Informe uma quantidade maior que zero';
+      }
+      if (!Number.isFinite(conteudoPorEmbalagem) || conteudoPorEmbalagem <= 0) {
+        errors.conteudo_por_embalagem = 'Informe o conteúdo por embalagem';
+      }
+
+      if (Object.keys(errors).length === 0) {
+        quantidadeEntrada = calculateInsumoPurchaseQuantity(quantidadeEmbalagens, conteudoPorEmbalagem);
+        quantidadeEmbalagensRegistro = quantidadeEmbalagens;
+        conteudoPorEmbalagemRegistro = conteudoPorEmbalagem;
+      }
+    } else {
+      if (!Number.isFinite(quantidadeTotal) || quantidadeTotal <= 0) {
+        errors.quantidade_total = 'Informe uma quantidade maior que zero';
+      }
+
+      if (entryFormData.conteudo_por_embalagem.trim()) {
+        if (!Number.isFinite(conteudoPorEmbalagem) || conteudoPorEmbalagem <= 0) {
+          errors.conteudo_por_embalagem = 'Informe uma referência de embalagem válida';
+        } else {
+          conteudoPorEmbalagemRegistro = conteudoPorEmbalagem;
+        }
+      }
+
+      if (Object.keys(errors).length === 0) {
+        quantidadeEntrada = quantidadeTotal;
+        quantidadeEmbalagensRegistro = conteudoPorEmbalagemRegistro
+          ? calculateInsumoPackageEquivalent(quantidadeTotal, conteudoPorEmbalagemRegistro)
+          : null;
+      }
     }
-    if (!Number.isFinite(conteudoPorEmbalagem) || conteudoPorEmbalagem <= 0) {
-      errors.conteudo_por_embalagem = 'Informe o conteúdo por embalagem';
-    }
+
     if (!Number.isFinite(valorTotalEntrada) || valorTotalEntrada < 0) {
       errors.valor_total = 'Informe um valor total válido';
     }
@@ -294,15 +331,14 @@ function InsumosTab() {
 
     setEntrySaving(true);
     try {
-      const quantidadeEntrada = calculateInsumoPurchaseQuantity(quantidadeEmbalagens, conteudoPorEmbalagem);
       const updatedInsumo = await registerInsumoEntry(
         entryInsumo.id,
         quantidadeEntrada,
         valorTotalEntrada,
         entryFormData.data_compra || null,
         entryFormData.fornecedor_id === 'sem-fornecedor' ? null : entryFormData.fornecedor_id,
-        quantidadeEmbalagens,
-        conteudoPorEmbalagem,
+        quantidadeEmbalagensRegistro,
+        conteudoPorEmbalagemRegistro,
       );
       if (updatedInsumo) {
         await Promise.all([refetchPurchaseEntries(), refetchPackageReferenceEntries()]);
@@ -315,11 +351,22 @@ function InsumosTab() {
 
   const previewQuantidadeEmbalagens = parseDecimalInput(entryFormData.quantidade_embalagens);
   const previewConteudoPorEmbalagem = parseDecimalInput(entryFormData.conteudo_por_embalagem);
-  const previewQuantidadeTotal = Number.isFinite(previewQuantidadeEmbalagens)
-    && previewQuantidadeEmbalagens > 0
+  const previewQuantidadeAvulsa = parseDecimalInput(entryFormData.quantidade_total);
+  const previewQuantidadeTotal = entryMode === 'embalagens'
+    ? Number.isFinite(previewQuantidadeEmbalagens)
+      && previewQuantidadeEmbalagens > 0
+      && Number.isFinite(previewConteudoPorEmbalagem)
+      && previewConteudoPorEmbalagem > 0
+        ? calculateInsumoPurchaseQuantity(previewQuantidadeEmbalagens, previewConteudoPorEmbalagem)
+        : null
+    : Number.isFinite(previewQuantidadeAvulsa) && previewQuantidadeAvulsa > 0
+      ? previewQuantidadeAvulsa
+      : null;
+  const previewEmbalagemEquivalente = entryMode === 'quantidade'
+    && previewQuantidadeTotal !== null
     && Number.isFinite(previewConteudoPorEmbalagem)
     && previewConteudoPorEmbalagem > 0
-      ? calculateInsumoPurchaseQuantity(previewQuantidadeEmbalagens, previewConteudoPorEmbalagem)
+      ? calculateInsumoPackageEquivalent(previewQuantidadeTotal, previewConteudoPorEmbalagem)
       : null;
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
@@ -409,42 +456,108 @@ function InsumosTab() {
                 <span> • controle em {getInsumoUnidadeLabel(entryInsumo.unidade)}</span>
               )}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="insumo-entry-quantidade-embalagens">Quantidade de embalagens</Label>
-                <Input
-                  id="insumo-entry-quantidade-embalagens"
-                  type="text"
-                  inputMode="decimal"
-                  value={entryFormData.quantidade_embalagens}
-                  onChange={(e) => {
-                    setEntryFormData({ ...entryFormData, quantidade_embalagens: e.target.value });
-                    if (entryErrors.quantidade_embalagens) setEntryErrors({ ...entryErrors, quantidade_embalagens: '' });
-                  }}
-                  placeholder="Ex: 10"
-                  aria-invalid={!!entryErrors.quantidade_embalagens}
-                  aria-describedby={entryErrors.quantidade_embalagens ? 'insumo-entry-quantidade-embalagens-error' : undefined}
-                />
-                {entryErrors.quantidade_embalagens && <p id="insumo-entry-quantidade-embalagens-error" className="text-xs text-destructive">{entryErrors.quantidade_embalagens}</p>}
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+              <Button
+                type="button"
+                variant={entryMode === 'embalagens' ? 'default' : 'ghost'}
+                onClick={() => {
+                  setEntryMode('embalagens');
+                  setEntryErrors({});
+                }}
+              >
+                Por embalagem
+              </Button>
+              <Button
+                type="button"
+                variant={entryMode === 'quantidade' ? 'default' : 'ghost'}
+                onClick={() => {
+                  setEntryMode('quantidade');
+                  setEntryErrors({});
+                }}
+              >
+                Quantidade avulsa
+              </Button>
+            </div>
+
+            {entryMode === 'embalagens' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-entry-quantidade-embalagens">Quantidade de embalagens</Label>
+                  <Input
+                    id="insumo-entry-quantidade-embalagens"
+                    type="text"
+                    inputMode="decimal"
+                    value={entryFormData.quantidade_embalagens}
+                    onChange={(e) => {
+                      setEntryFormData({ ...entryFormData, quantidade_embalagens: e.target.value });
+                      if (entryErrors.quantidade_embalagens) setEntryErrors({ ...entryErrors, quantidade_embalagens: '' });
+                    }}
+                    placeholder="Ex: 10"
+                    aria-invalid={!!entryErrors.quantidade_embalagens}
+                    aria-describedby={entryErrors.quantidade_embalagens ? 'insumo-entry-quantidade-embalagens-error' : undefined}
+                  />
+                  {entryErrors.quantidade_embalagens && <p id="insumo-entry-quantidade-embalagens-error" className="text-xs text-destructive">{entryErrors.quantidade_embalagens}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-entry-conteudo">Conteúdo por embalagem ({entryInsumo?.unidade || 'unidade'})</Label>
+                  <Input
+                    id="insumo-entry-conteudo"
+                    type="text"
+                    inputMode="decimal"
+                    value={entryFormData.conteudo_por_embalagem}
+                    onChange={(e) => {
+                      setEntryFormData({ ...entryFormData, conteudo_por_embalagem: e.target.value });
+                      if (entryErrors.conteudo_por_embalagem) setEntryErrors({ ...entryErrors, conteudo_por_embalagem: '' });
+                    }}
+                    placeholder={getInsumoQuantidadePlaceholder(entryInsumo?.unidade || '')}
+                    aria-invalid={!!entryErrors.conteudo_por_embalagem}
+                    aria-describedby={entryErrors.conteudo_por_embalagem ? 'insumo-entry-conteudo-error' : undefined}
+                  />
+                  {entryErrors.conteudo_por_embalagem && <p id="insumo-entry-conteudo-error" className="text-xs text-destructive">{entryErrors.conteudo_por_embalagem}</p>}
+                </div>
               </div>
+            ) : (
               <div className="space-y-2">
-                <Label htmlFor="insumo-entry-conteudo">Conteúdo por embalagem ({entryInsumo?.unidade || 'unidade'})</Label>
+                <Label htmlFor="insumo-entry-quantidade-total">Quantidade disponível ({entryInsumo?.unidade || 'unidade'})</Label>
                 <Input
-                  id="insumo-entry-conteudo"
+                  id="insumo-entry-quantidade-total"
                   type="text"
                   inputMode="decimal"
-                  value={entryFormData.conteudo_por_embalagem}
+                  value={entryFormData.quantidade_total}
                   onChange={(e) => {
-                    setEntryFormData({ ...entryFormData, conteudo_por_embalagem: e.target.value });
-                    if (entryErrors.conteudo_por_embalagem) setEntryErrors({ ...entryErrors, conteudo_por_embalagem: '' });
+                    setEntryFormData({ ...entryFormData, quantidade_total: e.target.value });
+                    if (entryErrors.quantidade_total) setEntryErrors({ ...entryErrors, quantidade_total: '' });
                   }}
                   placeholder={getInsumoQuantidadePlaceholder(entryInsumo?.unidade || '')}
-                  aria-invalid={!!entryErrors.conteudo_por_embalagem}
-                  aria-describedby={entryErrors.conteudo_por_embalagem ? 'insumo-entry-conteudo-error' : undefined}
+                  aria-invalid={!!entryErrors.quantidade_total}
+                  aria-describedby={entryErrors.quantidade_total ? 'insumo-entry-quantidade-total-error' : undefined}
                 />
-                {entryErrors.conteudo_por_embalagem && <p id="insumo-entry-conteudo-error" className="text-xs text-destructive">{entryErrors.conteudo_por_embalagem}</p>}
+                {entryErrors.quantidade_total && <p id="insumo-entry-quantidade-total-error" className="text-xs text-destructive">{entryErrors.quantidade_total}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Use para potes abertos, sobras ou qualquer saldo que não represente embalagens fechadas.
+                </p>
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="insumo-entry-conteudo-avulso">Referência da embalagem ({entryInsumo?.unidade || 'unidade'})</Label>
+                  <Input
+                    id="insumo-entry-conteudo-avulso"
+                    type="text"
+                    inputMode="decimal"
+                    value={entryFormData.conteudo_por_embalagem}
+                    onChange={(e) => {
+                      setEntryFormData({ ...entryFormData, conteudo_por_embalagem: e.target.value });
+                      if (entryErrors.conteudo_por_embalagem) setEntryErrors({ ...entryErrors, conteudo_por_embalagem: '' });
+                    }}
+                    placeholder="Opcional. Ex: 1000"
+                    aria-invalid={!!entryErrors.conteudo_por_embalagem}
+                    aria-describedby={entryErrors.conteudo_por_embalagem ? 'insumo-entry-conteudo-avulso-error' : undefined}
+                  />
+                  {entryErrors.conteudo_por_embalagem && <p id="insumo-entry-conteudo-avulso-error" className="text-xs text-destructive">{entryErrors.conteudo_por_embalagem}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    Opcional. Serve apenas para mostrar a equivalência visual, como 0,5 embalagem de 1 kg.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
             <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               Total a adicionar:{' '}
               <strong className="text-foreground">
@@ -452,6 +565,12 @@ function InsumosTab() {
                   ? '-'
                   : `${formatInsumoQuantidade(previewQuantidadeTotal)} ${entryInsumo.unidade}`}
               </strong>
+              {previewEmbalagemEquivalente !== null && (
+                <span>
+                  {' '}• ≈ {formatInsumoQuantidadeCompacta(previewEmbalagemEquivalente)} embalagem
+                  {previewEmbalagemEquivalente === 1 ? '' : 's'} de {formatInsumoQuantidade(previewConteudoPorEmbalagem)} {entryInsumo?.unidade}
+                </span>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="insumo-entry-fornecedor">Fornecedor</Label>
