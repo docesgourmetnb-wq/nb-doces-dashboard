@@ -46,6 +46,34 @@ function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
 }
 
+function getModeloProducaoLabel(modelo: string | null) {
+  const labels: Record<string, string> = {
+    sob_encomenda: 'Sob encomenda',
+    pronta_entrega: 'Pronta entrega',
+    ambos: 'Sob encomenda e pronta entrega',
+  };
+
+  return labels[modelo ?? ''] ?? 'Modelo não definido';
+}
+
+function getVariacaoDisponibilidadeLabel(variacao: ProdutoCatalogoVariacao) {
+  if (variacao.disponivel_sob_encomenda && variacao.disponivel_pronta_entrega) {
+    return 'Sob encomenda e pronta entrega';
+  }
+
+  if (variacao.disponivel_pronta_entrega) {
+    return 'Pronta entrega';
+  }
+
+  return 'Sob encomenda';
+}
+
+function formatDiasOperacionais(label: string, dias: number | null) {
+  if (!dias || dias <= 0) return null;
+
+  return `${label}: ${dias} dia${dias === 1 ? '' : 's'}`;
+}
+
 export function ProdutosPage() {
   const { brigadeiros, loading, addBrigadeiro, updateBrigadeiro, deleteBrigadeiro } = useBrigadeiros();
   const {
@@ -1059,6 +1087,8 @@ export function ProdutosPage() {
                   const margem = variacaoPrincipal && variacaoPrincipal.preco_venda > 0
                     ? ((variacaoPrincipal.preco_venda - variacaoPrincipal.custo_calculado) / variacaoPrincipal.preco_venda) * 100
                     : 0;
+                  const prazoLabel = formatDiasOperacionais('Prazo', bolo.prazo_minimo_dias);
+                  const validadeLabel = formatDiasOperacionais('Validade', bolo.validade_dias);
 
                 return (
                   <div key={bolo.id} className="bg-card border border-border rounded-lg p-4 card-hover shadow-sm">
@@ -1072,6 +1102,9 @@ export function ProdutosPage() {
                         </h3>
                         <p className="text-xs text-muted-foreground">
                           {bolo.variacoes.length} variação{bolo.variacoes.length === 1 ? '' : 'ões'}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-muted-foreground">
+                          {getModeloProducaoLabel(bolo.modelo_producao)}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
@@ -1127,6 +1160,9 @@ export function ProdutosPage() {
                                     {variacao.tamanho ? <span>{variacao.tamanho}</span> : null}
                                     {variacao.cobertura ? <span>• {variacao.cobertura}</span> : null}
                                   </div>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {getVariacaoDisponibilidadeLabel(variacao)}
+                                  </p>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
                                   <p className="mr-1 text-sm font-semibold text-success">{formatCurrencyBRL(variacao.preco_venda)}</p>
@@ -1190,6 +1226,13 @@ export function ProdutosPage() {
                             <p className="text-xs text-muted-foreground">Margem</p>
                             <p className="text-sm font-medium text-accent">{margem.toFixed(1)}%</p>
                           </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {prazoLabel ? <span className="rounded-full bg-muted px-2 py-1">{prazoLabel}</span> : null}
+                          {validadeLabel ? <span className="rounded-full bg-muted px-2 py-1">{validadeLabel}</span> : null}
+                          {bolo.necessita_refrigeracao ? (
+                            <span className="rounded-full bg-muted px-2 py-1">Refrigerado</span>
+                          ) : null}
                         </div>
                       </>
                     ) : (
