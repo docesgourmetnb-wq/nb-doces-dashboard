@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2, User, Mail, Phone, Eye, ShoppingBag, Calendar } from 'lucide-react';
 import { useClientes, Cliente } from '@/hooks/useClientes';
-import { usePedidos } from '@/hooks/usePedidos';
+import { type ItemPedido, usePedidos } from '@/hooks/usePedidos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,34 @@ import {
   getPedidosVinculadosAoCliente,
 } from '@/domain/clientes';
 import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate } from '@/domain/financeiro';
+import { getProdutoNomeComercial, getProdutoTamanhoComercial } from '@/domain/produtos';
+
+function formatPedidoItemResumo(item: ItemPedido) {
+  const quantidade = `${item.quantidade}x`;
+
+  if (item.produto_categoria === 'bolo') {
+    const nome = item.produto_nome || item.brigadeiro_nome || 'Bolo';
+    const detalhes = [
+      item.produto_variacao_nome,
+      item.produto_variacao_tamanho,
+      item.produto_variacao_cobertura,
+    ]
+      .map((value) => value?.trim())
+      .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+
+    return `${quantidade} ${nome}${detalhes.length > 0 ? ` (${detalhes.join(' • ')})` : ''}`;
+  }
+
+  const produtoInfo = {
+    nome: item.produto_nome || item.brigadeiro_nome || 'Produto',
+    categoria: item.produto_categoria ?? item.brigadeiro_categoria ?? null,
+    tamanho_g: item.brigadeiro_tamanho_g ?? null,
+  };
+  const nome = getProdutoNomeComercial(produtoInfo);
+  const tamanho = getProdutoTamanhoComercial(produtoInfo);
+
+  return `${quantidade} ${nome}${tamanho ? ` ${tamanho}` : ''}`;
+}
 
 export function ClientesPage() {
   const { clientes, loading, addCliente, updateCliente, deleteCliente } = useClientes();
@@ -453,7 +481,7 @@ export function ClientesPage() {
                           </div>
                           {pedido.itens && pedido.itens.length > 0 && (
                             <div className="text-sm text-muted-foreground mb-2">
-                              {pedido.itens.map(item => `${item.quantidade}x ${item.brigadeiro_nome}`).join(', ')}
+                              {pedido.itens.map(formatPedidoItemResumo).join(', ')}
                             </div>
                           )}
                           <div className="flex justify-between items-center">
