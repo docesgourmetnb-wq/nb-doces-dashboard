@@ -9,10 +9,12 @@ export interface InsumoPurchaseEntry {
   insumo_id: string;
   fornecedor_id: string | null;
   quantidade: number;
+  quantidade_embalagens: number | null;
+  conteudo_por_embalagem: number | null;
   unidade: string;
   valor_total: number;
   preco_unitario: number;
-  data_compra: string;
+  data_compra: string | null;
   transacao_referencia: string | null;
   created_at: string;
 }
@@ -20,6 +22,7 @@ export interface InsumoPurchaseEntry {
 interface UseInsumoPurchaseEntriesFilters {
   insumoId?: string;
   fornecedorId?: string;
+  limit?: number;
 }
 
 function getErrorMessage(error: unknown) {
@@ -31,7 +34,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { fornecedorId = 'todos', insumoId = 'todos' } = filters;
+  const { fornecedorId = 'todos', insumoId = 'todos', limit = 25 } = filters;
 
   const fetchEntries = useCallback(async () => {
     if (!user) {
@@ -45,9 +48,9 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
       let query = supabase
         .from('insumo_purchase_entries')
         .select('*')
-        .order('data_compra', { ascending: false })
+        .order('data_compra', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
-        .limit(25);
+        .limit(limit);
 
       if (insumoId !== 'todos') {
         query = query.eq('insumo_id', insumoId);
@@ -72,7 +75,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
     } finally {
       setLoading(false);
     }
-  }, [fornecedorId, insumoId, toast, user]);
+  }, [fornecedorId, insumoId, limit, toast, user]);
 
   useEffect(() => {
     fetchEntries();

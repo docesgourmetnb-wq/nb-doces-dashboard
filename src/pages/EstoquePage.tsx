@@ -47,7 +47,11 @@ import {
   type ProdutoCategoriaInput,
 } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
-import { calculateInsumoPurchaseQuantity, getInsumoStockStatus } from '@/domain/estoque';
+import {
+  calculateInsumoPackageEquivalent,
+  calculateInsumoPurchaseQuantity,
+  getInsumoStockStatus,
+} from '@/domain/estoque';
 import {
   INSUMO_UNIDADES,
   getInsumoQuantidadePlaceholder,
@@ -74,6 +78,10 @@ function getTamanhoSortValue(tamanho: string | null) {
 
 function formatInsumoQuantidade(value: number) {
   return value.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+}
+
+function formatInsumoQuantidadeCompacta(value: number) {
+  return value.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 }
 
 function formatCurrencyBRLPrecise(value: number) {
@@ -106,6 +114,7 @@ function InsumosTab() {
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
   });
+  const { entries: packageReferenceEntries, refetch: refetchPackageReferenceEntries } = useInsumoPurchaseEntries({ limit: 200 });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
@@ -123,12 +132,25 @@ function InsumosTab() {
     quantidade_embalagens: '',
     conteudo_por_embalagem: '',
     valor_total: '',
-    data_compra: new Date().toISOString().slice(0, 10),
+    data_compra: '',
     fornecedor_id: 'sem-fornecedor',
   });
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
   const insumosPorId = useMemo(() => new Map(insumos.map((insumo) => [insumo.id, insumo])), [insumos]);
   const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
+  const embalagemReferenciaPorInsumoId = useMemo(() => {
+    const referencias = new Map<string, { conteudoPorEmbalagem: number }>();
+
+    packageReferenceEntries.forEach((entry) => {
+      if (!entry.conteudo_por_embalagem || referencias.has(entry.insumo_id)) return;
+
+      referencias.set(entry.insumo_id, {
+        conteudoPorEmbalagem: entry.conteudo_por_embalagem,
+      });
+    });
+
+    return referencias;
+  }, [packageReferenceEntries]);
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
     const filtered = insumos.filter((insumo) => {
@@ -211,7 +233,7 @@ function InsumosTab() {
       quantidade_embalagens: '',
       conteudo_por_embalagem: '',
       valor_total: '',
-      data_compra: new Date().toISOString().slice(0, 10),
+      data_compra: '',
       fornecedor_id: 'sem-fornecedor',
     });
     setEntryErrors({});
@@ -267,10 +289,6 @@ function InsumosTab() {
     if (!Number.isFinite(valorTotalEntrada) || valorTotalEntrada < 0) {
       errors.valor_total = 'Informe um valor total válido';
     }
-    if (!entryFormData.data_compra) {
-      errors.data_compra = 'Informe a data da compra';
-    }
-
     setEntryErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -281,11 +299,13 @@ function InsumosTab() {
         entryInsumo.id,
         quantidadeEntrada,
         valorTotalEntrada,
-        entryFormData.data_compra,
+        entryFormData.data_compra || null,
         entryFormData.fornecedor_id === 'sem-fornecedor' ? null : entryFormData.fornecedor_id,
+        quantidadeEmbalagens,
+        conteudoPorEmbalagem,
       );
       if (updatedInsumo) {
-        await refetchPurchaseEntries();
+        await Promise.all([refetchPurchaseEntries(), refetchPackageReferenceEntries()]);
         setEntryDialogOpen(false);
       }
     } finally {
@@ -391,7 +411,7 @@ function InsumosTab() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="insumo-entry-quantidade-embalagens">Embalagens compradas</Label>
+                <Label htmlFor="insumo-entry-quantidade-embalagens">Quantidade de embalagens</Label>
                 <Input
                   id="insumo-entry-quantidade-embalagens"
                   type="text"
@@ -474,7 +494,9 @@ function InsumosTab() {
                   aria-describedby={entryErrors.valor_total ? 'insumo-entry-valor-error' : undefined}
                 />
                 {entryErrors.valor_total && <p id="insumo-entry-valor-error" className="text-xs text-destructive">{entryErrors.valor_total}</p>}
-                <p className="text-xs text-muted-foreground">Se informado, o valor gera uma saída em Financeiro.</p>
+                <p className="text-xs text-muted-foreground">
+                  Se informado, o valor gera uma saída em Financeiro. Para estoque antigo sem data, deixe em branco.
+                </p>
               </div>
             </div>
             <div className="space-y-2">
@@ -491,6 +513,9 @@ function InsumosTab() {
                 aria-describedby={entryErrors.data_compra ? 'insumo-entry-data-error' : undefined}
               />
               {entryErrors.data_compra && <p id="insumo-entry-data-error" className="text-xs text-destructive">{entryErrors.data_compra}</p>}
+              <p className="text-xs text-muted-foreground">
+                Opcional. Deixe em branco para estoque antigo ou quando a data real da compra não for conhecida.
+              </p>
             </div>
             <Button onClick={handleSaveEntry} className="w-full" disabled={entrySaving}>
               {entrySaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
@@ -534,14 +559,14 @@ function InsumosTab() {
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <div className="flex flex-col gap-4 mb-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h3 className="font-display font-semibold text-lg">Compras recentes</h3>
+            <h3 className="font-display font-semibold text-lg">Entradas recentes</h3>
             <p className="text-sm text-muted-foreground">
-              Histórico das últimas entradas registradas no estoque. Os filtros abaixo afetam apenas este histórico.
+              Histórico das últimas entradas registradas no estoque. Pode ser compra ou ajuste de saldo antigo.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[640px] lg:grid-cols-[1fr_1fr_auto]">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar histórico por insumo</Label>
+              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar entradas por insumo</Label>
               <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
                 <SelectTrigger id="purchase-insumo-filter">
                   <SelectValue placeholder="Todos os insumos" />
@@ -555,7 +580,7 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Filtrar histórico por fornecedor</Label>
+              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Filtrar entradas por fornecedor</Label>
               <Select value={purchaseFornecedorFilter} onValueChange={setPurchaseFornecedorFilter}>
                 <SelectTrigger id="purchase-fornecedor-filter">
                   <SelectValue placeholder="Todos os fornecedores" />
@@ -581,31 +606,41 @@ function InsumosTab() {
         {purchaseEntriesLoading ? (
           <div className="py-6 text-center text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-            Carregando compras...
+            Carregando entradas...
           </div>
         ) : purchaseEntries.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground text-center">
-            Nenhuma compra encontrada para os filtros atuais.
+            Nenhuma entrada encontrada para os filtros atuais.
           </p>
         ) : (
           <div className="divide-y divide-border">
             {purchaseEntries.map((entry) => {
               const insumo = insumosPorId.get(entry.insumo_id);
               const fornecedor = entry.fornecedor_id ? fornecedoresPorId.get(entry.fornecedor_id) : null;
+              const dataCompraLabel = entry.data_compra
+                ? formatLocalDate(entry.data_compra, 'dd/MM/yyyy')
+                : 'Sem data de compra';
 
               return (
                 <div key={entry.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 py-3">
                   <div>
                     <p className="font-medium text-foreground">{insumo?.nome || 'Insumo removido'}</p>
                     <p className="text-sm text-muted-foreground">
-                      {fornecedor?.nome || 'Sem fornecedor'} • {formatLocalDate(entry.data_compra, 'dd/MM/yyyy')}
+                      {fornecedor?.nome || 'Sem fornecedor'} • {dataCompraLabel}
                     </p>
                   </div>
                   <div className="text-sm md:text-right">
                     <p className="font-medium text-foreground">
                       {formatInsumoQuantidade(entry.quantidade)} {entry.unidade}
                     </p>
-                    <p className="text-muted-foreground">Quantidade</p>
+                    {entry.quantidade_embalagens && entry.conteudo_por_embalagem ? (
+                      <p className="text-muted-foreground">
+                        {formatInsumoQuantidadeCompacta(entry.quantidade_embalagens)} embalagens de{' '}
+                        {formatInsumoQuantidade(entry.conteudo_por_embalagem)} {entry.unidade}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground">Quantidade</p>
+                    )}
                   </div>
                   <div className="text-sm md:text-right">
                     <p className="font-medium text-foreground">{formatCurrencyBRL(entry.valor_total)}</p>
@@ -695,6 +730,13 @@ function InsumosTab() {
             <div className="divide-y divide-border">
               {filteredInsumos.map((insumo) => {
               const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
+              const embalagemReferencia = embalagemReferenciaPorInsumoId.get(insumo.id);
+              const saldoEmEmbalagens = embalagemReferencia
+                ? calculateInsumoPackageEquivalent(insumo.quantidade_atual, embalagemReferencia.conteudoPorEmbalagem)
+                : null;
+              const saldoEmbalagensLabel = saldoEmEmbalagens !== null
+                ? `≈ ${formatInsumoQuantidadeCompacta(saldoEmEmbalagens)} embalagens de ${formatInsumoQuantidade(embalagemReferencia!.conteudoPorEmbalagem)} ${insumo.unidade}`
+                : null;
               const stockBadge = stockStatus.needsAttention
                 ? stockStatus.status === 'critical'
                   ? 'Crítico'
@@ -724,6 +766,9 @@ function InsumosTab() {
                     <div>
                       <p className="text-xs text-muted-foreground lg:hidden">Saldo</p>
                       <p className="font-medium text-foreground">{formatInsumoQuantidade(insumo.quantidade_atual)} {insumo.unidade}</p>
+                      {saldoEmbalagensLabel ? (
+                        <p className="text-xs text-muted-foreground">{saldoEmbalagensLabel}</p>
+                      ) : null}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground lg:hidden">Mínimo</p>
