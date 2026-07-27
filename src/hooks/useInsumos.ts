@@ -28,8 +28,10 @@ interface RegisterInsumoEntryRpc {
       p_insumo_id: string;
       p_quantidade: number;
       p_valor_total: number;
-      p_data_compra: string;
+      p_data_compra: string | null;
       p_fornecedor_id: string | null;
+      p_quantidade_embalagens: number | null;
+      p_conteudo_por_embalagem: number | null;
     },
   ): Promise<{
     data: Partial<Insumo> | null;
@@ -147,8 +149,10 @@ export function useInsumos() {
     id: string,
     quantidade: number,
     valorTotal: number,
-    dataCompra: string,
+    dataCompra: string | null,
     fornecedorId: string | null = null,
+    quantidadeEmbalagens: number | null = null,
+    conteudoPorEmbalagem: number | null = null,
   ) => {
     try {
       const registerEntryRpc = supabase.rpc.bind(supabase) as unknown as RegisterInsumoEntryRpc;
@@ -158,6 +162,8 @@ export function useInsumos() {
         p_valor_total: valorTotal,
         p_data_compra: dataCompra,
         p_fornecedor_id: fornecedorId,
+        p_quantidade_embalagens: quantidadeEmbalagens,
+        p_conteudo_por_embalagem: conteudoPorEmbalagem,
       });
 
       if (error) throw error;

@@ -268,39 +268,45 @@ export type Database = {
       }
       insumo_purchase_entries: {
         Row: {
+          conteudo_por_embalagem: number | null
           created_at: string
-          data_compra: string
+          data_compra: string | null
           fornecedor_id: string | null
           id: string
           insumo_id: string
           preco_unitario: number
           quantidade: number
+          quantidade_embalagens: number | null
           transacao_referencia: string | null
           unidade: string
           user_id: string
           valor_total: number
         }
         Insert: {
+          conteudo_por_embalagem?: number | null
           created_at?: string
-          data_compra?: string
+          data_compra?: string | null
           fornecedor_id?: string | null
           id?: string
           insumo_id: string
           preco_unitario?: number
           quantidade: number
+          quantidade_embalagens?: number | null
           transacao_referencia?: string | null
           unidade: string
           user_id: string
           valor_total?: number
         }
         Update: {
+          conteudo_por_embalagem?: number | null
           created_at?: string
-          data_compra?: string
+          data_compra?: string | null
           fornecedor_id?: string | null
           id?: string
           insumo_id?: string
           preco_unitario?: number
           quantidade?: number
+          quantidade_embalagens?: number | null
           transacao_referencia?: string | null
           unidade?: string
           user_id?: string
@@ -1255,10 +1261,12 @@ export type Database = {
       }
       register_insumo_entry: {
         Args: {
-          p_data_compra?: string
+          p_conteudo_por_embalagem?: number | null
+          p_data_compra?: string | null
           p_fornecedor_id?: string | null
           p_insumo_id: string
           p_quantidade: number
+          p_quantidade_embalagens?: number | null
           p_valor_total?: number
         }
         Returns: {

@@ -65,3 +65,15 @@ export function calculateInsumoPurchaseQuantity(quantidadeEmbalagens: number, co
 
   return quantidadeEmbalagens * conteudoPorEmbalagem;
 }
+
+export function calculateInsumoPackageEquivalent(quantidadeAtual: number, conteudoPorEmbalagem: number) {
+  if (!Number.isFinite(quantidadeAtual) || quantidadeAtual < 0) {
+    return null;
+  }
+
+  if (!Number.isFinite(conteudoPorEmbalagem) || conteudoPorEmbalagem <= 0) {
+    return null;
+  }
+
+  return quantidadeAtual / conteudoPorEmbalagem;
+}

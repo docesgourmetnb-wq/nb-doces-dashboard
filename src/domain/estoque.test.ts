@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateInsumoEntry, calculateInsumoPurchaseQuantity, getInsumoStockStatus } from './estoque.ts';
+import {
+  calculateInsumoEntry,
+  calculateInsumoPackageEquivalent,
+  calculateInsumoPurchaseQuantity,
+  getInsumoStockStatus,
+} from './estoque.ts';
 
 test('getInsumoStockStatus ignores alerts when minimum stock is not defined', () => {
   assert.deepEqual(getInsumoStockStatus(0, 0), {
@@ -36,4 +41,14 @@ test('calculateInsumoPurchaseQuantity calculates total from packages and content
 test('calculateInsumoPurchaseQuantity rejects invalid package values', () => {
   assert.throws(() => calculateInsumoPurchaseQuantity(0, 395), /embalagens/);
   assert.throws(() => calculateInsumoPurchaseQuantity(10, 0), /Conteúdo/);
+});
+
+test('calculateInsumoPackageEquivalent derives package count from current stock', () => {
+  assert.equal(calculateInsumoPackageEquivalent(5530, 395), 14);
+  assert.equal(calculateInsumoPackageEquivalent(197.5, 395), 0.5);
+});
+
+test('calculateInsumoPackageEquivalent ignores invalid package references', () => {
+  assert.equal(calculateInsumoPackageEquivalent(5530, 0), null);
+  assert.equal(calculateInsumoPackageEquivalent(-1, 395), null);
 });
