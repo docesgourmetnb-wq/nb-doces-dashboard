@@ -268,7 +268,7 @@ function InsumosTab() {
     const quantidadeMinima = formData.quantidade_minima.trim() ? parseDecimalInput(formData.quantidade_minima) : 0;
     const errors: InsumoFormErrors = {};
 
-    if (!formData.nome.trim()) errors.nome = 'Informe o nome do insumo';
+    if (!formData.nome.trim()) errors.nome = 'Informe o nome do item';
     if (!formData.unidade.trim()) errors.unidade = 'Informe a unidade';
     if (!isInsumoTipoEstoque(formData.tipo_estoque)) errors.tipo_estoque = 'Selecione o tipo de item';
     if (!Number.isFinite(quantidadeMinima) || quantidadeMinima < 0) errors.quantidade_minima = 'Informe uma quantidade mínima válida';
@@ -396,9 +396,9 @@ function InsumosTab() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-display font-semibold">Tabela de Insumos</h2>
+        <h2 className="text-xl font-display font-semibold">Tabela de Itens</h2>
         <Button onClick={() => handleOpenDialog()} className="gap-2">
-          <Plus size={18} /> Novo Insumo
+          <Plus size={18} /> Novo Item
         </Button>
       </div>
 
@@ -406,7 +406,7 @@ function InsumosTab() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="font-display">
-                {editingInsumo ? 'Editar Insumo' : 'Novo Insumo'}
+                {editingInsumo ? 'Editar Item' : 'Novo Item'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -416,7 +416,7 @@ function InsumosTab() {
                   <Input id="insumo-nome" value={formData.nome} onChange={(e) => {
                     setFormData({ ...formData, nome: e.target.value });
                     if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
-                  }} placeholder="Ex: Leite Condensado" aria-invalid={!!formErrors.nome} aria-describedby={formErrors.nome ? 'insumo-nome-error' : undefined} />
+                  }} placeholder="Ex: Leite Condensado, Pelotine, Fita" aria-invalid={!!formErrors.nome} aria-describedby={formErrors.nome ? 'insumo-nome-error' : undefined} />
                   {formErrors.nome && <p id="insumo-nome-error" className="text-xs text-destructive">{formErrors.nome}</p>}
                 </div>
                 <div className="space-y-2">
@@ -493,7 +493,7 @@ function InsumosTab() {
               )}
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {editingInsumo ? 'Salvar Alterações' : 'Adicionar Insumo'}
+                {editingInsumo ? 'Salvar Alterações' : 'Adicionar Item'}
               </Button>
             </div>
           </DialogContent>
@@ -506,7 +506,7 @@ function InsumosTab() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Insumo: <strong className="text-foreground">{entryInsumo?.nome}</strong>
+              Item: <strong className="text-foreground">{entryInsumo?.nome}</strong>
               {entryInsumo && (
                 <span> • controle em {getInsumoUnidadeLabel(entryInsumo.unidade)}</span>
               )}
@@ -707,7 +707,7 @@ function InsumosTab() {
             "bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3 text-left transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             insumoStockFilter === 'todos' && insumoTipoFilter === 'todos' && !insumoSearch.trim() && "border-primary/50 bg-primary/5"
           )}
-          aria-label="Mostrar todos os insumos cadastrados"
+          aria-label="Mostrar todos os itens cadastrados"
         >
           <div className="p-2 bg-primary/10 rounded-lg"><Package className="text-primary w-5 h-5" /></div>
           <div>
@@ -725,7 +725,7 @@ function InsumosTab() {
             "bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3 text-left transition-colors hover:border-warning/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             insumoStockFilter === 'atencao' && insumoTipoFilter === 'todos' && !insumoSearch.trim() && "border-warning/60 bg-warning/10"
           )}
-          aria-label="Mostrar insumos que precisam de atenção"
+          aria-label="Mostrar itens que precisam de atenção"
         >
           <div className="p-2 bg-warning/20 rounded-lg"><AlertTriangle className="text-warning w-5 h-5" /></div>
           <div><p className="text-sm text-muted-foreground">Em Falta</p><p className="text-2xl font-display font-semibold">{insumosEmFalta.length}</p></div>
@@ -751,13 +751,13 @@ function InsumosTab() {
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[640px] lg:grid-cols-[1fr_1fr_auto]">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar entradas por insumo</Label>
+              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar entradas por item</Label>
               <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
                 <SelectTrigger id="purchase-insumo-filter">
-                  <SelectValue placeholder="Todos os insumos" />
+                  <SelectValue placeholder="Todos os itens" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos">Todos os insumos</SelectItem>
+                  <SelectItem value="todos">Todos os itens</SelectItem>
                   {insumos.map((insumo) => (
                     <SelectItem key={insumo.id} value={insumo.id}>{insumo.nome}</SelectItem>
                   ))}
@@ -814,7 +814,7 @@ function InsumosTab() {
               return (
                 <div key={entry.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 py-3">
                   <div>
-                    <p className="font-medium text-foreground">{insumo?.nome || 'Insumo removido'}</p>
+                    <p className="font-medium text-foreground">{insumo?.nome || 'Item removido'}</p>
                     <p className="text-sm text-muted-foreground">
                       {fornecedor?.nome || 'Sem fornecedor'} • {dataCompraLabel}
                     </p>
@@ -845,31 +845,31 @@ function InsumosTab() {
       {insumos.length === 0 ? (
         <div className="text-center py-16">
           <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-semibold text-lg text-foreground">Nenhum insumo</h3>
+          <h3 className="font-semibold text-lg text-foreground">Nenhum item</h3>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="font-display font-semibold text-lg">Insumos cadastrados</h3>
+              <h3 className="font-display font-semibold text-lg">Itens cadastrados</h3>
               <p className="text-sm text-muted-foreground">
-                {filteredInsumos.length} de {insumos.length} insumo{insumos.length === 1 ? '' : 's'}
+                {filteredInsumos.length} de {insumos.length} item{insumos.length === 1 ? '' : 's'}
               </p>
             </div>
             <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-5xl lg:grid-cols-[1fr_170px_190px_170px_auto]">
               <div className="relative">
-                <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
+                <Label htmlFor="insumos-search" className="sr-only">Buscar itens</Label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                 <Input
                   id="insumos-search"
                   value={insumoSearch}
                   onChange={(event) => setInsumoSearch(event.target.value)}
-                  placeholder="Buscar insumo..."
+                  placeholder="Buscar item..."
                   className="pl-10"
                 />
               </div>
               <div>
-                <Label htmlFor="insumos-stock-filter" className="sr-only">Filtrar insumos por status</Label>
+                <Label htmlFor="insumos-stock-filter" className="sr-only">Filtrar itens por status</Label>
                 <Select value={insumoStockFilter} onValueChange={(value) => setInsumoStockFilter(value as InsumoStockFilter)}>
                   <SelectTrigger id="insumos-stock-filter">
                     <SelectValue placeholder="Status" />
@@ -882,7 +882,7 @@ function InsumosTab() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="insumos-tipo-filter" className="sr-only">Filtrar insumos por tipo</Label>
+                <Label htmlFor="insumos-tipo-filter" className="sr-only">Filtrar itens por tipo</Label>
                 <Select value={insumoTipoFilter} onValueChange={(value) => setInsumoTipoFilter(value as InsumoTipoFilter)}>
                   <SelectTrigger id="insumos-tipo-filter">
                     <SelectValue placeholder="Tipo" />
@@ -898,7 +898,7 @@ function InsumosTab() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="insumos-sort" className="sr-only">Ordenar insumos</Label>
+                <Label htmlFor="insumos-sort" className="sr-only">Ordenar itens</Label>
                 <Select value={insumoSort} onValueChange={(value) => setInsumoSort(value as InsumoSortOption)}>
                   <SelectTrigger id="insumos-sort">
                     <SelectValue placeholder="Ordenar" />
@@ -919,7 +919,7 @@ function InsumosTab() {
             </div>
           </div>
           <div className="hidden lg:grid grid-cols-[1.5fr_0.8fr_0.8fr_1fr_auto] gap-4 border-b border-border px-5 py-3 text-sm font-medium text-muted-foreground">
-            <span>Insumo</span>
+            <span>Item</span>
             <span>Saldo</span>
             <span>Mínimo</span>
             <span>Último custo</span>
@@ -927,7 +927,7 @@ function InsumosTab() {
           </div>
           {filteredInsumos.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-              Nenhum insumo encontrado para os filtros atuais.
+              Nenhum item encontrado para os filtros atuais.
             </p>
           ) : (
             <div className="divide-y divide-border">
@@ -994,7 +994,7 @@ function InsumosTab() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleOpenDialog(insumo)}
-                        aria-label={`Editar cadastro do insumo ${insumo.nome}`}
+                        aria-label={`Editar cadastro do item ${insumo.nome}`}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
@@ -1456,13 +1456,13 @@ export function EstoquePage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">Gestão de Estoques</h1>
-          <p className="text-muted-foreground mt-1">Controle integrado de insumos, massas base e produtos finais</p>
+          <p className="text-muted-foreground mt-1">Controle integrado de insumos, embalagens, massas base e produtos finais</p>
         </div>
       </div>
 
       <Tabs defaultValue="insumos" className="w-full">
         <TabsList className="grid w-full grid-cols-3 max-w-2xl mb-8 border border-border shadow-sm p-1 rounded-lg">
-          <TabsTrigger value="insumos" className="rounded-md">Raw/Insumos</TabsTrigger>
+          <TabsTrigger value="insumos" className="rounded-md">Insumos/Embalagens</TabsTrigger>
           <TabsTrigger value="massas" className="rounded-md">Massas Base (g)</TabsTrigger>
           <TabsTrigger value="produtos" className="rounded-md">Produtos Finais (un)</TabsTrigger>
         </TabsList>
