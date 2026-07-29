@@ -4,6 +4,7 @@ import {
   calculateInsumoEntry,
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
+  formatInsumoPackageReference,
   getInsumoStockStatus,
   summarizeKnownInsumoStockValue,
 } from './estoque.ts';
@@ -52,6 +53,25 @@ test('calculateInsumoPackageEquivalent derives package count from current stock'
 test('calculateInsumoPackageEquivalent ignores invalid package references', () => {
   assert.equal(calculateInsumoPackageEquivalent(5530, 0), null);
   assert.equal(calculateInsumoPackageEquivalent(-1, 395), null);
+});
+
+test('formatInsumoPackageReference shows whole package counts for closed units', () => {
+  assert.equal(formatInsumoPackageReference(5530, 395, 'g'), '14 embalagens de 395 g');
+});
+
+test('formatInsumoPackageReference avoids decimal package labels for fractional stock', () => {
+  assert.equal(formatInsumoPackageReference(505, 1000, 'g'), '505 g disponíveis · 50,5% de uma embalagem de 1.000 g');
+});
+
+test('formatInsumoPackageReference can omit available quantity for movement history', () => {
+  assert.equal(
+    formatInsumoPackageReference(505, 1000, 'g', { includeAvailableQuantity: false }),
+    '50,5% de uma embalagem de 1.000 g',
+  );
+});
+
+test('formatInsumoPackageReference ignores invalid package references', () => {
+  assert.equal(formatInsumoPackageReference(505, 0, 'g'), null);
 });
 
 test('summarizeKnownInsumoStockValue keeps historical stock without cost valued as zero', () => {
