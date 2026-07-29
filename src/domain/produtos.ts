@@ -168,6 +168,32 @@ export function summarizeProdutos(produtos: ProdutoResumoInput[]): ProdutoResumo
   };
 }
 
+export interface EstoqueProdutoFinalResumoInput extends ProdutoCategoriaInput {
+  quantidade_un: number;
+}
+
+export function summarizeEstoqueProdutosFinais(produtos: EstoqueProdutoFinalResumoInput[]) {
+  return produtos.reduce(
+    (summary, produto) => {
+      const quantidade = Number.isFinite(produto.quantidade_un) ? produto.quantidade_un : 0;
+      const tamanho = getProdutoTamanhoComercial(produto);
+
+      return {
+        totalUnidades: summary.totalUnidades + quantidade,
+        total25g: summary.total25g + (tamanho === '25g' ? quantidade : 0),
+        total30g: summary.total30g + (tamanho === '30g' ? quantidade : 0),
+        semTamanho: summary.semTamanho + (!tamanho ? quantidade : 0),
+      };
+    },
+    {
+      totalUnidades: 0,
+      total25g: 0,
+      total30g: 0,
+      semTamanho: 0,
+    },
+  );
+}
+
 export interface ProdutoSemPar {
   nomeBase: string;
   faltando: Array<'25g' | '30g'>;

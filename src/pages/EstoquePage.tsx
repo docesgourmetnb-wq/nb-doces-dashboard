@@ -44,6 +44,7 @@ import {
   getProdutoNomeComercial,
   getProdutoTamanhoComercial,
   matchesBrigadeiroTamanhoFilter,
+  summarizeEstoqueProdutosFinais,
   type ProdutoCategoriaInput,
 } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
@@ -1134,7 +1135,8 @@ function ProdutosTab() {
   const { produtos, loading, addProduto, updateQuantidade, deleteProduto } = useEstoqueProdutos();
   const { brigadeiros } = useBrigadeiros();
   const [brigadeiroId, setBrigadeiroId] = useState('');
-  const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
+  const [tamanhoProdutoCadastroFilter, setTamanhoProdutoCadastroFilter] = useState<BrigadeiroTamanhoFilter>('todos');
+  const [tamanhoProdutoVisualFilter, setTamanhoProdutoVisualFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [actionProduto, setActionProduto] = useState<EstoqueProduto | null>(null);
   const [actionType, setActionType] = useState<'add'|'sub'>('add');
@@ -1149,9 +1151,9 @@ function ProdutosTab() {
   const availableBrigadeiros = useMemo(() => {
     return produtosBrigadeiro
       .filter((brigadeiro) => !produtos.some((produto) => produto.brigadeiro_id === brigadeiro.id))
-      .filter((brigadeiro) => matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoProdutoFilter))
+      .filter((brigadeiro) => matchesBrigadeiroTamanhoFilter(brigadeiro, tamanhoProdutoCadastroFilter))
       .sort(sortByProdutoNomeETamanho);
-  }, [produtosBrigadeiro, produtos, tamanhoProdutoFilter]);
+  }, [produtosBrigadeiro, produtos, tamanhoProdutoCadastroFilter]);
 
   const produtosOrdenados = useMemo(() => {
     return [...produtos].sort((a, b) => sortByProdutoNomeETamanho(
@@ -1160,6 +1162,27 @@ function ProdutosTab() {
     ));
   }, [produtos, brigadeirosPorId]);
 
+  const produtosFiltrados = useMemo(() => {
+    return produtosOrdenados.filter((produto) => {
+      const produtoCatalogo = getProdutoFinalCatalogo(produto, brigadeirosPorId);
+      return tamanhoProdutoVisualFilter === 'todos'
+        || matchesBrigadeiroTamanhoFilter(produtoCatalogo, tamanhoProdutoVisualFilter);
+    });
+  }, [brigadeirosPorId, produtosOrdenados, tamanhoProdutoVisualFilter]);
+
+  const estoqueProdutosResumo = useMemo(() => summarizeEstoqueProdutosFinais(
+    produtos.map((produto) => {
+      const produtoCatalogo = getProdutoFinalCatalogo(produto, brigadeirosPorId);
+
+        return {
+          nome: produtoCatalogo.nome,
+          categoria: produtoCatalogo.categoria,
+          tamanho_g: produtoCatalogo.tamanho_g ?? null,
+          quantidade_un: produto.quantidade_un,
+        };
+    }),
+  ), [brigadeirosPorId, produtos]);
+
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
 
   const handleRegister = async () => {
@@ -1167,7 +1190,7 @@ function ProdutosTab() {
     const brig = availableBrigadeiros.find(b => b.id === brigadeiroId) || produtosBrigadeiro.find(b => b.id === brigadeiroId);
     await addProduto(brigadeiroId, 0, brig?.nome || 'Produto Sem Nome');
     setBrigadeiroId('');
-    setTamanhoProdutoFilter('todos');
+    setTamanhoProdutoCadastroFilter('todos');
     setIsRegisterOpen(false);
   };
 
@@ -1191,8 +1214,6 @@ function ProdutosTab() {
     setDeleteProdutoConfirm(null);
   };
 
-  const totalUnidades = produtos.reduce((acc, p) => acc + p.quantidade_un, 0);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-border pb-4">
@@ -1204,7 +1225,7 @@ function ProdutosTab() {
           setIsRegisterOpen(open);
           if (!open) {
             setBrigadeiroId('');
-            setTamanhoProdutoFilter('todos');
+            setTamanhoProdutoCadastroFilter('todos');
           }
         }}>
           <DialogTrigger asChild><Button><Plus size={18} className="mr-2" /> Novo Produto no Estoque</Button></DialogTrigger>
@@ -1217,10 +1238,10 @@ function ProdutosTab() {
                     key={filter.value}
                     type="button"
                     size="sm"
-                    variant={tamanhoProdutoFilter === filter.value ? 'default' : 'ghost'}
+                    variant={tamanhoProdutoCadastroFilter === filter.value ? 'default' : 'ghost'}
                     className="flex-1 sm:flex-none px-4"
                     onClick={() => {
-                      setTamanhoProdutoFilter(filter.value);
+                      setTamanhoProdutoCadastroFilter(filter.value);
                       setBrigadeiroId('');
                     }}
                   >
@@ -1252,50 +1273,72 @@ function ProdutosTab() {
         </Dialog>
       </div>
 
-      <div className="bg-card border border-border p-4 rounded-xl flex items-center justify-between mb-6 shadow-sm">
-         <span className="text-muted-foreground font-medium">Total em produtos finais</span>
-         <span className="text-2xl font-display font-bold">{totalUnidades} un</span>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+          <p className="text-sm text-muted-foreground">Total geral</p>
+          <p className="text-2xl font-display font-bold mt-1">{estoqueProdutosResumo.totalUnidades} un</p>
+        </div>
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+          <p className="text-sm text-muted-foreground">Brigadeiros 25g</p>
+          <p className="text-2xl font-display font-bold mt-1">{estoqueProdutosResumo.total25g} un</p>
+        </div>
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+          <p className="text-sm text-muted-foreground">Brigadeiros 30g</p>
+          <p className="text-2xl font-display font-bold mt-1">{estoqueProdutosResumo.total30g} un</p>
+        </div>
+      </div>
+
+      <div className="flex w-full rounded-lg border border-border bg-muted/40 p-1 sm:w-fit">
+        {BRIGADEIRO_TAMANHO_FILTERS.map((filter) => (
+          <Button
+            key={filter.value}
+            type="button"
+            size="sm"
+            variant={tamanhoProdutoVisualFilter === filter.value ? 'default' : 'ghost'}
+            className="flex-1 px-4 sm:flex-none"
+            onClick={() => setTamanhoProdutoVisualFilter(filter.value)}
+          >
+            {filter.label}
+          </Button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {produtosOrdenados.map(produto => {
+        {produtosFiltrados.map(produto => {
           const produtoCatalogo = getProdutoFinalCatalogo(produto, brigadeirosPorId);
           const produtoBase = getProdutoNomeComercial(produtoCatalogo);
           const produtoTamanho = getProdutoTamanhoComercial(produtoCatalogo);
 
           return (
-          <div key={produto.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
-             <div className="flex items-start justify-between gap-2 mb-4">
-               <div className="space-y-2">
-                 {produtoTamanho && (
-                   <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                     {produtoTamanho}
-                   </span>
-                 )}
-                 <h3 className="font-display font-semibold text-lg">{produtoBase}</h3>
+          <div key={produto.id} className="bg-card border border-border rounded-xl p-4 shadow-sm">
+             <div className="flex items-start justify-between gap-3">
+               <div className="min-w-0 space-y-2">
+                 <div className="flex flex-wrap items-center gap-2">
+                   {produtoTamanho && (
+                     <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                       {produtoTamanho}
+                     </span>
+                   )}
+                   <p className="text-sm font-medium text-muted-foreground">{produto.quantidade_un} un disponíveis</p>
+                 </div>
+                 <h3 className="font-display font-semibold text-lg leading-tight">{produtoBase}</h3>
                </div>
                <Button
                  variant="ghost"
                  size="icon"
-                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                 className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                  onClick={() => setDeleteProdutoConfirm(produto)}
                  aria-label={`Inativar produto ${produto.brigadeiro?.nome || ''}`}
                >
                  <Trash2 className="w-4 h-4" />
                </Button>
              </div>
-             <div className="flex items-end justify-between mb-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Disponível</p>
-                  <p className="text-3xl font-display font-bold text-primary">{produto.quantidade_un} un</p>
-                </div>
-             </div>
-             <div className="grid grid-cols-2 gap-2 mt-auto">
-                <Button variant="outline" className="text-success border-success/30 hover:bg-success/10 bg-success/5" onClick={() => { setActionProduto(produto); setActionType('add'); }}>
-                   <ArrowUpCircle className="w-4 h-4 mr-2" /> Entrada (+un)
+             <div className="grid grid-cols-2 gap-2 mt-4">
+                <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success/10 bg-success/5" onClick={() => { setActionProduto(produto); setActionType('add'); }}>
+                   <ArrowUpCircle className="w-4 h-4 mr-2" /> Entrada
                 </Button>
-                <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => { setActionProduto(produto); setActionType('sub'); }}>
-                   <ArrowDownCircle className="w-4 h-4 mr-2" /> Saída (-un)
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => { setActionProduto(produto); setActionType('sub'); }}>
+                   <ArrowDownCircle className="w-4 h-4 mr-2" /> Saída
                 </Button>
              </div>
           </div>
@@ -1303,6 +1346,9 @@ function ProdutosTab() {
         })}
         {produtos.length === 0 && (
           <div className="col-span-full py-12 text-center text-muted-foreground">Nenhum produto cadastrado no controle. Clique em Novo Produto para começar.</div>
+        )}
+        {produtos.length > 0 && produtosFiltrados.length === 0 && (
+          <div className="col-span-full py-12 text-center text-muted-foreground">Nenhum produto encontrado para o tamanho selecionado.</div>
         )}
       </div>
 
