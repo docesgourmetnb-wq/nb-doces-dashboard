@@ -80,7 +80,7 @@ type InsumoEntryErrors = Partial<Record<
   string
 >>;
 
-type InsumoExitErrors = Partial<Record<'quantidade' | 'motivo', string>>;
+type InsumoExitErrors = Partial<Record<'quantidade_embalagens' | 'conteudo_por_embalagem' | 'quantidade_total' | 'motivo', string>>;
 
 type InsumoEntryMode = 'embalagens' | 'quantidade';
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
@@ -141,6 +141,7 @@ function InsumosTab() {
   const [entryErrors, setEntryErrors] = useState<InsumoEntryErrors>({});
   const [exitErrors, setExitErrors] = useState<InsumoExitErrors>({});
   const [entryMode, setEntryMode] = useState<InsumoEntryMode>('embalagens');
+  const [exitMode, setExitMode] = useState<InsumoEntryMode>('embalagens');
   const [formData, setFormData] = useState({
     nome: '',
     unidade: 'g',
@@ -156,7 +157,9 @@ function InsumosTab() {
     fornecedor_id: 'sem-fornecedor',
   });
   const [exitFormData, setExitFormData] = useState({
-    quantidade: '',
+    quantidade_embalagens: '',
+    conteudo_por_embalagem: '',
+    quantidade_total: '',
     motivo: '',
   });
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
@@ -224,6 +227,19 @@ function InsumosTab() {
   ), [insumos, stockReferenceEntries]);
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
+  const stockReferenceByInsumoId = useMemo(() => {
+    const references = new Map<string, { quantidade_embalagens: number | null; conteudo_por_embalagem: number }>();
+
+    stockReferenceEntries.forEach((entry) => {
+      if (!entry.conteudo_por_embalagem || references.has(entry.insumo_id)) return;
+      references.set(entry.insumo_id, {
+        quantidade_embalagens: entry.quantidade_embalagens,
+        conteudo_por_embalagem: entry.conteudo_por_embalagem,
+      });
+    });
+
+    return references;
+  }, [stockReferenceEntries]);
   const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseTipoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoTipoFilter !== 'todos' || insumoSort !== 'nome';
 
@@ -288,9 +304,16 @@ function InsumosTab() {
   };
 
   const handleOpenExitDialog = (insumo: Insumo) => {
+    const stockReference = stockReferenceByInsumoId.get(insumo.id);
+
     setExitInsumo(insumo);
+    setExitMode(stockReference?.conteudo_por_embalagem ? 'embalagens' : getInsumoEntryModePadrao(insumo.unidade));
     setExitFormData({
-      quantidade: '',
+      quantidade_embalagens: '',
+      conteudo_por_embalagem: stockReference?.conteudo_por_embalagem
+        ? stockReference.conteudo_por_embalagem.toString()
+        : '',
+      quantidade_total: '',
       motivo: '',
     });
     setExitErrors({});
@@ -407,16 +430,39 @@ function InsumosTab() {
   const handleSaveExit = async () => {
     if (!exitInsumo) return;
 
-    const quantidadeSaida = parseDecimalInput(exitFormData.quantidade);
+    const quantidadeEmbalagens = parseDecimalInput(exitFormData.quantidade_embalagens);
+    const conteudoPorEmbalagem = parseDecimalInput(exitFormData.conteudo_por_embalagem);
+    const quantidadeTotal = parseDecimalInput(exitFormData.quantidade_total);
     const errors: InsumoExitErrors = {};
+    let quantidadeSaida = 0;
 
-    if (!Number.isFinite(quantidadeSaida) || quantidadeSaida <= 0) {
-      errors.quantidade = 'Informe uma quantidade maior que zero';
+    if (exitMode === 'embalagens') {
+      if (!Number.isFinite(quantidadeEmbalagens) || quantidadeEmbalagens <= 0) {
+        errors.quantidade_embalagens = 'Informe uma quantidade maior que zero';
+      }
+      if (!Number.isFinite(conteudoPorEmbalagem) || conteudoPorEmbalagem <= 0) {
+        errors.conteudo_por_embalagem = 'Informe o conteúdo por embalagem';
+      }
+
+      if (Object.keys(errors).length === 0) {
+        quantidadeSaida = calculateInsumoPurchaseQuantity(quantidadeEmbalagens, conteudoPorEmbalagem);
+      }
     } else {
+      if (!Number.isFinite(quantidadeTotal) || quantidadeTotal <= 0) {
+        errors.quantidade_total = 'Informe uma quantidade maior que zero';
+      }
+
+      if (Object.keys(errors).length === 0) {
+        quantidadeSaida = quantidadeTotal;
+      }
+    }
+
+    if (Object.keys(errors).length === 0) {
       try {
         calculateInsumoExit(exitInsumo.quantidade_atual, quantidadeSaida);
       } catch {
-        errors.quantidade = `Saldo insuficiente. Disponível: ${formatInsumoQuantidade(exitInsumo.quantidade_atual)} ${exitInsumo.unidade}`;
+        const errorKey = exitMode === 'embalagens' ? 'quantidade_embalagens' : 'quantidade_total';
+        errors[errorKey] = `Saldo insuficiente. Disponível: ${formatInsumoQuantidade(exitInsumo.quantidade_atual)} ${exitInsumo.unidade}`;
       }
     }
 
@@ -431,7 +477,7 @@ function InsumosTab() {
         exitFormData.motivo.trim() || null,
       );
       if (updatedInsumo) {
-        await refetchStockReferenceEntries();
+        await Promise.all([refetchPurchaseEntries(), refetchStockReferenceEntries()]);
         setExitDialogOpen(false);
       }
     } finally {
@@ -457,6 +503,19 @@ function InsumosTab() {
     && Number.isFinite(previewConteudoPorEmbalagem)
     && previewConteudoPorEmbalagem > 0
       ? calculateInsumoPackageEquivalent(previewQuantidadeTotal, previewConteudoPorEmbalagem)
+      : null;
+  const previewExitQuantidadeEmbalagens = parseDecimalInput(exitFormData.quantidade_embalagens);
+  const previewExitConteudoPorEmbalagem = parseDecimalInput(exitFormData.conteudo_por_embalagem);
+  const previewExitQuantidadeAvulsa = parseDecimalInput(exitFormData.quantidade_total);
+  const previewExitQuantidadeTotal = exitMode === 'embalagens'
+    ? Number.isFinite(previewExitQuantidadeEmbalagens)
+      && previewExitQuantidadeEmbalagens > 0
+      && Number.isFinite(previewExitConteudoPorEmbalagem)
+      && previewExitConteudoPorEmbalagem > 0
+        ? calculateInsumoPurchaseQuantity(previewExitQuantidadeEmbalagens, previewExitConteudoPorEmbalagem)
+        : null
+    : Number.isFinite(previewExitQuantidadeAvulsa) && previewExitQuantidadeAvulsa > 0
+      ? previewExitQuantidadeAvulsa
       : null;
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
@@ -770,7 +829,7 @@ function InsumosTab() {
       </Dialog>
 
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar saída</DialogTitle>
           </DialogHeader>
@@ -781,22 +840,92 @@ function InsumosTab() {
                 <span> • saldo atual: {formatInsumoQuantidade(exitInsumo.quantidade_atual)} {exitInsumo.unidade}</span>
               )}
             </p>
-            <div className="space-y-2">
-              <Label htmlFor="insumo-exit-quantidade">Quantidade a baixar ({exitInsumo?.unidade || 'unidade'})</Label>
-              <Input
-                id="insumo-exit-quantidade"
-                type="text"
-                inputMode="decimal"
-                value={exitFormData.quantidade}
-                onChange={(event) => {
-                  setExitFormData({ ...exitFormData, quantidade: event.target.value });
-                  if (exitErrors.quantidade) setExitErrors({ ...exitErrors, quantidade: '' });
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+              <Button
+                type="button"
+                variant={exitMode === 'embalagens' ? 'default' : 'ghost'}
+                onClick={() => {
+                  setExitMode('embalagens');
+                  setExitErrors({});
                 }}
-                placeholder={getInsumoQuantidadePlaceholder(exitInsumo?.unidade || '')}
-                aria-invalid={!!exitErrors.quantidade}
-                aria-describedby={exitErrors.quantidade ? 'insumo-exit-quantidade-error' : undefined}
-              />
-              {exitErrors.quantidade && <p id="insumo-exit-quantidade-error" className="text-xs text-destructive">{exitErrors.quantidade}</p>}
+              >
+                Por embalagem
+              </Button>
+              <Button
+                type="button"
+                variant={exitMode === 'quantidade' ? 'default' : 'ghost'}
+                onClick={() => {
+                  setExitMode('quantidade');
+                  setExitErrors({});
+                }}
+              >
+                Quantidade avulsa
+              </Button>
+            </div>
+
+            {exitMode === 'embalagens' ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-exit-quantidade-embalagens">Quantidade de embalagens</Label>
+                  <Input
+                    id="insumo-exit-quantidade-embalagens"
+                    type="text"
+                    inputMode="decimal"
+                    value={exitFormData.quantidade_embalagens}
+                    onChange={(event) => {
+                      setExitFormData({ ...exitFormData, quantidade_embalagens: event.target.value });
+                      if (exitErrors.quantidade_embalagens) setExitErrors({ ...exitErrors, quantidade_embalagens: '' });
+                    }}
+                    placeholder="Ex: 1"
+                    aria-invalid={!!exitErrors.quantidade_embalagens}
+                    aria-describedby={exitErrors.quantidade_embalagens ? 'insumo-exit-quantidade-embalagens-error' : undefined}
+                  />
+                  {exitErrors.quantidade_embalagens && <p id="insumo-exit-quantidade-embalagens-error" className="text-xs text-destructive">{exitErrors.quantidade_embalagens}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-exit-conteudo">Conteúdo por embalagem ({exitInsumo?.unidade || 'unidade'})</Label>
+                  <Input
+                    id="insumo-exit-conteudo"
+                    type="text"
+                    inputMode="decimal"
+                    value={exitFormData.conteudo_por_embalagem}
+                    onChange={(event) => {
+                      setExitFormData({ ...exitFormData, conteudo_por_embalagem: event.target.value });
+                      if (exitErrors.conteudo_por_embalagem) setExitErrors({ ...exitErrors, conteudo_por_embalagem: '' });
+                    }}
+                    placeholder={getInsumoQuantidadePlaceholder(exitInsumo?.unidade || '')}
+                    aria-invalid={!!exitErrors.conteudo_por_embalagem}
+                    aria-describedby={exitErrors.conteudo_por_embalagem ? 'insumo-exit-conteudo-error' : undefined}
+                  />
+                  {exitErrors.conteudo_por_embalagem && <p id="insumo-exit-conteudo-error" className="text-xs text-destructive">{exitErrors.conteudo_por_embalagem}</p>}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="insumo-exit-quantidade-total">Quantidade a baixar ({exitInsumo?.unidade || 'unidade'})</Label>
+                <Input
+                  id="insumo-exit-quantidade-total"
+                  type="text"
+                  inputMode="decimal"
+                  value={exitFormData.quantidade_total}
+                  onChange={(event) => {
+                    setExitFormData({ ...exitFormData, quantidade_total: event.target.value });
+                    if (exitErrors.quantidade_total) setExitErrors({ ...exitErrors, quantidade_total: '' });
+                  }}
+                  placeholder={getInsumoQuantidadePlaceholder(exitInsumo?.unidade || '')}
+                  aria-invalid={!!exitErrors.quantidade_total}
+                  aria-describedby={exitErrors.quantidade_total ? 'insumo-exit-quantidade-total-error' : undefined}
+                />
+                {exitErrors.quantidade_total && <p id="insumo-exit-quantidade-total-error" className="text-xs text-destructive">{exitErrors.quantidade_total}</p>}
+              </div>
+            )}
+            <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              Total a baixar:{' '}
+              <strong className="text-foreground">
+                {previewExitQuantidadeTotal === null || !exitInsumo
+                  ? '-'
+                  : `${formatInsumoQuantidade(previewExitQuantidadeTotal)} ${exitInsumo.unidade}`}
+              </strong>
             </div>
             <div className="space-y-2">
               <Label htmlFor="insumo-exit-motivo">Motivo</Label>
@@ -864,9 +993,9 @@ function InsumosTab() {
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <div className="flex flex-col gap-4 mb-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h3 className="font-display font-semibold text-lg">Entradas recentes</h3>
+            <h3 className="font-display font-semibold text-lg">Histórico de entradas</h3>
             <p className="text-sm text-muted-foreground">
-              Histórico das últimas entradas registradas no estoque. Pode ser compra ou ajuste de saldo antigo.
+              Lançamentos de compra ou ajuste inicial. O saldo consolidado fica em Estoque atual.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[760px] lg:grid-cols-[1fr_1fr_1fr_auto]">
@@ -993,7 +1122,7 @@ function InsumosTab() {
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="font-display font-semibold text-lg">Itens cadastrados</h3>
+              <h3 className="font-display font-semibold text-lg">Estoque atual</h3>
               <p className="text-sm text-muted-foreground">
                 {filteredInsumos.length} de {insumos.length} item{insumos.length === 1 ? '' : 's'}
               </p>
