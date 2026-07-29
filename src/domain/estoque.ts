@@ -1,4 +1,9 @@
 export type InsumoStockStatus = 'unset' | 'critical' | 'low' | 'ok';
+export type InsumoEntryMode = 'embalagens' | 'quantidade';
+
+export function getInsumoEntryModePadrao(unidade: string): InsumoEntryMode {
+  return unidade === 'cm' ? 'quantidade' : 'embalagens';
+}
 
 export function getInsumoStockStatus(quantidadeAtual: number, quantidadeMinima: number) {
   if (!Number.isFinite(quantidadeMinima) || quantidadeMinima <= 0) {
