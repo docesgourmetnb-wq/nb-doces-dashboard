@@ -12,6 +12,7 @@ const formatDate = (date: string) => date.split('-').reverse().join('/');
 test('getAuditActionLabel hides internal action names from users', () => {
   assert.equal(getAuditActionLabel('payment_created'), 'Pagamento registrado');
   assert.equal(getAuditActionLabel('historical_payment_recorded'), 'Pagamento histórico registrado');
+  assert.equal(getAuditActionLabel('stock_manual_exit_registered'), 'Saída manual de estoque');
   assert.equal(getAuditActionLabel('unknown_internal_action'), 'Evento registrado');
 });
 
@@ -31,5 +32,17 @@ test('formatAuditLogDetail formats payment values and effective dates', () => {
       formatDate,
     ),
     'R$ 306.25 • 16/08/2026',
+  );
+});
+
+test('formatAuditLogDetail formats manual stock exits', () => {
+  assert.equal(
+    formatAuditLogDetail(
+      'stock_manual_exit_registered',
+      { quantidade: 50, unidade: 'g', motivo: 'Teste de receita' },
+      formatCurrency,
+      formatDate,
+    ),
+    '50 g • Motivo: Teste de receita',
   );
 });

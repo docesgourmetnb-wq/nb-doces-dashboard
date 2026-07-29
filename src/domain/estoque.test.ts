@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   calculateInsumoEntry,
+  calculateInsumoExit,
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
   formatInsumoPackageReference,
@@ -40,6 +41,21 @@ test('calculateInsumoEntry adds quantity and calculates latest unit cost', () =>
 test('calculateInsumoEntry rejects invalid entry values', () => {
   assert.throws(() => calculateInsumoEntry(100, 0, 25), /Quantidade/);
   assert.throws(() => calculateInsumoEntry(100, 10, -1), /Valor/);
+});
+
+test('calculateInsumoExit subtracts quantity without allowing negative stock', () => {
+  assert.deepEqual(calculateInsumoExit(100, 35), {
+    quantidadeAtual: 65,
+  });
+  assert.deepEqual(calculateInsumoExit(100, 100), {
+    quantidadeAtual: 0,
+  });
+});
+
+test('calculateInsumoExit rejects invalid or excessive quantity', () => {
+  assert.throws(() => calculateInsumoExit(100, 0), /saída/);
+  assert.throws(() => calculateInsumoExit(100, 101), /Saldo insuficiente/);
+  assert.throws(() => calculateInsumoExit(-1, 1), /Saldo/);
 });
 
 test('calculateInsumoPurchaseQuantity calculates total from packages and content', () => {

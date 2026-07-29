@@ -14,6 +14,7 @@ const ACTION_LABELS: Record<string, string> = {
   payment_created: 'Pagamento registrado',
   historical_payment_recorded: 'Pagamento histórico registrado',
   stock_consumed: 'Estoque baixado',
+  stock_manual_exit_registered: 'Saída manual de estoque',
   final_product_stock_adjusted: 'Estoque final ajustado',
   final_product_stock_inactivated: 'Produto final inativado',
 };
@@ -62,6 +63,17 @@ export function formatAuditLogDetail(
     case 'estorno_created': {
       const valor = metadataNumber(metadata, 'valor');
       return valor !== null ? formatCurrency(valor) : null;
+    }
+    case 'stock_manual_exit_registered': {
+      const quantidade = metadataNumber(metadata, 'quantidade');
+      const unidade = metadataText(metadata, 'unidade');
+      const motivo = metadataText(metadata, 'motivo');
+      const partes = [
+        quantidade !== null && unidade ? `${quantidade.toLocaleString('pt-BR')} ${unidade}` : null,
+        motivo ? `Motivo: ${motivo}` : null,
+      ].filter(Boolean);
+
+      return partes.length > 0 ? partes.join(' • ') : null;
     }
     default:
       return null;

@@ -59,6 +59,24 @@ export function calculateInsumoEntry(
   };
 }
 
+export function calculateInsumoExit(quantidadeAtual: number, quantidadeSaida: number) {
+  if (!Number.isFinite(quantidadeAtual) || quantidadeAtual < 0) {
+    throw new Error('Saldo atual inválido');
+  }
+
+  if (!Number.isFinite(quantidadeSaida) || quantidadeSaida <= 0) {
+    throw new Error('Quantidade de saída inválida');
+  }
+
+  if (quantidadeSaida > quantidadeAtual) {
+    throw new Error('Saldo insuficiente');
+  }
+
+  return {
+    quantidadeAtual: quantidadeAtual - quantidadeSaida,
+  };
+}
+
 export function calculateInsumoPurchaseQuantity(quantidadeEmbalagens: number, conteudoPorEmbalagem: number) {
   if (!Number.isFinite(quantidadeEmbalagens) || quantidadeEmbalagens <= 0) {
     throw new Error('Quantidade de embalagens inválida');
