@@ -23,6 +23,10 @@ export function getInsumoTipoEstoqueLabel(tipo: string | null | undefined) {
   return INSUMO_TIPOS_ESTOQUE.find((option) => option.value === tipo)?.label ?? 'Insumo de produção';
 }
 
+export function getInsumoUnidadePadraoPorTipo(tipo: InsumoTipoEstoque): InsumoUnidade {
+  return tipo === 'embalagem' ? 'un' : 'g';
+}
+
 export function isInsumoUnidadePadrao(unidade: string): unidade is InsumoUnidade {
   return INSUMO_UNIDADES.some((option) => option.value === unidade);
 }

@@ -4,6 +4,7 @@ import {
   buildInsumoCadastroDefaults,
   getInsumoTipoEstoqueLabel,
   getInsumoQuantidadePlaceholder,
+  getInsumoUnidadePadraoPorTipo,
   getInsumoUnidadeLabel,
   isInsumoTipoEstoque,
   isInsumoUnidadePadrao,
@@ -37,6 +38,11 @@ test('getInsumoTipoEstoqueLabel returns friendly stock type labels', () => {
   assert.equal(getInsumoTipoEstoqueLabel('producao'), 'Insumo de produção');
   assert.equal(getInsumoTipoEstoqueLabel('embalagem'), 'Embalagem');
   assert.equal(getInsumoTipoEstoqueLabel(null), 'Insumo de produção');
+});
+
+test('getInsumoUnidadePadraoPorTipo defaults packaging to units', () => {
+  assert.equal(getInsumoUnidadePadraoPorTipo('producao'), 'g');
+  assert.equal(getInsumoUnidadePadraoPorTipo('embalagem'), 'un');
 });
 
 test('buildInsumoCadastroDefaults creates stock-neutral cadastro data', () => {
