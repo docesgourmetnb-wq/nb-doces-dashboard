@@ -117,15 +117,12 @@ function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry } = useInsumos();
   const { fornecedores } = useFornecedores();
   const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
+  const [purchaseTipoFilter, setPurchaseTipoFilter] = useState<InsumoTipoFilter>('todos');
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
   const [insumoSearch, setInsumoSearch] = useState('');
   const [insumoStockFilter, setInsumoStockFilter] = useState<InsumoStockFilter>('todos');
   const [insumoTipoFilter, setInsumoTipoFilter] = useState<InsumoTipoFilter>('todos');
   const [insumoSort, setInsumoSort] = useState<InsumoSortOption>('nome');
-  const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
-    fornecedorId: purchaseFornecedorFilter,
-    insumoId: purchaseInsumoFilter,
-  });
   const { entries: stockReferenceEntries, refetch: refetchStockReferenceEntries } = useInsumoPurchaseEntries({ limit: 1000 });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -153,6 +150,19 @@ function InsumosTab() {
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
   const insumosPorId = useMemo(() => new Map(insumos.map((insumo) => [insumo.id, insumo])), [insumos]);
   const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
+  const purchaseFilterInsumos = useMemo(
+    () => insumos.filter((insumo) => purchaseTipoFilter === 'todos' || (insumo.tipo_estoque ?? 'producao') === purchaseTipoFilter),
+    [insumos, purchaseTipoFilter],
+  );
+  const purchaseTipoInsumoIds = useMemo(
+    () => (purchaseTipoFilter === 'todos' ? undefined : purchaseFilterInsumos.map((insumo) => insumo.id)),
+    [purchaseFilterInsumos, purchaseTipoFilter],
+  );
+  const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
+    fornecedorId: purchaseFornecedorFilter,
+    insumoId: purchaseInsumoFilter,
+    insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
+  });
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
     const filtered = insumos.filter((insumo) => {
@@ -202,11 +212,12 @@ function InsumosTab() {
   ), [insumos, stockReferenceEntries]);
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
-  const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
+  const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseTipoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoTipoFilter !== 'todos' || insumoSort !== 'nome';
 
   const handleClearPurchaseFilters = () => {
     setPurchaseInsumoFilter('todos');
+    setPurchaseTipoFilter('todos');
     setPurchaseFornecedorFilter('todos');
   };
 
@@ -749,7 +760,29 @@ function InsumosTab() {
               Histórico das últimas entradas registradas no estoque. Pode ser compra ou ajuste de saldo antigo.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[640px] lg:grid-cols-[1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[760px] lg:grid-cols-[1fr_1fr_1fr_auto]">
+            <div className="space-y-1.5">
+              <Label htmlFor="purchase-tipo-filter" className="text-xs text-muted-foreground">Filtrar entradas por tipo</Label>
+              <Select
+                value={purchaseTipoFilter}
+                onValueChange={(value) => {
+                  setPurchaseTipoFilter(value as InsumoTipoFilter);
+                  setPurchaseInsumoFilter('todos');
+                }}
+              >
+                <SelectTrigger id="purchase-tipo-filter">
+                  <SelectValue placeholder="Todos os tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os tipos</SelectItem>
+                  {INSUMO_TIPOS_ESTOQUE.map((tipo) => (
+                    <SelectItem key={tipo.value} value={tipo.value}>
+                      {tipo.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar entradas por item</Label>
               <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
@@ -758,7 +791,7 @@ function InsumosTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os itens</SelectItem>
-                  {insumos.map((insumo) => (
+                  {purchaseFilterInsumos.map((insumo) => (
                     <SelectItem key={insumo.id} value={insumo.id}>{insumo.nome}</SelectItem>
                   ))}
                 </SelectContent>
@@ -816,7 +849,7 @@ function InsumosTab() {
                   <div>
                     <p className="font-medium text-foreground">{insumo?.nome || 'Item removido'}</p>
                     <p className="text-sm text-muted-foreground">
-                      {fornecedor?.nome || 'Sem fornecedor'} • {dataCompraLabel}
+                      {getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • {fornecedor?.nome || 'Sem fornecedor'} • {dataCompraLabel}
                     </p>
                   </div>
                   <div className="text-sm md:text-right">
