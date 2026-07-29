@@ -21,6 +21,7 @@ export interface InsumoPurchaseEntry {
 
 interface UseInsumoPurchaseEntriesFilters {
   insumoId?: string;
+  insumoIds?: string[] | undefined;
   fornecedorId?: string;
   limit?: number;
 }
@@ -34,7 +35,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { fornecedorId = 'todos', insumoId = 'todos', limit = 25 } = filters;
+  const { fornecedorId = 'todos', insumoId = 'todos', insumoIds, limit = 25 } = filters;
 
   const fetchEntries = useCallback(async () => {
     if (!user) {
@@ -45,6 +46,12 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
 
     try {
       setLoading(true);
+
+      if (insumoId === 'todos' && insumoIds && insumoIds.length === 0) {
+        setEntries([]);
+        return;
+      }
+
       let query = supabase
         .from('insumo_purchase_entries')
         .select('*')
@@ -54,6 +61,8 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
 
       if (insumoId !== 'todos') {
         query = query.eq('insumo_id', insumoId);
+      } else if (insumoIds && insumoIds.length > 0) {
+        query = query.in('insumo_id', insumoIds);
       }
 
       if (fornecedorId === 'sem-fornecedor') {
@@ -75,7 +84,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
     } finally {
       setLoading(false);
     }
-  }, [fornecedorId, insumoId, limit, toast, user]);
+  }, [fornecedorId, insumoId, insumoIds, limit, toast, user]);
 
   useEffect(() => {
     fetchEntries();
