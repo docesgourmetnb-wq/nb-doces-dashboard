@@ -88,6 +88,7 @@ type InsumoEntryMode = 'embalagens' | 'quantidade';
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
 type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
 type InsumoTipoFilter = 'todos' | InsumoTipoEstoque;
+type InsumoMovementFilter = 'todos' | 'entrada' | 'saida';
 type InsumoPaymentOriginFilter = 'todos' | 'sem_valor' | 'caixa' | 'fora_caixa';
 type InsumoStockMovement = {
   id: string;
@@ -144,6 +145,7 @@ function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<
 function InsumosTab() {
   const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry, registerInsumoManualExit } = useInsumos();
   const { fornecedores } = useFornecedores();
+  const [purchaseMovementFilter, setPurchaseMovementFilter] = useState<InsumoMovementFilter>('todos');
   const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
   const [purchaseTipoFilter, setPurchaseTipoFilter] = useState<InsumoTipoFilter>('todos');
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
@@ -205,14 +207,17 @@ function InsumosTab() {
     insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
     origemPagamento: purchasePaymentOriginFilter,
   });
-  const shouldShowManualExits = purchaseFornecedorFilter === 'todos' && purchasePaymentOriginFilter === 'todos';
+  const shouldShowPurchaseEntries = purchaseMovementFilter !== 'saida';
+  const shouldShowManualExits = purchaseMovementFilter !== 'entrada'
+    && purchaseFornecedorFilter === 'todos'
+    && purchasePaymentOriginFilter === 'todos';
   const { exits: manualExits, loading: manualExitsLoading, refetch: refetchManualExits } = useInsumoManualExits({
     enabled: shouldShowManualExits,
     insumoId: purchaseInsumoFilter,
     insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
   });
   const stockMovements = useMemo<InsumoStockMovement[]>(() => {
-    const entryMovements: InsumoStockMovement[] = purchaseEntries.map((entry) => ({
+    const entryMovements: InsumoStockMovement[] = shouldShowPurchaseEntries ? purchaseEntries.map((entry) => ({
       id: `entrada-${entry.id}`,
       tipo: 'entrada',
       createdAt: entry.created_at,
@@ -226,7 +231,7 @@ function InsumosTab() {
       precoUnitario: entry.preco_unitario,
       origemPagamento: entry.origem_pagamento ?? null,
       motivo: null,
-    }));
+    })) : [];
     const exitMovements: InsumoStockMovement[] = shouldShowManualExits
       ? manualExits.map((exit) => ({
         id: `saida-${exit.id}`,
@@ -248,8 +253,8 @@ function InsumosTab() {
     return [...entryMovements, ...exitMovements]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 25);
-  }, [manualExits, purchaseEntries, shouldShowManualExits]);
-  const stockMovementsLoading = purchaseEntriesLoading || (shouldShowManualExits && manualExitsLoading);
+  }, [manualExits, purchaseEntries, shouldShowManualExits, shouldShowPurchaseEntries]);
+  const stockMovementsLoading = (shouldShowPurchaseEntries && purchaseEntriesLoading) || (shouldShowManualExits && manualExitsLoading);
   const stockReferenceByInsumoId = useMemo(() => {
     const references = new Map<string, { quantidade_embalagens: number | null; conteudo_por_embalagem: number }>();
 
@@ -324,16 +329,27 @@ function InsumosTab() {
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
   const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos'
+    || purchaseMovementFilter !== 'todos'
     || purchaseTipoFilter !== 'todos'
     || purchaseFornecedorFilter !== 'todos'
     || purchasePaymentOriginFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoTipoFilter !== 'todos' || insumoSort !== 'nome';
 
   const handleClearPurchaseFilters = () => {
+    setPurchaseMovementFilter('todos');
     setPurchaseInsumoFilter('todos');
     setPurchaseTipoFilter('todos');
     setPurchaseFornecedorFilter('todos');
     setPurchasePaymentOriginFilter('todos');
+  };
+
+  const handlePurchaseMovementFilterChange = (value: InsumoMovementFilter) => {
+    setPurchaseMovementFilter(value);
+
+    if (value === 'saida') {
+      setPurchaseFornecedorFilter('todos');
+      setPurchasePaymentOriginFilter('todos');
+    }
   };
 
   const handleClearInsumoFilters = () => {
@@ -1107,9 +1123,25 @@ function InsumosTab() {
               Entradas e baixas manuais registradas no estoque. O saldo consolidado fica em Estoque atual.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-tipo-filter" className="text-xs text-muted-foreground">Tipo</Label>
+              <Label htmlFor="purchase-movement-filter" className="text-xs text-muted-foreground">Movimento</Label>
+              <Select
+                value={purchaseMovementFilter}
+                onValueChange={(value) => handlePurchaseMovementFilterChange(value as InsumoMovementFilter)}
+              >
+                <SelectTrigger id="purchase-movement-filter">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  <SelectItem value="entrada">Entradas</SelectItem>
+                  <SelectItem value="saida">Saídas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="purchase-tipo-filter" className="text-xs text-muted-foreground">Categoria</Label>
               <Select
                 value={purchaseTipoFilter}
                 onValueChange={(value) => {
