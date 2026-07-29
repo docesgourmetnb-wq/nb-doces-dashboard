@@ -277,6 +277,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           insumo_id: string
+          origem_pagamento: string
           preco_unitario: number
           quantidade: number
           quantidade_embalagens: number | null
@@ -292,6 +293,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           insumo_id: string
+          origem_pagamento?: string
           preco_unitario?: number
           quantidade: number
           quantidade_embalagens?: number | null
@@ -307,6 +309,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           insumo_id?: string
+          origem_pagamento?: string
           preco_unitario?: number
           quantidade?: number
           quantidade_embalagens?: number | null
@@ -1267,6 +1270,7 @@ export type Database = {
           p_conteudo_por_embalagem?: number | null
           p_data_compra?: string | null
           p_fornecedor_id?: string | null
+          p_gerar_saida_financeira?: boolean
           p_insumo_id: string
           p_quantidade: number
           p_quantidade_embalagens?: number | null

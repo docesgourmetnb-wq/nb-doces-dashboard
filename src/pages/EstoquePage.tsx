@@ -104,6 +104,12 @@ function formatCurrencyBRLPrecise(value: number) {
   return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 }
 
+function getInsumoEntryPaymentOriginLabel(origem: string | null | undefined) {
+  if (origem === 'caixa') return 'Caixa da empresa';
+  if (origem === 'fora_caixa') return 'Fora do caixa';
+  return 'Sem valor';
+}
+
 function sortByProdutoNomeETamanho<T extends ProdutoCategoriaInput>(a: T, b: T) {
   const nomeBaseCompare = getProdutoNomeComercial(a).localeCompare(getProdutoNomeComercial(b), 'pt-BR');
   if (nomeBaseCompare !== 0) return nomeBaseCompare;
@@ -154,6 +160,7 @@ function InsumosTab() {
     conteudo_por_embalagem: '',
     quantidade_total: '',
     valor_total: '',
+    origem_pagamento: 'fora_caixa',
     data_compra: '',
     fornecedor_id: 'sem-fornecedor',
   });
@@ -308,6 +315,7 @@ function InsumosTab() {
       conteudo_por_embalagem: '',
       quantidade_total: '',
       valor_total: '',
+      origem_pagamento: 'fora_caixa',
       data_compra: '',
       fornecedor_id: 'sem-fornecedor',
     });
@@ -429,6 +437,7 @@ function InsumosTab() {
         entryFormData.fornecedor_id === 'sem-fornecedor' ? null : entryFormData.fornecedor_id,
         quantidadeEmbalagensRegistro,
         conteudoPorEmbalagemRegistro,
+        entryFormData.origem_pagamento === 'caixa',
       );
       if (updatedInsumo) {
         await Promise.all([refetchPurchaseEntries(), refetchStockReferenceEntries()]);
@@ -810,9 +819,29 @@ function InsumosTab() {
                 />
                 {entryErrors.valor_total && <p id="insumo-entry-valor-error" className="text-xs text-destructive">{entryErrors.valor_total}</p>}
                 <p className="text-xs text-muted-foreground">
-                  Se informado, o valor gera uma saída em Financeiro. Para estoque antigo sem data, deixe em branco.
+                  Informe quando quiser guardar custo real do estoque.
                 </p>
               </div>
+              {entryFormData.valor_total.trim() && parseDecimalInput(entryFormData.valor_total) > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-entry-origem-pagamento">Origem do pagamento</Label>
+                  <Select
+                    value={entryFormData.origem_pagamento}
+                    onValueChange={(value) => setEntryFormData({ ...entryFormData, origem_pagamento: value })}
+                  >
+                    <SelectTrigger id="insumo-entry-origem-pagamento">
+                      <SelectValue placeholder="Selecione a origem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fora_caixa">Fora do caixa</SelectItem>
+                      <SelectItem value="caixa">Caixa da empresa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Fora do caixa valoriza o estoque, mas não registra despesa no Financeiro.
+                  </p>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="insumo-entry-data">Data da compra</Label>
@@ -1116,6 +1145,9 @@ function InsumosTab() {
                     <p className="font-medium text-foreground">{formatCurrencyBRL(entry.valor_total)}</p>
                     <p className="text-muted-foreground">
                       {formatCurrencyBRLPrecise(entry.preco_unitario)} / {entry.unidade}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {getInsumoEntryPaymentOriginLabel(entry.origem_pagamento)}
                     </p>
                   </div>
                 </div>

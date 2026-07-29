@@ -16,6 +16,7 @@ export interface InsumoPurchaseEntry {
   preco_unitario: number;
   data_compra: string | null;
   transacao_referencia: string | null;
+  origem_pagamento?: 'sem_valor' | 'caixa' | 'fora_caixa';
   created_at: string;
 }
 
