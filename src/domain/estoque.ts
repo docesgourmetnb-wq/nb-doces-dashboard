@@ -77,3 +77,68 @@ export function calculateInsumoPackageEquivalent(quantidadeAtual: number, conteu
 
   return quantidadeAtual / conteudoPorEmbalagem;
 }
+
+export interface InsumoStockValueInput {
+  id: string;
+  quantidadeAtual: number;
+}
+
+export interface InsumoPurchaseValueInput {
+  insumoId: string;
+  quantidade: number;
+  valorTotal: number;
+}
+
+export function summarizeKnownInsumoStockValue(
+  insumos: InsumoStockValueInput[],
+  purchaseEntries: InsumoPurchaseValueInput[],
+) {
+  const knownPurchasesByInsumo = new Map<string, { quantidade: number; valorTotal: number }>();
+
+  purchaseEntries.forEach((entry) => {
+    if (
+      !Number.isFinite(entry.quantidade)
+      || entry.quantidade <= 0
+      || !Number.isFinite(entry.valorTotal)
+      || entry.valorTotal <= 0
+    ) {
+      return;
+    }
+
+    const current = knownPurchasesByInsumo.get(entry.insumoId) ?? { quantidade: 0, valorTotal: 0 };
+    knownPurchasesByInsumo.set(entry.insumoId, {
+      quantidade: current.quantidade + entry.quantidade,
+      valorTotal: current.valorTotal + entry.valorTotal,
+    });
+  });
+
+  return insumos.reduce(
+    (summary, insumo) => {
+      if (!Number.isFinite(insumo.quantidadeAtual) || insumo.quantidadeAtual <= 0) {
+        return summary;
+      }
+
+      const knownPurchase = knownPurchasesByInsumo.get(insumo.id);
+
+      if (!knownPurchase || knownPurchase.quantidade <= 0 || knownPurchase.valorTotal <= 0) {
+        return {
+          ...summary,
+          insumosComSaldoSemCusto: summary.insumosComSaldoSemCusto + 1,
+        };
+      }
+
+      const custoMedioConhecido = knownPurchase.valorTotal / knownPurchase.quantidade;
+      const quantidadeComCustoConhecido = Math.min(insumo.quantidadeAtual, knownPurchase.quantidade);
+      const hasSaldoSemCusto = insumo.quantidadeAtual > knownPurchase.quantidade;
+
+      return {
+        valorConhecido: summary.valorConhecido + (quantidadeComCustoConhecido * custoMedioConhecido),
+        insumosComSaldoSemCusto: summary.insumosComSaldoSemCusto + (hasSaldoSemCusto ? 1 : 0),
+      };
+    },
+    {
+      valorConhecido: 0,
+      insumosComSaldoSemCusto: 0,
+    },
+  );
+}
