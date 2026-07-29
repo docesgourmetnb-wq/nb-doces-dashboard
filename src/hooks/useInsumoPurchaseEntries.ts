@@ -24,6 +24,7 @@ interface UseInsumoPurchaseEntriesFilters {
   insumoId?: string;
   insumoIds?: string[] | undefined;
   fornecedorId?: string;
+  origemPagamento?: 'todos' | 'sem_valor' | 'caixa' | 'fora_caixa';
   limit?: number;
 }
 
@@ -36,7 +37,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { fornecedorId = 'todos', insumoId = 'todos', insumoIds, limit = 25 } = filters;
+  const { fornecedorId = 'todos', insumoId = 'todos', insumoIds, origemPagamento = 'todos', limit = 25 } = filters;
 
   const fetchEntries = useCallback(async () => {
     if (!user) {
@@ -72,6 +73,10 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
         query = query.eq('fornecedor_id', fornecedorId);
       }
 
+      if (origemPagamento !== 'todos') {
+        query = query.eq('origem_pagamento', origemPagamento);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -85,7 +90,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
     } finally {
       setLoading(false);
     }
-  }, [fornecedorId, insumoId, insumoIds, limit, toast, user]);
+  }, [fornecedorId, insumoId, insumoIds, limit, origemPagamento, toast, user]);
 
   useEffect(() => {
     fetchEntries();
