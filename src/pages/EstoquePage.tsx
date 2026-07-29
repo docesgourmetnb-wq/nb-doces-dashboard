@@ -51,6 +51,7 @@ import {
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
   getInsumoStockStatus,
+  summarizeKnownInsumoStockValue,
 } from '@/domain/estoque';
 import {
   INSUMO_UNIDADES,
@@ -115,7 +116,7 @@ function InsumosTab() {
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
   });
-  const { entries: packageReferenceEntries, refetch: refetchPackageReferenceEntries } = useInsumoPurchaseEntries({ limit: 200 });
+  const { entries: stockReferenceEntries, refetch: refetchStockReferenceEntries } = useInsumoPurchaseEntries({ limit: 1000 });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
@@ -144,7 +145,7 @@ function InsumosTab() {
   const embalagemReferenciaPorInsumoId = useMemo(() => {
     const referencias = new Map<string, { conteudoPorEmbalagem: number }>();
 
-    packageReferenceEntries.forEach((entry) => {
+    stockReferenceEntries.forEach((entry) => {
       if (!entry.conteudo_por_embalagem || referencias.has(entry.insumo_id)) return;
 
       referencias.set(entry.insumo_id, {
@@ -153,7 +154,7 @@ function InsumosTab() {
     });
 
     return referencias;
-  }, [packageReferenceEntries]);
+  }, [stockReferenceEntries]);
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
     const filtered = insumos.filter((insumo) => {
@@ -186,7 +187,19 @@ function InsumosTab() {
   }, [insumoSearch, insumoSort, insumoStockFilter, insumos]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
-  const valorTotalEstoque = insumos.reduce((acc, i) => acc + (i.quantidade_atual * i.preco_unitario), 0);
+  const stockValueSummary = useMemo(() => summarizeKnownInsumoStockValue(
+    insumos.map((insumo) => ({
+      id: insumo.id,
+      quantidadeAtual: insumo.quantidade_atual,
+    })),
+    stockReferenceEntries.map((entry) => ({
+      insumoId: entry.insumo_id,
+      quantidade: entry.quantidade,
+      valorTotal: entry.valor_total,
+    })),
+  ), [insumos, stockReferenceEntries]);
+  const valorConhecidoEstoque = stockValueSummary.valorConhecido;
+  const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
   const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoSort !== 'nome';
 
@@ -341,7 +354,7 @@ function InsumosTab() {
         conteudoPorEmbalagemRegistro,
       );
       if (updatedInsumo) {
-        await Promise.all([refetchPurchaseEntries(), refetchPackageReferenceEntries()]);
+        await Promise.all([refetchPurchaseEntries(), refetchStockReferenceEntries()]);
         setEntryDialogOpen(false);
       }
     } finally {
@@ -670,8 +683,13 @@ function InsumosTab() {
           <div><p className="text-sm text-muted-foreground">Em Falta</p><p className="text-2xl font-display font-semibold">{insumosEmFalta.length}</p></div>
         </button>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <p className="text-sm text-muted-foreground">Valor do Estoque</p>
-          <p className="text-2xl font-display font-semibold mt-1">{formatCurrencyBRL(valorTotalEstoque)}</p>
+          <p className="text-sm text-muted-foreground">Valor conhecido do estoque</p>
+          <p className="text-2xl font-display font-semibold mt-1">{formatCurrencyBRL(valorConhecidoEstoque)}</p>
+          {hasSaldoSemCusto && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Há saldo físico sem custo de compra informado.
+            </p>
+          )}
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import {
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
   getInsumoStockStatus,
+  summarizeKnownInsumoStockValue,
 } from './estoque.ts';
 
 test('getInsumoStockStatus ignores alerts when minimum stock is not defined', () => {
@@ -51,4 +52,46 @@ test('calculateInsumoPackageEquivalent derives package count from current stock'
 test('calculateInsumoPackageEquivalent ignores invalid package references', () => {
   assert.equal(calculateInsumoPackageEquivalent(5530, 0), null);
   assert.equal(calculateInsumoPackageEquivalent(-1, 395), null);
+});
+
+test('summarizeKnownInsumoStockValue keeps historical stock without cost valued as zero', () => {
+  assert.deepEqual(
+    summarizeKnownInsumoStockValue(
+      [{ id: 'leite-condensado', quantidadeAtual: 10000 }],
+      [{ insumoId: 'leite-condensado', quantidade: 10000, valorTotal: 0 }],
+    ),
+    {
+      valorConhecido: 0,
+      insumosComSaldoSemCusto: 1,
+    },
+  );
+});
+
+test('summarizeKnownInsumoStockValue values only entries with real purchase cost', () => {
+  assert.deepEqual(
+    summarizeKnownInsumoStockValue(
+      [{ id: 'leite-condensado', quantidadeAtual: 11000 }],
+      [
+        { insumoId: 'leite-condensado', quantidade: 10000, valorTotal: 0 },
+        { insumoId: 'leite-condensado', quantidade: 1000, valorTotal: 20 },
+      ],
+    ),
+    {
+      valorConhecido: 20,
+      insumosComSaldoSemCusto: 1,
+    },
+  );
+});
+
+test('summarizeKnownInsumoStockValue caps known value by current physical stock', () => {
+  assert.deepEqual(
+    summarizeKnownInsumoStockValue(
+      [{ id: 'cacau', quantidadeAtual: 500 }],
+      [{ insumoId: 'cacau', quantidade: 1000, valorTotal: 40 }],
+    ),
+    {
+      valorConhecido: 20,
+      insumosComSaldoSemCusto: 0,
+    },
+  );
 });
