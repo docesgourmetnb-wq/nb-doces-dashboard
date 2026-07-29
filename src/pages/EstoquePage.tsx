@@ -87,6 +87,7 @@ type InsumoEntryMode = 'embalagens' | 'quantidade';
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
 type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
 type InsumoTipoFilter = 'todos' | InsumoTipoEstoque;
+type InsumoPaymentOriginFilter = 'todos' | 'sem_valor' | 'caixa' | 'fora_caixa';
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
@@ -130,6 +131,7 @@ function InsumosTab() {
   const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
   const [purchaseTipoFilter, setPurchaseTipoFilter] = useState<InsumoTipoFilter>('todos');
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
+  const [purchasePaymentOriginFilter, setPurchasePaymentOriginFilter] = useState<InsumoPaymentOriginFilter>('todos');
   const [insumoSearch, setInsumoSearch] = useState('');
   const [insumoStockFilter, setInsumoStockFilter] = useState<InsumoStockFilter>('todos');
   const [insumoTipoFilter, setInsumoTipoFilter] = useState<InsumoTipoFilter>('todos');
@@ -185,6 +187,7 @@ function InsumosTab() {
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
     insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
+    origemPagamento: purchasePaymentOriginFilter,
   });
   const stockReferenceByInsumoId = useMemo(() => {
     const references = new Map<string, { quantidade_embalagens: number | null; conteudo_por_embalagem: number }>();
@@ -259,13 +262,17 @@ function InsumosTab() {
   ), [insumos, stockReferenceEntries]);
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
-  const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseTipoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
+  const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos'
+    || purchaseTipoFilter !== 'todos'
+    || purchaseFornecedorFilter !== 'todos'
+    || purchasePaymentOriginFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoTipoFilter !== 'todos' || insumoSort !== 'nome';
 
   const handleClearPurchaseFilters = () => {
     setPurchaseInsumoFilter('todos');
     setPurchaseTipoFilter('todos');
     setPurchaseFornecedorFilter('todos');
+    setPurchasePaymentOriginFilter('todos');
   };
 
   const handleClearInsumoFilters = () => {
@@ -1039,7 +1046,7 @@ function InsumosTab() {
               Lançamentos de compra ou ajuste inicial. O saldo consolidado fica em Estoque atual.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[760px] lg:grid-cols-[1fr_1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[900px] lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
             <div className="space-y-1.5">
               <Label htmlFor="purchase-tipo-filter" className="text-xs text-muted-foreground">Filtrar entradas por tipo</Label>
               <Select
@@ -1088,6 +1095,23 @@ function InsumosTab() {
                   {fornecedores.map((fornecedor) => (
                     <SelectItem key={fornecedor.id} value={fornecedor.id}>{fornecedor.nome}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="purchase-origin-filter" className="text-xs text-muted-foreground">Filtrar entradas por origem</Label>
+              <Select
+                value={purchasePaymentOriginFilter}
+                onValueChange={(value) => setPurchasePaymentOriginFilter(value as InsumoPaymentOriginFilter)}
+              >
+                <SelectTrigger id="purchase-origin-filter">
+                  <SelectValue placeholder="Todas as origens" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas as origens</SelectItem>
+                  <SelectItem value="sem_valor">Sem valor</SelectItem>
+                  <SelectItem value="fora_caixa">Fora do caixa</SelectItem>
+                  <SelectItem value="caixa">Caixa da empresa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
