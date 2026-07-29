@@ -5,6 +5,7 @@ import { useEstoqueMassas, EstoqueMassa } from '@/hooks/useEstoqueMassas';
 import { useEstoqueProdutos, EstoqueProduto } from '@/hooks/useEstoqueProdutos';
 import { Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useFornecedores } from '@/hooks/useFornecedores';
+import { useInsumoManualExits } from '@/hooks/useInsumoManualExits';
 import { useInsumoPurchaseEntries } from '@/hooks/useInsumoPurchaseEntries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,21 @@ type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
 type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
 type InsumoTipoFilter = 'todos' | InsumoTipoEstoque;
 type InsumoPaymentOriginFilter = 'todos' | 'sem_valor' | 'caixa' | 'fora_caixa';
+type InsumoStockMovement = {
+  id: string;
+  tipo: 'entrada' | 'saida';
+  createdAt: string;
+  insumoId: string;
+  quantidade: number;
+  unidade: string;
+  conteudoPorEmbalagem: number | null;
+  fornecedorId: string | null;
+  dataCompra: string | null;
+  valorTotal: number | null;
+  precoUnitario: number | null;
+  origemPagamento: string | null;
+  motivo: string | null;
+};
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
@@ -189,6 +205,51 @@ function InsumosTab() {
     insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
     origemPagamento: purchasePaymentOriginFilter,
   });
+  const shouldShowManualExits = purchaseFornecedorFilter === 'todos' && purchasePaymentOriginFilter === 'todos';
+  const { exits: manualExits, loading: manualExitsLoading, refetch: refetchManualExits } = useInsumoManualExits({
+    enabled: shouldShowManualExits,
+    insumoId: purchaseInsumoFilter,
+    insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
+  });
+  const stockMovements = useMemo<InsumoStockMovement[]>(() => {
+    const entryMovements: InsumoStockMovement[] = purchaseEntries.map((entry) => ({
+      id: `entrada-${entry.id}`,
+      tipo: 'entrada',
+      createdAt: entry.created_at,
+      insumoId: entry.insumo_id,
+      quantidade: entry.quantidade,
+      unidade: entry.unidade,
+      conteudoPorEmbalagem: entry.conteudo_por_embalagem,
+      fornecedorId: entry.fornecedor_id,
+      dataCompra: entry.data_compra,
+      valorTotal: entry.valor_total,
+      precoUnitario: entry.preco_unitario,
+      origemPagamento: entry.origem_pagamento ?? null,
+      motivo: null,
+    }));
+    const exitMovements: InsumoStockMovement[] = shouldShowManualExits
+      ? manualExits.map((exit) => ({
+        id: `saida-${exit.id}`,
+        tipo: 'saida',
+        createdAt: exit.created_at,
+        insumoId: exit.insumo_id,
+        quantidade: exit.quantidade,
+        unidade: exit.unidade,
+        conteudoPorEmbalagem: null,
+        fornecedorId: null,
+        dataCompra: null,
+        valorTotal: null,
+        precoUnitario: null,
+        origemPagamento: null,
+        motivo: exit.motivo,
+      }))
+      : [];
+
+    return [...entryMovements, ...exitMovements]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 25);
+  }, [manualExits, purchaseEntries, shouldShowManualExits]);
+  const stockMovementsLoading = purchaseEntriesLoading || (shouldShowManualExits && manualExitsLoading);
   const stockReferenceByInsumoId = useMemo(() => {
     const references = new Map<string, { quantidade_embalagens: number | null; conteudo_por_embalagem: number }>();
 
@@ -505,7 +566,7 @@ function InsumosTab() {
         exitFormData.motivo.trim() || null,
       );
       if (updatedInsumo) {
-        await Promise.all([refetchPurchaseEntries(), refetchStockReferenceEntries()]);
+        await Promise.all([refetchManualExits(), refetchPurchaseEntries(), refetchStockReferenceEntries()]);
         setExitDialogOpen(false);
       }
     } finally {
@@ -1041,9 +1102,9 @@ function InsumosTab() {
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <div className="mb-4 space-y-4">
           <div>
-            <h3 className="font-display font-semibold text-lg">Histórico de entradas</h3>
+            <h3 className="font-display font-semibold text-lg">Movimentações recentes</h3>
             <p className="text-sm text-muted-foreground">
-              Lançamentos de compra ou ajuste inicial. O saldo consolidado fica em Estoque atual.
+              Entradas e baixas manuais registradas no estoque. O saldo consolidado fica em Estoque atual.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
@@ -1124,55 +1185,80 @@ function InsumosTab() {
             )}
           </div>
         </div>
-        {purchaseEntriesLoading ? (
+        {stockMovementsLoading ? (
           <div className="py-6 text-center text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-            Carregando entradas...
+            Carregando movimentações...
           </div>
-        ) : purchaseEntries.length === 0 ? (
+        ) : stockMovements.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground text-center">
-            Nenhuma entrada encontrada para os filtros atuais.
+            Nenhuma movimentação encontrada para os filtros atuais.
           </p>
         ) : (
           <div className="divide-y divide-border">
-            {purchaseEntries.map((entry) => {
-              const insumo = insumosPorId.get(entry.insumo_id);
-              const fornecedor = entry.fornecedor_id ? fornecedoresPorId.get(entry.fornecedor_id) : null;
-              const entryPackageReferenceLabel = entry.conteudo_por_embalagem
-                ? formatInsumoPackageReference(entry.quantidade, entry.conteudo_por_embalagem, entry.unidade, {
+            {stockMovements.map((movement) => {
+              const insumo = insumosPorId.get(movement.insumoId);
+              const fornecedor = movement.fornecedorId ? fornecedoresPorId.get(movement.fornecedorId) : null;
+              const packageReferenceLabel = movement.conteudoPorEmbalagem
+                ? formatInsumoPackageReference(movement.quantidade, movement.conteudoPorEmbalagem, movement.unidade, {
                   includeAvailableQuantity: false,
                 })
                 : null;
-              const dataCompraLabel = entry.data_compra
-                ? formatLocalDate(entry.data_compra, 'dd/MM/yyyy')
+              const dataCompraLabel = movement.dataCompra
+                ? formatLocalDate(movement.dataCompra, 'dd/MM/yyyy')
                 : 'Sem data de compra';
+              const movementKindLabel = movement.tipo === 'entrada' ? 'Entrada' : 'Saída';
+              const movementDateLabel = formatLocalDate(movement.createdAt, 'dd/MM/yyyy HH:mm');
 
               return (
-                <div key={entry.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 py-3">
+                <div key={movement.id} className="grid grid-cols-1 gap-3 py-3 md:grid-cols-[1fr_auto_auto]">
                   <div>
-                    <p className="font-medium text-foreground">{insumo?.nome || 'Item removido'}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-foreground">{insumo?.nome || 'Item removido'}</p>
+                      <span
+                        className={cn(
+                          'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                          movement.tipo === 'entrada'
+                            ? 'bg-success/10 text-success'
+                            : 'bg-destructive/10 text-destructive',
+                        )}
+                      >
+                        {movementKindLabel}
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">
-                      {getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • {fornecedor?.nome || 'Sem fornecedor'} • {dataCompraLabel}
+                      {movement.tipo === 'entrada'
+                        ? `${getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • ${fornecedor?.nome || 'Sem fornecedor'} • ${dataCompraLabel}`
+                        : `${getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • ${movement.motivo || 'Saída manual'} • ${movementDateLabel}`}
                     </p>
                   </div>
                   <div className="text-sm md:text-right">
-                    <p className="font-medium text-foreground">
-                      {formatInsumoQuantidade(entry.quantidade)} {entry.unidade}
+                    <p className={cn('font-medium', movement.tipo === 'entrada' ? 'text-success' : 'text-destructive')}>
+                      {movement.tipo === 'entrada' ? '+' : '-'}{formatInsumoQuantidade(movement.quantidade)} {movement.unidade}
                     </p>
-                    {entryPackageReferenceLabel ? (
-                      <p className="text-muted-foreground">{entryPackageReferenceLabel}</p>
+                    {packageReferenceLabel ? (
+                      <p className="text-muted-foreground">{packageReferenceLabel}</p>
                     ) : (
                       <p className="text-muted-foreground">Quantidade</p>
                     )}
                   </div>
                   <div className="text-sm md:text-right">
-                    <p className="font-medium text-foreground">{formatCurrencyBRL(entry.valor_total)}</p>
-                    <p className="text-muted-foreground">
-                      {formatCurrencyBRLPrecise(entry.preco_unitario)} / {entry.unidade}
-                    </p>
-                    <p className="text-muted-foreground">
-                      {getInsumoEntryPaymentOriginLabel(entry.origem_pagamento)}
-                    </p>
+                    {movement.tipo === 'entrada' ? (
+                      <>
+                        <p className="font-medium text-foreground">{formatCurrencyBRL(movement.valorTotal ?? 0)}</p>
+                        <p className="text-muted-foreground">
+                          {formatCurrencyBRLPrecise(movement.precoUnitario ?? 0)} / {movement.unidade}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {getInsumoEntryPaymentOriginLabel(movement.origemPagamento)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium text-foreground">Baixa manual</p>
+                        <p className="text-muted-foreground">Sem impacto financeiro</p>
+                      </>
+                    )}
                   </div>
                 </div>
               );
