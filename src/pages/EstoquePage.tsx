@@ -60,6 +60,7 @@ import {
   INSUMO_TIPOS_ESTOQUE,
   getInsumoTipoEstoqueLabel,
   getInsumoQuantidadePlaceholder,
+  getInsumoUnidadePadraoPorTipo,
   getInsumoUnidadeLabel,
   isInsumoUnidadePadrao,
   isInsumoTipoEstoque,
@@ -422,8 +423,15 @@ function InsumosTab() {
                   <Select
                     value={formData.tipo_estoque}
                     onValueChange={(value) => {
-                      setFormData({ ...formData, tipo_estoque: value as InsumoTipoEstoque });
-                      if (formErrors.tipo_estoque) setFormErrors({ ...formErrors, tipo_estoque: '' });
+                      const tipoEstoque = value as InsumoTipoEstoque;
+                      setFormData({
+                        ...formData,
+                        tipo_estoque: tipoEstoque,
+                        unidade: getInsumoUnidadePadraoPorTipo(tipoEstoque),
+                      });
+                      if (formErrors.tipo_estoque || formErrors.unidade) {
+                        setFormErrors({ ...formErrors, tipo_estoque: '', unidade: '' });
+                      }
                     }}
                   >
                     <SelectTrigger
