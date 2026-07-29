@@ -35,6 +35,7 @@ interface RegisterInsumoEntryRpc {
       p_fornecedor_id: string | null;
       p_quantidade_embalagens: number | null;
       p_conteudo_por_embalagem: number | null;
+      p_gerar_saida_financeira: boolean;
     },
   ): Promise<{
     data: Partial<Insumo> | null;
@@ -172,6 +173,7 @@ export function useInsumos() {
     fornecedorId: string | null = null,
     quantidadeEmbalagens: number | null = null,
     conteudoPorEmbalagem: number | null = null,
+    gerarSaidaFinanceira = true,
   ) => {
     try {
       const registerEntryRpc = supabase.rpc.bind(supabase) as unknown as RegisterInsumoEntryRpc;
@@ -183,6 +185,7 @@ export function useInsumos() {
         p_fornecedor_id: fornecedorId,
         p_quantidade_embalagens: quantidadeEmbalagens,
         p_conteudo_por_embalagem: conteudoPorEmbalagem,
+        p_gerar_saida_financeira: gerarSaidaFinanceira,
       });
 
       if (error) throw error;
