@@ -1039,16 +1039,16 @@ function InsumosTab() {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-        <div className="flex flex-col gap-4 mb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="mb-4 space-y-4">
           <div>
             <h3 className="font-display font-semibold text-lg">Histórico de entradas</h3>
             <p className="text-sm text-muted-foreground">
               Lançamentos de compra ou ajuste inicial. O saldo consolidado fica em Estoque atual.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[900px] lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-tipo-filter" className="text-xs text-muted-foreground">Filtrar entradas por tipo</Label>
+              <Label htmlFor="purchase-tipo-filter" className="text-xs text-muted-foreground">Tipo</Label>
               <Select
                 value={purchaseTipoFilter}
                 onValueChange={(value) => {
@@ -1070,7 +1070,7 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Filtrar entradas por item</Label>
+              <Label htmlFor="purchase-insumo-filter" className="text-xs text-muted-foreground">Item</Label>
               <Select value={purchaseInsumoFilter} onValueChange={setPurchaseInsumoFilter}>
                 <SelectTrigger id="purchase-insumo-filter">
                   <SelectValue placeholder="Todos os itens" />
@@ -1084,7 +1084,7 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Filtrar entradas por fornecedor</Label>
+              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Fornecedor</Label>
               <Select value={purchaseFornecedorFilter} onValueChange={setPurchaseFornecedorFilter}>
                 <SelectTrigger id="purchase-fornecedor-filter">
                   <SelectValue placeholder="Todos os fornecedores" />
@@ -1099,7 +1099,7 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-origin-filter" className="text-xs text-muted-foreground">Filtrar entradas por origem</Label>
+              <Label htmlFor="purchase-origin-filter" className="text-xs text-muted-foreground">Origem</Label>
               <Select
                 value={purchasePaymentOriginFilter}
                 onValueChange={(value) => setPurchasePaymentOriginFilter(value as InsumoPaymentOriginFilter)}
