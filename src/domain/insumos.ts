@@ -3,6 +3,7 @@ export const INSUMO_UNIDADES = [
   { value: 'kg', label: 'Quilos (kg)', placeholder: 'Ex: 1,5' },
   { value: 'ml', label: 'Mililitros (ml)', placeholder: 'Ex: 50' },
   { value: 'l', label: 'Litros (l)', placeholder: 'Ex: 1' },
+  { value: 'cm', label: 'Centímetros (cm)', placeholder: 'Ex: 150' },
   { value: 'un', label: 'Unidades (un)', placeholder: 'Ex: 12' },
 ] as const;
 
