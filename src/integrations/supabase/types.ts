@@ -231,6 +231,7 @@ export type Database = {
           preco_unitario: number
           quantidade_atual: number
           quantidade_minima: number
+          tipo_estoque: string
           ultima_compra: string | null
           unidade: string
           updated_at: string
@@ -245,6 +246,7 @@ export type Database = {
           preco_unitario?: number
           quantidade_atual?: number
           quantidade_minima?: number
+          tipo_estoque?: string
           ultima_compra?: string | null
           unidade: string
           updated_at?: string
@@ -259,6 +261,7 @@ export type Database = {
           preco_unitario?: number
           quantidade_atual?: number
           quantidade_minima?: number
+          tipo_estoque?: string
           ultima_compra?: string | null
           unidade?: string
           updated_at?: string

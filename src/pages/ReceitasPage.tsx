@@ -193,6 +193,7 @@ export function ReceitasPage() {
         supabase
           .from('insumos')
           .select('id,nome,unidade')
+          .eq('tipo_estoque', 'producao')
           .not('unidade', 'in', '("SYS_MASSA","SYS_PROD")')
           .order('nome'),
       ]);

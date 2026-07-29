@@ -57,13 +57,17 @@ import {
 } from '@/domain/estoque';
 import {
   INSUMO_UNIDADES,
+  INSUMO_TIPOS_ESTOQUE,
+  getInsumoTipoEstoqueLabel,
   getInsumoQuantidadePlaceholder,
   getInsumoUnidadeLabel,
   isInsumoUnidadePadrao,
+  isInsumoTipoEstoque,
+  type InsumoTipoEstoque,
 } from '@/domain/insumos';
 
 type InsumoFormErrors = Partial<Record<
-  'nome' | 'unidade' | 'quantidade_minima',
+  'nome' | 'unidade' | 'quantidade_minima' | 'tipo_estoque',
   string
 >>;
 
@@ -75,6 +79,7 @@ type InsumoEntryErrors = Partial<Record<
 type InsumoEntryMode = 'embalagens' | 'quantidade';
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
 type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
+type InsumoTipoFilter = 'todos' | InsumoTipoEstoque;
 
 function getTamanhoSortValue(tamanho: string | null) {
   return Number(tamanho?.replace(',', '.').replace(/g$/i, '') ?? Number.POSITIVE_INFINITY);
@@ -113,6 +118,7 @@ function InsumosTab() {
   const [purchaseFornecedorFilter, setPurchaseFornecedorFilter] = useState('todos');
   const [insumoSearch, setInsumoSearch] = useState('');
   const [insumoStockFilter, setInsumoStockFilter] = useState<InsumoStockFilter>('todos');
+  const [insumoTipoFilter, setInsumoTipoFilter] = useState<InsumoTipoFilter>('todos');
   const [insumoSort, setInsumoSort] = useState<InsumoSortOption>('nome');
   const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
     fornecedorId: purchaseFornecedorFilter,
@@ -131,6 +137,7 @@ function InsumosTab() {
   const [formData, setFormData] = useState({
     nome: '',
     unidade: 'g',
+    tipo_estoque: 'producao' as InsumoTipoEstoque,
     quantidade_minima: '',
   });
   const [entryFormData, setEntryFormData] = useState({
@@ -154,8 +161,10 @@ function InsumosTab() {
       const matchesStockFilter = insumoStockFilter === 'todos'
         || (insumoStockFilter === 'atencao' && stockStatus.needsAttention)
         || (insumoStockFilter === 'sem-minimo' && stockStatus.status === 'unset');
+      const tipoEstoque = insumo.tipo_estoque ?? 'producao';
+      const matchesTipoFilter = insumoTipoFilter === 'todos' || tipoEstoque === insumoTipoFilter;
 
-      return matchesSearch && matchesStockFilter;
+      return matchesSearch && matchesStockFilter && matchesTipoFilter;
     });
 
     return [...filtered].sort((a, b) => {
@@ -173,9 +182,11 @@ function InsumosTab() {
 
       return a.nome.localeCompare(b.nome, 'pt-BR');
     });
-  }, [insumoSearch, insumoSort, insumoStockFilter, insumos]);
+  }, [insumoSearch, insumoSort, insumoStockFilter, insumoTipoFilter, insumos]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
+  const totalInsumosProducao = insumos.filter((insumo) => (insumo.tipo_estoque ?? 'producao') === 'producao').length;
+  const totalEmbalagens = insumos.filter((insumo) => insumo.tipo_estoque === 'embalagem').length;
   const stockValueSummary = useMemo(() => summarizeKnownInsumoStockValue(
     insumos.map((insumo) => ({
       id: insumo.id,
@@ -190,7 +201,7 @@ function InsumosTab() {
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
   const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
-  const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoSort !== 'nome';
+  const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoTipoFilter !== 'todos' || insumoSort !== 'nome';
 
   const handleClearPurchaseFilters = () => {
     setPurchaseInsumoFilter('todos');
@@ -200,6 +211,7 @@ function InsumosTab() {
   const handleClearInsumoFilters = () => {
     setInsumoSearch('');
     setInsumoStockFilter('todos');
+    setInsumoTipoFilter('todos');
     setInsumoSort('nome');
   };
 
@@ -210,6 +222,7 @@ function InsumosTab() {
   const handleShowInsumosEmFalta = () => {
     setInsumoSearch('');
     setInsumoStockFilter('atencao');
+    setInsumoTipoFilter('todos');
   };
 
   const handleOpenDialog = (insumo?: Insumo) => {
@@ -218,6 +231,7 @@ function InsumosTab() {
       setFormData({
         nome: insumo.nome,
         unidade: insumo.unidade,
+        tipo_estoque: insumo.tipo_estoque ?? 'producao',
         quantidade_minima: insumo.quantidade_minima.toString(),
       });
     } else {
@@ -225,6 +239,7 @@ function InsumosTab() {
       setFormData({
         nome: '',
         unidade: 'g',
+        tipo_estoque: 'producao',
         quantidade_minima: '',
       });
     }
@@ -253,6 +268,7 @@ function InsumosTab() {
 
     if (!formData.nome.trim()) errors.nome = 'Informe o nome do insumo';
     if (!formData.unidade.trim()) errors.unidade = 'Informe a unidade';
+    if (!isInsumoTipoEstoque(formData.tipo_estoque)) errors.tipo_estoque = 'Selecione o tipo de item';
     if (!Number.isFinite(quantidadeMinima) || quantidadeMinima < 0) errors.quantidade_minima = 'Informe uma quantidade mínima válida';
 
     setFormErrors(errors);
@@ -264,12 +280,14 @@ function InsumosTab() {
         await updateInsumo(editingInsumo.id, {
           nome: formData.nome.trim(),
           unidade: formData.unidade,
+          tipo_estoque: formData.tipo_estoque,
           quantidade_minima: quantidadeMinima,
         });
       } else {
         await addInsumo({
           nome: formData.nome.trim(),
           unidade: formData.unidade,
+          tipo_estoque: formData.tipo_estoque,
           quantidade_minima: quantidadeMinima,
         });
       }
@@ -398,6 +416,32 @@ function InsumosTab() {
                     if (formErrors.nome) setFormErrors({ ...formErrors, nome: '' });
                   }} placeholder="Ex: Leite Condensado" aria-invalid={!!formErrors.nome} aria-describedby={formErrors.nome ? 'insumo-nome-error' : undefined} />
                   {formErrors.nome && <p id="insumo-nome-error" className="text-xs text-destructive">{formErrors.nome}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-tipo">Tipo</Label>
+                  <Select
+                    value={formData.tipo_estoque}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, tipo_estoque: value as InsumoTipoEstoque });
+                      if (formErrors.tipo_estoque) setFormErrors({ ...formErrors, tipo_estoque: '' });
+                    }}
+                  >
+                    <SelectTrigger
+                      id="insumo-tipo"
+                      aria-invalid={!!formErrors.tipo_estoque}
+                      aria-describedby={formErrors.tipo_estoque ? 'insumo-tipo-error' : undefined}
+                    >
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INSUMO_TIPOS_ESTOQUE.map((tipo) => (
+                        <SelectItem key={tipo.value} value={tipo.value}>
+                          {tipo.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.tipo_estoque && <p id="insumo-tipo-error" className="text-xs text-destructive">{formErrors.tipo_estoque}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="insumo-unidade">Unidade</Label>
@@ -652,19 +696,25 @@ function InsumosTab() {
           onClick={handleShowAllInsumos}
           className={cn(
             "bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3 text-left transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            insumoStockFilter === 'todos' && !insumoSearch.trim() && "border-primary/50 bg-primary/5"
+            insumoStockFilter === 'todos' && insumoTipoFilter === 'todos' && !insumoSearch.trim() && "border-primary/50 bg-primary/5"
           )}
           aria-label="Mostrar todos os insumos cadastrados"
         >
           <div className="p-2 bg-primary/10 rounded-lg"><Package className="text-primary w-5 h-5" /></div>
-          <div><p className="text-sm text-muted-foreground">Itens Totais</p><p className="text-2xl font-display font-semibold">{insumos.length}</p></div>
+          <div>
+            <p className="text-sm text-muted-foreground">Itens Totais</p>
+            <p className="text-2xl font-display font-semibold">{insumos.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {totalInsumosProducao} produção · {totalEmbalagens} embalagens
+            </p>
+          </div>
         </button>
         <button
           type="button"
           onClick={handleShowInsumosEmFalta}
           className={cn(
             "bg-card border border-border rounded-xl p-5 shadow-sm flex items-center gap-3 text-left transition-colors hover:border-warning/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            insumoStockFilter === 'atencao' && !insumoSearch.trim() && "border-warning/60 bg-warning/10"
+            insumoStockFilter === 'atencao' && insumoTipoFilter === 'todos' && !insumoSearch.trim() && "border-warning/60 bg-warning/10"
           )}
           aria-label="Mostrar insumos que precisam de atenção"
         >
@@ -797,7 +847,7 @@ function InsumosTab() {
                 {filteredInsumos.length} de {insumos.length} insumo{insumos.length === 1 ? '' : 's'}
               </p>
             </div>
-            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-4xl lg:grid-cols-[1fr_180px_190px_auto]">
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_180px] lg:max-w-5xl lg:grid-cols-[1fr_170px_190px_170px_auto]">
               <div className="relative">
                 <Label htmlFor="insumos-search" className="sr-only">Buscar insumos</Label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -819,6 +869,22 @@ function InsumosTab() {
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="atencao">Atenção</SelectItem>
                     <SelectItem value="sem-minimo">Sem mínimo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="insumos-tipo-filter" className="sr-only">Filtrar insumos por tipo</Label>
+                <Select value={insumoTipoFilter} onValueChange={(value) => setInsumoTipoFilter(value as InsumoTipoFilter)}>
+                  <SelectTrigger id="insumos-tipo-filter">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os tipos</SelectItem>
+                    {INSUMO_TIPOS_ESTOQUE.map((tipo) => (
+                      <SelectItem key={tipo.value} value={tipo.value}>
+                        {tipo.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -872,6 +938,9 @@ function InsumosTab() {
                   <div className="flex min-w-0 items-center justify-between gap-3 lg:block">
                     <div className="min-w-0">
                       <h3 className="truncate font-semibold text-foreground">{insumo.nome}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {getInsumoTipoEstoqueLabel(insumo.tipo_estoque)}
+                      </p>
                       <p className="text-xs text-muted-foreground lg:hidden">
                         {formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}
                       </p>

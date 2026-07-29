@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildInsumoCadastroDefaults,
+  getInsumoTipoEstoqueLabel,
   getInsumoQuantidadePlaceholder,
   getInsumoUnidadeLabel,
+  isInsumoTipoEstoque,
   isInsumoUnidadePadrao,
 } from './insumos.ts';
 
@@ -25,6 +27,18 @@ test('getInsumoQuantidadePlaceholder follows the selected unit', () => {
   assert.equal(getInsumoQuantidadePlaceholder('desconhecida'), 'Ex: 1');
 });
 
+test('isInsumoTipoEstoque accepts production and packaging stock types', () => {
+  assert.equal(isInsumoTipoEstoque('producao'), true);
+  assert.equal(isInsumoTipoEstoque('embalagem'), true);
+  assert.equal(isInsumoTipoEstoque('financeiro'), false);
+});
+
+test('getInsumoTipoEstoqueLabel returns friendly stock type labels', () => {
+  assert.equal(getInsumoTipoEstoqueLabel('producao'), 'Insumo de produção');
+  assert.equal(getInsumoTipoEstoqueLabel('embalagem'), 'Embalagem');
+  assert.equal(getInsumoTipoEstoqueLabel(null), 'Insumo de produção');
+});
+
 test('buildInsumoCadastroDefaults creates stock-neutral cadastro data', () => {
   assert.deepEqual(
     buildInsumoCadastroDefaults({
@@ -35,10 +49,23 @@ test('buildInsumoCadastroDefaults creates stock-neutral cadastro data', () => {
     {
       nome: 'Leite Condensado',
       unidade: 'g',
+      tipo_estoque: 'producao',
       quantidade_atual: 0,
       quantidade_minima: 395,
       consumo_medio: 0,
       preco_unitario: 0,
     },
+  );
+});
+
+test('buildInsumoCadastroDefaults preserves packaging stock type', () => {
+  assert.equal(
+    buildInsumoCadastroDefaults({
+      nome: 'Pelotine',
+      unidade: 'un',
+      quantidadeMinima: 500,
+      tipoEstoque: 'embalagem',
+    }).tipo_estoque,
+    'embalagem',
   );
 });

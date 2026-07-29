@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { buildInsumoCadastroDefaults } from '@/domain/insumos';
+import { buildInsumoCadastroDefaults, type InsumoTipoEstoque } from '@/domain/insumos';
 
 export interface Insumo {
   id: string;
@@ -14,11 +14,14 @@ export interface Insumo {
   quantidade_minima: number;
   consumo_medio: number;
   preco_unitario: number;
+  tipo_estoque?: InsumoTipoEstoque | null;
   ultima_compra?: string | null;
 }
 
 type InsumoInsert = TablesInsert<'insumos'>;
-export type InsumoCadastroInput = Pick<Insumo, 'nome' | 'unidade' | 'quantidade_minima'>;
+export type InsumoCadastroInput = Pick<Insumo, 'nome' | 'unidade' | 'quantidade_minima'> & {
+  tipo_estoque: InsumoTipoEstoque;
+};
 export type InsumoCadastroUpdate = Partial<InsumoCadastroInput>;
 
 interface RegisterInsumoEntryRpc {
@@ -88,6 +91,7 @@ export function useInsumos() {
         nome: insumo.nome,
         unidade: insumo.unidade,
         quantidadeMinima: insumo.quantidade_minima,
+        tipoEstoque: insumo.tipo_estoque,
       });
       const insertData: InsumoInsert = {
         ...cadastroData,
@@ -122,6 +126,7 @@ export function useInsumos() {
       if (updates.nome !== undefined) cadastroUpdates.nome = updates.nome.trim();
       if (updates.unidade !== undefined) cadastroUpdates.unidade = updates.unidade;
       if (updates.quantidade_minima !== undefined) cadastroUpdates.quantidade_minima = updates.quantidade_minima;
+      if (updates.tipo_estoque !== undefined) cadastroUpdates.tipo_estoque = updates.tipo_estoque;
 
       const { data, error } = await supabase
         .from('insumos')
