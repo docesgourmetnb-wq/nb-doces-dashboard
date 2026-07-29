@@ -1075,7 +1075,7 @@ function InsumosTab() {
                 <SelectTrigger id="purchase-insumo-filter">
                   <SelectValue placeholder="Todos os itens" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" avoidCollisions={false}>
                   <SelectItem value="todos">Todos os itens</SelectItem>
                   {purchaseFilterInsumos.map((insumo) => (
                     <SelectItem key={insumo.id} value={insumo.id}>{insumo.nome}</SelectItem>
