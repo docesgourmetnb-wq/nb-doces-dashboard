@@ -511,7 +511,7 @@ function InsumosTab() {
         </Dialog>
 
       <Dialog open={entryDialogOpen} onOpenChange={setEntryDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar entrada</DialogTitle>
           </DialogHeader>
@@ -546,7 +546,7 @@ function InsumosTab() {
             </div>
 
             {entryMode === 'embalagens' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.9fr_1.1fr]">
                 <div className="space-y-2">
                   <Label htmlFor="insumo-entry-quantidade-embalagens">Quantidade de embalagens</Label>
                   <Input
