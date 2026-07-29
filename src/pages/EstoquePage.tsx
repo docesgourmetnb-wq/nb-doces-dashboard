@@ -201,13 +201,14 @@ function InsumosTab() {
     () => (purchaseTipoFilter === 'todos' ? undefined : purchaseFilterInsumos.map((insumo) => insumo.id)),
     [purchaseFilterInsumos, purchaseTipoFilter],
   );
+  const shouldShowPurchaseEntries = purchaseMovementFilter !== 'saida';
   const { entries: purchaseEntries, loading: purchaseEntriesLoading, refetch: refetchPurchaseEntries } = useInsumoPurchaseEntries({
+    enabled: shouldShowPurchaseEntries,
     fornecedorId: purchaseFornecedorFilter,
     insumoId: purchaseInsumoFilter,
     insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
     origemPagamento: purchasePaymentOriginFilter,
   });
-  const shouldShowPurchaseEntries = purchaseMovementFilter !== 'saida';
   const shouldShowManualExits = purchaseMovementFilter !== 'entrada'
     && purchaseFornecedorFilter === 'todos'
     && purchasePaymentOriginFilter === 'todos';

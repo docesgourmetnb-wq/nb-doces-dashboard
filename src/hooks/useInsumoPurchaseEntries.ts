@@ -21,6 +21,7 @@ export interface InsumoPurchaseEntry {
 }
 
 interface UseInsumoPurchaseEntriesFilters {
+  enabled?: boolean;
   insumoId?: string;
   insumoIds?: string[] | undefined;
   fornecedorId?: string;
@@ -37,10 +38,10 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { fornecedorId = 'todos', insumoId = 'todos', insumoIds, origemPagamento = 'todos', limit = 25 } = filters;
+  const { enabled = true, fornecedorId = 'todos', insumoId = 'todos', insumoIds, origemPagamento = 'todos', limit = 25 } = filters;
 
   const fetchEntries = useCallback(async () => {
-    if (!user) {
+    if (!user || !enabled) {
       setEntries([]);
       setLoading(false);
       return;
@@ -90,7 +91,7 @@ export function useInsumoPurchaseEntries(filters: UseInsumoPurchaseEntriesFilter
     } finally {
       setLoading(false);
     }
-  }, [fornecedorId, insumoId, insumoIds, limit, origemPagamento, toast, user]);
+  }, [enabled, fornecedorId, insumoId, insumoIds, limit, origemPagamento, toast, user]);
 
   useEffect(() => {
     fetchEntries();
