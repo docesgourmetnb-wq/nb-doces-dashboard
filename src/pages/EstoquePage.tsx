@@ -511,7 +511,7 @@ function InsumosTab() {
         </Dialog>
 
       <Dialog open={entryDialogOpen} onOpenChange={setEntryDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display">Registrar entrada</DialogTitle>
           </DialogHeader>
@@ -583,26 +583,28 @@ function InsumosTab() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label htmlFor="insumo-entry-quantidade-total">Quantidade disponível ({entryInsumo?.unidade || 'unidade'})</Label>
-                <Input
-                  id="insumo-entry-quantidade-total"
-                  type="text"
-                  inputMode="decimal"
-                  value={entryFormData.quantidade_total}
-                  onChange={(e) => {
-                    setEntryFormData({ ...entryFormData, quantidade_total: e.target.value });
-                    if (entryErrors.quantidade_total) setEntryErrors({ ...entryErrors, quantidade_total: '' });
-                  }}
-                  placeholder={getInsumoQuantidadePlaceholder(entryInsumo?.unidade || '')}
-                  aria-invalid={!!entryErrors.quantidade_total}
-                  aria-describedby={entryErrors.quantidade_total ? 'insumo-entry-quantidade-total-error' : undefined}
-                />
-                {entryErrors.quantidade_total && <p id="insumo-entry-quantidade-total-error" className="text-xs text-destructive">{entryErrors.quantidade_total}</p>}
-                <p className="text-xs text-muted-foreground">
-                  Use para potes abertos, sobras ou qualquer saldo que não represente embalagens fechadas.
-                </p>
-                <div className="space-y-2 pt-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="insumo-entry-quantidade-total">Quantidade disponível ({entryInsumo?.unidade || 'unidade'})</Label>
+                  <Input
+                    id="insumo-entry-quantidade-total"
+                    type="text"
+                    inputMode="decimal"
+                    value={entryFormData.quantidade_total}
+                    onChange={(e) => {
+                      setEntryFormData({ ...entryFormData, quantidade_total: e.target.value });
+                      if (entryErrors.quantidade_total) setEntryErrors({ ...entryErrors, quantidade_total: '' });
+                    }}
+                    placeholder={getInsumoQuantidadePlaceholder(entryInsumo?.unidade || '')}
+                    aria-invalid={!!entryErrors.quantidade_total}
+                    aria-describedby={entryErrors.quantidade_total ? 'insumo-entry-quantidade-total-error' : undefined}
+                  />
+                  {entryErrors.quantidade_total && <p id="insumo-entry-quantidade-total-error" className="text-xs text-destructive">{entryErrors.quantidade_total}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    Para potes abertos ou sobras.
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="insumo-entry-conteudo-avulso">Referência da embalagem ({entryInsumo?.unidade || 'unidade'})</Label>
                   <Input
                     id="insumo-entry-conteudo-avulso"
@@ -619,7 +621,7 @@ function InsumosTab() {
                   />
                   {entryErrors.conteudo_por_embalagem && <p id="insumo-entry-conteudo-avulso-error" className="text-xs text-destructive">{entryErrors.conteudo_por_embalagem}</p>}
                   <p className="text-xs text-muted-foreground">
-                    Opcional. Serve apenas para mostrar a equivalência visual, como 0,5 embalagem de 1 kg.
+                    Só para equivalência visual.
                   </p>
                 </div>
               </div>
