@@ -8,6 +8,7 @@ import { useFornecedores } from '@/hooks/useFornecedores';
 import { useInsumoPurchaseEntries } from '@/hooks/useInsumoPurchaseEntries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,7 @@ import {
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import {
   calculateInsumoPackageEquivalent,
+  calculateInsumoExit,
   calculateInsumoPurchaseQuantity,
   formatInsumoPackageReference,
   getInsumoEntryModePadrao,
@@ -77,6 +79,8 @@ type InsumoEntryErrors = Partial<Record<
   'quantidade_embalagens' | 'conteudo_por_embalagem' | 'quantidade_total' | 'valor_total' | 'data_compra',
   string
 >>;
+
+type InsumoExitErrors = Partial<Record<'quantidade' | 'motivo', string>>;
 
 type InsumoEntryMode = 'embalagens' | 'quantidade';
 type InsumoStockFilter = 'todos' | 'atencao' | 'sem-minimo';
@@ -114,7 +118,7 @@ function getProdutoFinalCatalogo(produto: EstoqueProduto, brigadeirosPorId: Map<
 }
 
 function InsumosTab() {
-  const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry } = useInsumos();
+  const { insumos, loading, addInsumo, updateInsumo, registerInsumoEntry, registerInsumoManualExit } = useInsumos();
   const { fornecedores } = useFornecedores();
   const [purchaseInsumoFilter, setPurchaseInsumoFilter] = useState('todos');
   const [purchaseTipoFilter, setPurchaseTipoFilter] = useState<InsumoTipoFilter>('todos');
@@ -126,12 +130,16 @@ function InsumosTab() {
   const { entries: stockReferenceEntries, refetch: refetchStockReferenceEntries } = useInsumoPurchaseEntries({ limit: 1000 });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null);
   const [entryInsumo, setEntryInsumo] = useState<Insumo | null>(null);
+  const [exitInsumo, setExitInsumo] = useState<Insumo | null>(null);
   const [saving, setSaving] = useState(false);
   const [entrySaving, setEntrySaving] = useState(false);
+  const [exitSaving, setExitSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<InsumoFormErrors>({});
   const [entryErrors, setEntryErrors] = useState<InsumoEntryErrors>({});
+  const [exitErrors, setExitErrors] = useState<InsumoExitErrors>({});
   const [entryMode, setEntryMode] = useState<InsumoEntryMode>('embalagens');
   const [formData, setFormData] = useState({
     nome: '',
@@ -146,6 +154,10 @@ function InsumosTab() {
     valor_total: '',
     data_compra: '',
     fornecedor_id: 'sem-fornecedor',
+  });
+  const [exitFormData, setExitFormData] = useState({
+    quantidade: '',
+    motivo: '',
   });
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
   const insumosPorId = useMemo(() => new Map(insumos.map((insumo) => [insumo.id, insumo])), [insumos]);
@@ -275,6 +287,16 @@ function InsumosTab() {
     setEntryDialogOpen(true);
   };
 
+  const handleOpenExitDialog = (insumo: Insumo) => {
+    setExitInsumo(insumo);
+    setExitFormData({
+      quantidade: '',
+      motivo: '',
+    });
+    setExitErrors({});
+    setExitDialogOpen(true);
+  };
+
   const handleSave = async () => {
     const quantidadeMinima = formData.quantidade_minima.trim() ? parseDecimalInput(formData.quantidade_minima) : 0;
     const errors: InsumoFormErrors = {};
@@ -379,6 +401,41 @@ function InsumosTab() {
       }
     } finally {
       setEntrySaving(false);
+    }
+  };
+
+  const handleSaveExit = async () => {
+    if (!exitInsumo) return;
+
+    const quantidadeSaida = parseDecimalInput(exitFormData.quantidade);
+    const errors: InsumoExitErrors = {};
+
+    if (!Number.isFinite(quantidadeSaida) || quantidadeSaida <= 0) {
+      errors.quantidade = 'Informe uma quantidade maior que zero';
+    } else {
+      try {
+        calculateInsumoExit(exitInsumo.quantidade_atual, quantidadeSaida);
+      } catch {
+        errors.quantidade = `Saldo insuficiente. Disponível: ${formatInsumoQuantidade(exitInsumo.quantidade_atual)} ${exitInsumo.unidade}`;
+      }
+    }
+
+    setExitErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setExitSaving(true);
+    try {
+      const updatedInsumo = await registerInsumoManualExit(
+        exitInsumo.id,
+        quantidadeSaida,
+        exitFormData.motivo.trim() || null,
+      );
+      if (updatedInsumo) {
+        await refetchStockReferenceEntries();
+        setExitDialogOpen(false);
+      }
+    } finally {
+      setExitSaving(false);
     }
   };
 
@@ -707,6 +764,56 @@ function InsumosTab() {
             <Button onClick={handleSaveEntry} className="w-full" disabled={entrySaving}>
               {entrySaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
               Registrar entrada
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Registrar saída</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Item: <strong className="text-foreground">{exitInsumo?.nome}</strong>
+              {exitInsumo && (
+                <span> • saldo atual: {formatInsumoQuantidade(exitInsumo.quantidade_atual)} {exitInsumo.unidade}</span>
+              )}
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="insumo-exit-quantidade">Quantidade a baixar ({exitInsumo?.unidade || 'unidade'})</Label>
+              <Input
+                id="insumo-exit-quantidade"
+                type="text"
+                inputMode="decimal"
+                value={exitFormData.quantidade}
+                onChange={(event) => {
+                  setExitFormData({ ...exitFormData, quantidade: event.target.value });
+                  if (exitErrors.quantidade) setExitErrors({ ...exitErrors, quantidade: '' });
+                }}
+                placeholder={getInsumoQuantidadePlaceholder(exitInsumo?.unidade || '')}
+                aria-invalid={!!exitErrors.quantidade}
+                aria-describedby={exitErrors.quantidade ? 'insumo-exit-quantidade-error' : undefined}
+              />
+              {exitErrors.quantidade && <p id="insumo-exit-quantidade-error" className="text-xs text-destructive">{exitErrors.quantidade}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insumo-exit-motivo">Motivo</Label>
+              <Textarea
+                id="insumo-exit-motivo"
+                value={exitFormData.motivo}
+                onChange={(event) => setExitFormData({ ...exitFormData, motivo: event.target.value })}
+                placeholder="Ex: Usado para enrolar massa de paçoca"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Opcional. Use para lembrar se foi produção, teste, perda ou ajuste manual.
+              </p>
+            </div>
+            <Button onClick={handleSaveExit} className="w-full" disabled={exitSaving}>
+              {exitSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
+              Registrar saída
             </Button>
           </div>
         </DialogContent>
@@ -1042,6 +1149,17 @@ function InsumosTab() {
                       >
                         <ShoppingCart className="w-4 h-4" />
                         Entrada
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenExitDialog(insumo)}
+                        className="shrink-0 gap-2"
+                        disabled={insumo.quantidade_atual <= 0}
+                      >
+                        <ArrowDownCircle className="w-4 h-4" />
+                        Saída
                       </Button>
                     </div>
                   </div>
