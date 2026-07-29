@@ -5,6 +5,7 @@ import {
   calculateInsumoExit,
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
+  formatInsumoCurrentStockPackageReference,
   formatInsumoPackageReference,
   getInsumoEntryModePadrao,
   getInsumoStockStatus,
@@ -95,6 +96,15 @@ test('formatInsumoPackageReference can omit available quantity for movement hist
 
 test('formatInsumoPackageReference ignores invalid package references', () => {
   assert.equal(formatInsumoPackageReference(505, 0, 'g'), null);
+});
+
+test('formatInsumoCurrentStockPackageReference shows package equivalents for current stock', () => {
+  assert.equal(formatInsumoCurrentStockPackageReference(12245, 395, 'g'), '31 embalagens de 395 g');
+  assert.equal(formatInsumoCurrentStockPackageReference(3210, 200, 'g'), '16 embalagens de 200 g + 10 g');
+});
+
+test('formatInsumoCurrentStockPackageReference hides references smaller than one package', () => {
+  assert.equal(formatInsumoCurrentStockPackageReference(505, 1000, 'g'), null);
 });
 
 test('summarizeKnownInsumoStockValue keeps historical stock without cost valued as zero', () => {

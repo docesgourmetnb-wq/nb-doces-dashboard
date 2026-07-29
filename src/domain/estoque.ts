@@ -128,6 +128,29 @@ export function formatInsumoPackageReference(
   return `${quantidadeFormatada} ${unidade} disponíveis · ${percentual}% de uma embalagem de ${conteudoFormatado} ${unidade}`;
 }
 
+export function formatInsumoCurrentStockPackageReference(
+  quantidadeAtual: number,
+  conteudoPorEmbalagem: number,
+  unidade: string,
+) {
+  const equivalente = calculateInsumoPackageEquivalent(quantidadeAtual, conteudoPorEmbalagem);
+
+  if (equivalente === null || equivalente < 1) return null;
+
+  const embalagensInteiras = Math.floor(equivalente);
+  const restante = quantidadeAtual - embalagensInteiras * conteudoPorEmbalagem;
+  const embalagemLabel = embalagensInteiras === 1 ? 'embalagem' : 'embalagens';
+  const conteudoFormatado = conteudoPorEmbalagem.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+  const embalagensLabel = `${embalagensInteiras.toLocaleString('pt-BR')} ${embalagemLabel} de ${conteudoFormatado} ${unidade}`;
+
+  if (Math.abs(restante) < 0.000001) {
+    return embalagensLabel;
+  }
+
+  const restanteFormatado = restante.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+  return `${embalagensLabel} + ${restanteFormatado} ${unidade}`;
+}
+
 export interface InsumoStockValueInput {
   id: string;
   quantidadeAtual: number;
