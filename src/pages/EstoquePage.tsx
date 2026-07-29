@@ -53,6 +53,7 @@ import {
   calculateInsumoPackageEquivalent,
   calculateInsumoExit,
   calculateInsumoPurchaseQuantity,
+  formatInsumoCurrentStockPackageReference,
   formatInsumoPackageReference,
   getInsumoEntryModePadrao,
   getInsumoStockStatus,
@@ -178,6 +179,29 @@ function InsumosTab() {
     insumoId: purchaseInsumoFilter,
     insumoIds: purchaseInsumoFilter === 'todos' ? purchaseTipoInsumoIds : undefined,
   });
+  const stockReferenceByInsumoId = useMemo(() => {
+    const references = new Map<string, { quantidade_embalagens: number | null; conteudo_por_embalagem: number }>();
+
+    stockReferenceEntries.forEach((entry) => {
+      if (!entry.conteudo_por_embalagem || references.has(entry.insumo_id)) return;
+      references.set(entry.insumo_id, {
+        quantidade_embalagens: entry.quantidade_embalagens,
+        conteudo_por_embalagem: entry.conteudo_por_embalagem,
+      });
+    });
+
+    return references;
+  }, [stockReferenceEntries]);
+  const knownUnitCostByInsumoId = useMemo(() => {
+    const costs = new Map<string, number>();
+
+    stockReferenceEntries.forEach((entry) => {
+      if (costs.has(entry.insumo_id) || entry.valor_total <= 0 || entry.preco_unitario <= 0) return;
+      costs.set(entry.insumo_id, entry.preco_unitario);
+    });
+
+    return costs;
+  }, [stockReferenceEntries]);
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
     const filtered = insumos.filter((insumo) => {
@@ -204,12 +228,13 @@ function InsumosTab() {
       }
 
       if (insumoSort === 'ultimo-custo') {
-        return b.preco_unitario - a.preco_unitario || a.nome.localeCompare(b.nome, 'pt-BR');
+        return (knownUnitCostByInsumoId.get(b.id) ?? 0) - (knownUnitCostByInsumoId.get(a.id) ?? 0)
+          || a.nome.localeCompare(b.nome, 'pt-BR');
       }
 
       return a.nome.localeCompare(b.nome, 'pt-BR');
     });
-  }, [insumoSearch, insumoSort, insumoStockFilter, insumoTipoFilter, insumos]);
+  }, [insumoSearch, insumoSort, insumoStockFilter, insumoTipoFilter, insumos, knownUnitCostByInsumoId]);
 
   const insumosEmFalta = insumos.filter(i => getInsumoStockStatus(i.quantidade_atual, i.quantidade_minima).needsAttention);
   const totalInsumosProducao = insumos.filter((insumo) => (insumo.tipo_estoque ?? 'producao') === 'producao').length;
@@ -227,19 +252,6 @@ function InsumosTab() {
   ), [insumos, stockReferenceEntries]);
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
-  const stockReferenceByInsumoId = useMemo(() => {
-    const references = new Map<string, { quantidade_embalagens: number | null; conteudo_por_embalagem: number }>();
-
-    stockReferenceEntries.forEach((entry) => {
-      if (!entry.conteudo_por_embalagem || references.has(entry.insumo_id)) return;
-      references.set(entry.insumo_id, {
-        quantidade_embalagens: entry.quantidade_embalagens,
-        conteudo_por_embalagem: entry.conteudo_por_embalagem,
-      });
-    });
-
-    return references;
-  }, [stockReferenceEntries]);
   const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos' || purchaseTipoFilter !== 'todos' || purchaseFornecedorFilter !== 'todos';
   const hasActiveInsumoFilters = !!insumoSearch.trim() || insumoStockFilter !== 'todos' || insumoTipoFilter !== 'todos' || insumoSort !== 'nome';
 
@@ -1178,7 +1190,7 @@ function InsumosTab() {
                     <SelectItem value="nome">Nome</SelectItem>
                     <SelectItem value="menor-saldo">Menor saldo</SelectItem>
                     <SelectItem value="maior-saldo">Maior saldo</SelectItem>
-                    <SelectItem value="ultimo-custo">Último custo</SelectItem>
+                    <SelectItem value="ultimo-custo">Custo conhecido</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1193,7 +1205,7 @@ function InsumosTab() {
             <span>Item</span>
             <span>Saldo</span>
             <span>Mínimo</span>
-            <span>Último custo</span>
+            <span>Custo conhecido</span>
             <span className="text-right">Ações</span>
           </div>
           {filteredInsumos.length === 0 ? (
@@ -1209,6 +1221,15 @@ function InsumosTab() {
                   ? 'Crítico'
                   : 'Baixo'
                 : null;
+              const stockReference = stockReferenceByInsumoId.get(insumo.id);
+              const currentStockPackageLabel = stockReference?.conteudo_por_embalagem
+                ? formatInsumoCurrentStockPackageReference(
+                  insumo.quantidade_atual,
+                  stockReference.conteudo_por_embalagem,
+                  insumo.unidade,
+                )
+                : null;
+              const knownUnitCost = knownUnitCostByInsumoId.get(insumo.id) ?? 0;
 
               return (
                 <div
@@ -1222,7 +1243,7 @@ function InsumosTab() {
                         {getInsumoTipoEstoqueLabel(insumo.tipo_estoque)}
                       </p>
                       <p className="text-xs text-muted-foreground lg:hidden">
-                        {formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}
+                        {formatCurrencyBRL(knownUnitCost)} / {insumo.unidade}
                       </p>
                     </div>
                     {stockBadge && (
@@ -1236,6 +1257,9 @@ function InsumosTab() {
                     <div>
                       <p className="text-xs text-muted-foreground lg:hidden">Saldo</p>
                       <p className="font-medium text-foreground">{formatInsumoQuantidade(insumo.quantidade_atual)} {insumo.unidade}</p>
+                      {currentStockPackageLabel && (
+                        <p className="text-xs text-muted-foreground">{currentStockPackageLabel}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground lg:hidden">Mínimo</p>
@@ -1246,7 +1270,7 @@ function InsumosTab() {
                       </p>
                     </div>
                     <div className="hidden lg:block">
-                      <p className="text-muted-foreground">{formatCurrencyBRL(insumo.preco_unitario || 0)} / {insumo.unidade}</p>
+                      <p className="text-muted-foreground">{formatCurrencyBRL(knownUnitCost)} / {insumo.unidade}</p>
                     </div>
                   </div>
 
