@@ -21,7 +21,7 @@ export function AlertaEstoqueBaixo() {
       <div className="bg-success/10 border border-success/20 rounded-xl p-4 flex items-center gap-2">
         <CheckCircle className="w-5 h-5 text-success" />
         <p className="text-success font-medium text-sm">
-          Todos os insumos estão em nível adequado
+          Todos os itens estão em nível adequado
         </p>
       </div>
     );
