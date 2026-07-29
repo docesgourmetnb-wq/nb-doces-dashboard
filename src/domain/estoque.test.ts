@@ -5,9 +5,16 @@ import {
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
   formatInsumoPackageReference,
+  getInsumoEntryModePadrao,
   getInsumoStockStatus,
   summarizeKnownInsumoStockValue,
 } from './estoque.ts';
+
+test('getInsumoEntryModePadrao opens centimeter stock as loose quantity', () => {
+  assert.equal(getInsumoEntryModePadrao('cm'), 'quantidade');
+  assert.equal(getInsumoEntryModePadrao('un'), 'embalagens');
+  assert.equal(getInsumoEntryModePadrao('g'), 'embalagens');
+});
 
 test('getInsumoStockStatus ignores alerts when minimum stock is not defined', () => {
   assert.deepEqual(getInsumoStockStatus(0, 0), {

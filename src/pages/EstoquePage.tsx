@@ -52,6 +52,7 @@ import {
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
   formatInsumoPackageReference,
+  getInsumoEntryModePadrao,
   getInsumoStockStatus,
   summarizeKnownInsumoStockValue,
 } from '@/domain/estoque';
@@ -250,7 +251,7 @@ function InsumosTab() {
 
   const handleOpenEntryDialog = (insumo: Insumo) => {
     setEntryInsumo(insumo);
-    setEntryMode('embalagens');
+    setEntryMode(getInsumoEntryModePadrao(insumo.unidade));
     setEntryFormData({
       quantidade_embalagens: '',
       conteudo_por_embalagem: '',
