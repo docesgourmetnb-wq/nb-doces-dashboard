@@ -144,19 +144,6 @@ function InsumosTab() {
   const fornecedoresAtivos = fornecedores.filter((fornecedor) => fornecedor.ativo);
   const insumosPorId = useMemo(() => new Map(insumos.map((insumo) => [insumo.id, insumo])), [insumos]);
   const fornecedoresPorId = useMemo(() => new Map(fornecedores.map((fornecedor) => [fornecedor.id, fornecedor])), [fornecedores]);
-  const embalagemReferenciaPorInsumoId = useMemo(() => {
-    const referencias = new Map<string, { conteudoPorEmbalagem: number }>();
-
-    stockReferenceEntries.forEach((entry) => {
-      if (!entry.conteudo_por_embalagem || referencias.has(entry.insumo_id)) return;
-
-      referencias.set(entry.insumo_id, {
-        conteudoPorEmbalagem: entry.conteudo_por_embalagem,
-      });
-    });
-
-    return referencias;
-  }, [stockReferenceEntries]);
   const filteredInsumos = useMemo(() => {
     const searchTerm = insumoSearch.trim().toLowerCase();
     const filtered = insumos.filter((insumo) => {
@@ -871,10 +858,6 @@ function InsumosTab() {
             <div className="divide-y divide-border">
               {filteredInsumos.map((insumo) => {
               const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
-              const embalagemReferencia = embalagemReferenciaPorInsumoId.get(insumo.id);
-              const saldoEmbalagensLabel = embalagemReferencia
-                ? formatInsumoPackageReference(insumo.quantidade_atual, embalagemReferencia.conteudoPorEmbalagem, insumo.unidade)
-                : null;
               const stockBadge = stockStatus.needsAttention
                 ? stockStatus.status === 'critical'
                   ? 'Crítico'
@@ -904,9 +887,6 @@ function InsumosTab() {
                     <div>
                       <p className="text-xs text-muted-foreground lg:hidden">Saldo</p>
                       <p className="font-medium text-foreground">{formatInsumoQuantidade(insumo.quantidade_atual)} {insumo.unidade}</p>
-                      {saldoEmbalagensLabel ? (
-                        <p className="text-xs text-muted-foreground">{saldoEmbalagensLabel}</p>
-                      ) : null}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground lg:hidden">Mínimo</p>
