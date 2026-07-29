@@ -51,6 +51,7 @@ import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import {
   calculateInsumoPackageEquivalent,
   calculateInsumoPurchaseQuantity,
+  formatInsumoPackageReference,
   getInsumoStockStatus,
   summarizeKnownInsumoStockValue,
 } from '@/domain/estoque';
@@ -755,6 +756,11 @@ function InsumosTab() {
             {purchaseEntries.map((entry) => {
               const insumo = insumosPorId.get(entry.insumo_id);
               const fornecedor = entry.fornecedor_id ? fornecedoresPorId.get(entry.fornecedor_id) : null;
+              const entryPackageReferenceLabel = entry.conteudo_por_embalagem
+                ? formatInsumoPackageReference(entry.quantidade, entry.conteudo_por_embalagem, entry.unidade, {
+                  includeAvailableQuantity: false,
+                })
+                : null;
               const dataCompraLabel = entry.data_compra
                 ? formatLocalDate(entry.data_compra, 'dd/MM/yyyy')
                 : 'Sem data de compra';
@@ -771,11 +777,8 @@ function InsumosTab() {
                     <p className="font-medium text-foreground">
                       {formatInsumoQuantidade(entry.quantidade)} {entry.unidade}
                     </p>
-                    {entry.quantidade_embalagens && entry.conteudo_por_embalagem ? (
-                      <p className="text-muted-foreground">
-                        {formatInsumoQuantidadeCompacta(entry.quantidade_embalagens)} embalagens de{' '}
-                        {formatInsumoQuantidade(entry.conteudo_por_embalagem)} {entry.unidade}
-                      </p>
+                    {entryPackageReferenceLabel ? (
+                      <p className="text-muted-foreground">{entryPackageReferenceLabel}</p>
                     ) : (
                       <p className="text-muted-foreground">Quantidade</p>
                     )}
@@ -869,11 +872,8 @@ function InsumosTab() {
               {filteredInsumos.map((insumo) => {
               const stockStatus = getInsumoStockStatus(insumo.quantidade_atual, insumo.quantidade_minima);
               const embalagemReferencia = embalagemReferenciaPorInsumoId.get(insumo.id);
-              const saldoEmEmbalagens = embalagemReferencia
-                ? calculateInsumoPackageEquivalent(insumo.quantidade_atual, embalagemReferencia.conteudoPorEmbalagem)
-                : null;
-              const saldoEmbalagensLabel = saldoEmEmbalagens !== null
-                ? `≈ ${formatInsumoQuantidadeCompacta(saldoEmEmbalagens)} embalagens de ${formatInsumoQuantidade(embalagemReferencia!.conteudoPorEmbalagem)} ${insumo.unidade}`
+              const saldoEmbalagensLabel = embalagemReferencia
+                ? formatInsumoPackageReference(insumo.quantidade_atual, embalagemReferencia.conteudoPorEmbalagem, insumo.unidade)
                 : null;
               const stockBadge = stockStatus.needsAttention
                 ? stockStatus.status === 'critical'
