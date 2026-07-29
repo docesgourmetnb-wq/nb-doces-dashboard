@@ -14,6 +14,7 @@ import {
   isBrigadeiroTamanhoGramas,
   isProdutoCategoria,
   matchesBrigadeiroTamanhoFilter,
+  summarizeEstoqueProdutosFinais,
   summarizeProdutoCatalogo,
   summarizeProdutos,
 } from './produtos.ts';
@@ -166,6 +167,19 @@ test('summarizeProdutos handles empty product lists', () => {
     semTamanho: 0,
     margemMedia: 0,
     saboresSemPar: [],
+  });
+});
+
+test('summarizeEstoqueProdutosFinais totals stock units by commercial size', () => {
+  assert.deepEqual(summarizeEstoqueProdutosFinais([
+    { nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 25, quantidade_un: 18 },
+    { nome: 'Branquinho', categoria: 'brigadeiro', tamanho_g: 30, quantidade_un: 45 },
+    { nome: 'Bolo de cenoura', categoria: 'bolo', tamanho_g: null, quantidade_un: 2 },
+  ]), {
+    totalUnidades: 65,
+    total25g: 18,
+    total30g: 45,
+    semTamanho: 2,
   });
 });
 
