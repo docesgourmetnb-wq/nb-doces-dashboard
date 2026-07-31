@@ -1788,6 +1788,15 @@ function ProdutosTab() {
       toast({ title: 'Valor inválido', variant: 'destructive' });
       return;
     }
+
+    if (actionType === 'sub' && val > actionProduto.quantidade_un) {
+      toast({
+        title: 'Saldo insuficiente',
+        description: `Disponível: ${actionProduto.quantidade_un} un.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     
     const delta = actionType === 'add' ? val : -val;
     await updateQuantidade(actionProduto.id, delta);
