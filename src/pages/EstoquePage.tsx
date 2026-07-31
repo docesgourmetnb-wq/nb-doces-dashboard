@@ -1233,6 +1233,11 @@ function InsumosTab() {
               </div>
             )}
           </div>
+          {purchaseEntryOnlyFiltersDisabled && (
+            <p className="text-xs text-muted-foreground">
+              Fornecedor e origem se aplicam apenas às entradas de estoque.
+            </p>
+          )}
         </div>
         {stockMovementsLoading ? (
           <div className="py-6 text-center text-muted-foreground">
