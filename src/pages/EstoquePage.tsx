@@ -1285,6 +1285,12 @@ function InsumosTab() {
                 : 'Sem data de compra';
               const movementKindLabel = movement.tipo === 'entrada' ? 'Entrada' : 'Saída';
               const movementDateLabel = formatLocalDate(movement.createdAt, 'dd/MM/yyyy HH:mm');
+              const movementOriginLabel = movement.tipo === 'entrada'
+                ? getInsumoEntryPaymentOriginLabel(movement.origemPagamento)
+                : 'Sem impacto financeiro';
+              const movementCostLabel = movement.tipo === 'entrada' && (movement.valorTotal ?? 0) <= 0
+                ? 'Sem custo informado'
+                : movementOriginLabel;
 
               return (
                 <div key={movement.id} className="grid grid-cols-1 gap-3 py-3 md:grid-cols-[1fr_auto_auto]">
@@ -1304,8 +1310,8 @@ function InsumosTab() {
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {movement.tipo === 'entrada'
-                        ? `${getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • ${fornecedor?.nome || 'Sem fornecedor'} • ${dataCompraLabel}`
-                        : `${getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • ${movement.motivo || 'Saída manual'} • ${movementDateLabel}`}
+                        ? `${getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • ${fornecedor?.nome || 'Sem fornecedor'} • Compra: ${dataCompraLabel}`
+                        : `${getInsumoTipoEstoqueLabel(insumo?.tipo_estoque)} • Motivo: ${movement.motivo || 'Saída manual'} • Registro: ${movementDateLabel}`}
                     </p>
                   </div>
                   <div className="text-sm md:text-right">
@@ -1326,7 +1332,7 @@ function InsumosTab() {
                           {formatCurrencyBRLPrecise(movement.precoUnitario ?? 0)} / {movement.unidade}
                         </p>
                         <p className="text-muted-foreground">
-                          {getInsumoEntryPaymentOriginLabel(movement.origemPagamento)}
+                          {movementCostLabel}
                         </p>
                       </>
                     ) : (
