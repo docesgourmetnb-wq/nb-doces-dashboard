@@ -1943,7 +1943,13 @@ function ProdutosTab() {
                 <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success/10 bg-success/5" onClick={() => handleOpenProdutoAction(produto, 'add')}>
                    <ArrowUpCircle className="w-4 h-4 mr-2" /> Entrada
                 </Button>
-                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => handleOpenProdutoAction(produto, 'sub')}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5"
+                  onClick={() => handleOpenProdutoAction(produto, 'sub')}
+                  disabled={produto.quantidade_un <= 0}
+                >
                    <ArrowDownCircle className="w-4 h-4 mr-2" /> Saída
                 </Button>
              </div>
@@ -1970,6 +1976,9 @@ function ProdutosTab() {
                 <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                   {actionProdutoTamanho}
                 </span>
+              )}
+              {actionProduto && (
+                <span>• saldo atual: {actionProduto.quantidade_un} un</span>
               )}
             </div>
             <div className="space-y-2">
