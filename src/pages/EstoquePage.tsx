@@ -1105,7 +1105,7 @@ function InsumosTab() {
         >
           <div className="p-2 bg-primary/10 rounded-lg"><Package className="text-primary w-5 h-5" /></div>
           <div>
-            <p className="text-sm text-muted-foreground">Itens Totais</p>
+            <p className="text-sm text-muted-foreground">Itens cadastrados</p>
             <p className="text-2xl font-display font-semibold">{insumos.length}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {totalInsumosProducao} produção · {totalEmbalagens} embalagens
@@ -1122,14 +1122,18 @@ function InsumosTab() {
           aria-label="Mostrar itens que precisam de atenção"
         >
           <div className="p-2 bg-warning/20 rounded-lg"><AlertTriangle className="text-warning w-5 h-5" /></div>
-          <div><p className="text-sm text-muted-foreground">Em Falta</p><p className="text-2xl font-display font-semibold">{insumosEmFalta.length}</p></div>
+          <div>
+            <p className="text-sm text-muted-foreground">Precisam de atenção</p>
+            <p className="text-2xl font-display font-semibold">{insumosEmFalta.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Abaixo do mínimo definido</p>
+          </div>
         </button>
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
           <p className="text-sm text-muted-foreground">Valor conhecido do estoque</p>
           <p className="text-2xl font-display font-semibold mt-1">{formatCurrencyBRL(valorConhecidoEstoque)}</p>
           {hasSaldoSemCusto && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Há saldo físico sem custo de compra informado.
+              Alguns saldos físicos ainda não têm custo de compra informado.
             </p>
           )}
         </div>
