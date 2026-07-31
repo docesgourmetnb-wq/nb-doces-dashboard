@@ -1153,7 +1153,7 @@ function InsumosTab() {
                 <SelectTrigger id="purchase-movement-filter">
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" avoidCollisions={false}>
                   <SelectItem value="todos">Todas</SelectItem>
                   <SelectItem value="entrada">Entradas</SelectItem>
                   <SelectItem value="saida">Saídas</SelectItem>
@@ -1172,7 +1172,7 @@ function InsumosTab() {
                 <SelectTrigger id="purchase-tipo-filter">
                   <SelectValue placeholder="Todos os tipos" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" avoidCollisions={false}>
                   <SelectItem value="todos">Todos os tipos</SelectItem>
                   {INSUMO_TIPOS_ESTOQUE.map((tipo) => (
                     <SelectItem key={tipo.value} value={tipo.value}>
@@ -1188,7 +1188,7 @@ function InsumosTab() {
                 <SelectTrigger id="purchase-insumo-filter">
                   <SelectValue placeholder="Todos os itens" />
                 </SelectTrigger>
-                <SelectContent side="bottom" align="start" avoidCollisions={false}>
+                <SelectContent side="bottom" align="start" avoidCollisions={false} className="max-h-72">
                   <SelectItem value="todos">Todos os itens</SelectItem>
                   {purchaseFilterInsumos.map((insumo) => (
                     <SelectItem key={insumo.id} value={insumo.id}>{insumo.nome}</SelectItem>
@@ -1211,7 +1211,7 @@ function InsumosTab() {
                 <SelectTrigger id="purchase-fornecedor-filter">
                   <SelectValue placeholder="Todos os fornecedores" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" avoidCollisions={false} className="max-h-72">
                   <SelectItem value="todos">Todos os fornecedores</SelectItem>
                   <SelectItem value="sem-fornecedor">Sem fornecedor</SelectItem>
                   {fornecedores.map((fornecedor) => (
@@ -1235,7 +1235,7 @@ function InsumosTab() {
                 <SelectTrigger id="purchase-origin-filter">
                   <SelectValue placeholder="Todas as origens" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" avoidCollisions={false}>
                   <SelectItem value="todos">Todas as origens</SelectItem>
                   <SelectItem value="sem_valor">Sem valor</SelectItem>
                   <SelectItem value="fora_caixa">Fora do caixa</SelectItem>
