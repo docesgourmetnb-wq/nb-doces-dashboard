@@ -329,6 +329,7 @@ function InsumosTab() {
   ), [insumos, stockReferenceEntries]);
   const valorConhecidoEstoque = stockValueSummary.valorConhecido;
   const hasSaldoSemCusto = stockValueSummary.insumosComSaldoSemCusto > 0;
+  const purchaseEntryOnlyFiltersDisabled = purchaseMovementFilter === 'saida';
   const hasActivePurchaseFilters = purchaseInsumoFilter !== 'todos'
     || purchaseMovementFilter !== 'todos'
     || purchaseTipoFilter !== 'todos'
@@ -1178,8 +1179,17 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-fornecedor-filter" className="text-xs text-muted-foreground">Fornecedor</Label>
-              <Select value={purchaseFornecedorFilter} onValueChange={setPurchaseFornecedorFilter}>
+              <Label
+                htmlFor="purchase-fornecedor-filter"
+                className={cn("text-xs text-muted-foreground", purchaseEntryOnlyFiltersDisabled && "opacity-60")}
+              >
+                Fornecedor
+              </Label>
+              <Select
+                value={purchaseFornecedorFilter}
+                onValueChange={setPurchaseFornecedorFilter}
+                disabled={purchaseEntryOnlyFiltersDisabled}
+              >
                 <SelectTrigger id="purchase-fornecedor-filter">
                   <SelectValue placeholder="Todos os fornecedores" />
                 </SelectTrigger>
@@ -1193,10 +1203,16 @@ function InsumosTab() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="purchase-origin-filter" className="text-xs text-muted-foreground">Origem</Label>
+              <Label
+                htmlFor="purchase-origin-filter"
+                className={cn("text-xs text-muted-foreground", purchaseEntryOnlyFiltersDisabled && "opacity-60")}
+              >
+                Origem
+              </Label>
               <Select
                 value={purchasePaymentOriginFilter}
                 onValueChange={(value) => setPurchasePaymentOriginFilter(value as InsumoPaymentOriginFilter)}
+                disabled={purchaseEntryOnlyFiltersDisabled}
               >
                 <SelectTrigger id="purchase-origin-filter">
                   <SelectValue placeholder="Todas as origens" />
