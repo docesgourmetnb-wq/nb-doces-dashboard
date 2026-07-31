@@ -1371,7 +1371,7 @@ function InsumosTab() {
                   <SelectTrigger id="insumos-stock-filter">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" align="start" avoidCollisions={false}>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="atencao">Atenção</SelectItem>
                     <SelectItem value="sem-minimo">Sem mínimo</SelectItem>
@@ -1384,7 +1384,7 @@ function InsumosTab() {
                   <SelectTrigger id="insumos-tipo-filter">
                     <SelectValue placeholder="Tipo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" align="start" avoidCollisions={false}>
                     <SelectItem value="todos">Todos os tipos</SelectItem>
                     {INSUMO_TIPOS_ESTOQUE.map((tipo) => (
                       <SelectItem key={tipo.value} value={tipo.value}>
@@ -1400,7 +1400,7 @@ function InsumosTab() {
                   <SelectTrigger id="insumos-sort">
                     <SelectValue placeholder="Ordenar" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" align="start" avoidCollisions={false}>
                     <SelectItem value="nome">Nome</SelectItem>
                     <SelectItem value="menor-saldo">Menor saldo</SelectItem>
                     <SelectItem value="maior-saldo">Maior saldo</SelectItem>
