@@ -90,6 +90,7 @@ type InsumoSortOption = 'nome' | 'menor-saldo' | 'maior-saldo' | 'ultimo-custo';
 type InsumoTipoFilter = 'todos' | InsumoTipoEstoque;
 type InsumoMovementFilter = 'todos' | 'entrada' | 'saida';
 type InsumoPaymentOriginFilter = 'todos' | 'sem_valor' | 'caixa' | 'fora_caixa';
+const INSUMO_EXIT_MOTIVOS_RAPIDOS = ['Produção', 'Teste', 'Perda', 'Ajuste de saldo'];
 type InsumoStockMovement = {
   id: string;
   tipo: 'entrada' | 'saida';
@@ -1056,6 +1057,19 @@ function InsumosTab() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="insumo-exit-motivo">Motivo</Label>
+              <div className="flex flex-wrap gap-2">
+                {INSUMO_EXIT_MOTIVOS_RAPIDOS.map((motivo) => (
+                  <Button
+                    key={motivo}
+                    type="button"
+                    variant={exitFormData.motivo === motivo ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setExitFormData({ ...exitFormData, motivo })}
+                  >
+                    {motivo}
+                  </Button>
+                ))}
+              </div>
               <Textarea
                 id="insumo-exit-motivo"
                 value={exitFormData.motivo}
