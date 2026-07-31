@@ -1760,6 +1760,9 @@ function ProdutosTab() {
         };
     }),
   ), [brigadeirosPorId, produtos]);
+  const actionProdutoCatalogo = actionProduto ? getProdutoFinalCatalogo(actionProduto, brigadeirosPorId) : null;
+  const actionProdutoNome = actionProdutoCatalogo ? getProdutoNomeComercial(actionProdutoCatalogo) : 'Produto';
+  const actionProdutoTamanho = actionProdutoCatalogo ? getProdutoTamanhoComercial(actionProdutoCatalogo) : null;
 
   if (loading) return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
 
@@ -1770,6 +1773,12 @@ function ProdutosTab() {
     setBrigadeiroId('');
     setTamanhoProdutoCadastroFilter('todos');
     setIsRegisterOpen(false);
+  };
+
+  const handleOpenProdutoAction = (produto: EstoqueProduto, type: 'add' | 'sub') => {
+    setActionProduto(produto);
+    setActionType(type);
+    setActionValue('');
   };
 
   const handleAction = async () => {
@@ -1912,10 +1921,10 @@ function ProdutosTab() {
                </Button>
              </div>
              <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success/10 bg-success/5" onClick={() => { setActionProduto(produto); setActionType('add'); }}>
+                <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success/10 bg-success/5" onClick={() => handleOpenProdutoAction(produto, 'add')}>
                    <ArrowUpCircle className="w-4 h-4 mr-2" /> Entrada
                 </Button>
-                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => { setActionProduto(produto); setActionType('sub'); }}>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 bg-destructive/5" onClick={() => handleOpenProdutoAction(produto, 'sub')}>
                    <ArrowDownCircle className="w-4 h-4 mr-2" /> Saída
                 </Button>
              </div>
@@ -1935,7 +1944,15 @@ function ProdutosTab() {
         <DialogContent>
           <DialogHeader><DialogTitle>{actionType === 'add' ? 'Registrar Entrada de Produto' : 'Registrar Saída de Produto'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">Produto: <strong>{actionProduto?.brigadeiro?.nome}</strong></p>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>Produto:</span>
+              <strong className="text-foreground">{actionProdutoNome}</strong>
+              {actionProdutoTamanho && (
+                <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                  {actionProdutoTamanho}
+                </span>
+              )}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="estoque-produto-quantidade">Quantidade (Unidades)</Label>
               <Input id="estoque-produto-quantidade" type="number" min="1" step="1" value={actionValue} onChange={e => setActionValue(e.target.value)} placeholder="Ex: 50" />
