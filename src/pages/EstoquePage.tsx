@@ -395,11 +395,15 @@ function InsumosTab() {
   };
 
   const handleOpenEntryDialog = (insumo: Insumo) => {
+    const stockReference = stockReferenceByInsumoId.get(insumo.id);
+
     setEntryInsumo(insumo);
-    setEntryMode(getInsumoEntryModePadrao(insumo.unidade));
+    setEntryMode(stockReference?.conteudo_por_embalagem ? 'embalagens' : getInsumoEntryModePadrao(insumo.unidade));
     setEntryFormData({
       quantidade_embalagens: '',
-      conteudo_por_embalagem: '',
+      conteudo_por_embalagem: stockReference?.conteudo_por_embalagem
+        ? stockReference.conteudo_por_embalagem.toString()
+        : '',
       quantidade_total: '',
       valor_total: '',
       origem_pagamento: 'fora_caixa',
