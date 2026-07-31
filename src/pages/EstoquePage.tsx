@@ -681,7 +681,7 @@ function InsumosTab() {
                     >
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom" align="start" avoidCollisions={false}>
                       {INSUMO_TIPOS_ESTOQUE.map((tipo) => (
                         <SelectItem key={tipo.value} value={tipo.value}>
                           {tipo.label}
@@ -877,7 +877,7 @@ function InsumosTab() {
                 <SelectTrigger id="insumo-entry-fornecedor">
                   <SelectValue placeholder="Selecione um fornecedor" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" avoidCollisions={false} className="max-h-72">
                   <SelectItem value="sem-fornecedor">Sem fornecedor informado</SelectItem>
                   {fornecedoresAtivos.map((fornecedor) => (
                     <SelectItem key={fornecedor.id} value={fornecedor.id}>
@@ -923,7 +923,7 @@ function InsumosTab() {
                     <SelectTrigger id="insumo-entry-origem-pagamento">
                       <SelectValue placeholder="Selecione a origem" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom" align="start" avoidCollisions={false}>
                       <SelectItem value="fora_caixa">Fora do caixa</SelectItem>
                       <SelectItem value="caixa">Caixa da empresa</SelectItem>
                     </SelectContent>
