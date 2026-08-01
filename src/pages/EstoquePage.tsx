@@ -7,6 +7,7 @@ import { Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { useFornecedores } from '@/hooks/useFornecedores';
 import { useInsumoManualExits } from '@/hooks/useInsumoManualExits';
 import { useInsumoPurchaseEntries } from '@/hooks/useInsumoPurchaseEntries';
+import { PackagingProfile, usePackagingProfiles } from '@/hooks/usePackagingProfiles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +51,7 @@ import {
   type ProdutoCategoriaInput,
 } from '@/domain/produtos';
 import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
+import { summarizePackagingProfileItems, validatePackagingItemQuantity } from '@/domain/embalagens';
 import {
   calculateInsumoPackageEquivalent,
   calculateInsumoExit,
@@ -2015,6 +2017,414 @@ function ProdutosTab() {
   );
 }
 
+function PackagingProfilesTab() {
+  const { insumos, loading: insumosLoading } = useInsumos();
+  const {
+    profiles,
+    loading: profilesLoading,
+    addProfile,
+    updateProfile,
+    deleteProfile,
+    addProfileItem,
+    deleteProfileItem,
+  } = usePackagingProfiles();
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [itemDialogOpen, setItemDialogOpen] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<PackagingProfile | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<PackagingProfile | null>(null);
+  const [deleteProfileConfirm, setDeleteProfileConfirm] = useState<PackagingProfile | null>(null);
+  const [deleteItemConfirm, setDeleteItemConfirm] = useState<{ id: string; nome: string } | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    nome: '',
+    observacoes: '',
+  });
+  const [profileErrors, setProfileErrors] = useState<Partial<Record<'nome', string>>>({});
+  const [itemForm, setItemForm] = useState({
+    insumo_id: '',
+    quantidade_por_pedido: '',
+    observacoes: '',
+  });
+  const [itemErrors, setItemErrors] = useState<Partial<Record<'insumo_id' | 'quantidade_por_pedido', string>>>({});
+
+  const embalagens = useMemo(() => {
+    return insumos
+      .filter((insumo) => insumo.ativo && insumo.tipo_estoque === 'embalagem')
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }, [insumos]);
+  const totalItensVinculados = profiles.reduce((total, profile) => total + profile.items.length, 0);
+
+  const handleOpenProfileDialog = (profile?: PackagingProfile) => {
+    setEditingProfile(profile ?? null);
+    setProfileForm({
+      nome: profile?.nome ?? '',
+      observacoes: profile?.observacoes ?? '',
+    });
+    setProfileErrors({});
+    setProfileDialogOpen(true);
+  };
+
+  const handleOpenItemDialog = (profile: PackagingProfile) => {
+    setSelectedProfile(profile);
+    setItemForm({
+      insumo_id: '',
+      quantidade_por_pedido: '',
+      observacoes: '',
+    });
+    setItemErrors({});
+    setItemDialogOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const errors: Partial<Record<'nome', string>> = {};
+    if (!profileForm.nome.trim()) errors.nome = 'Informe o nome do modelo';
+
+    setProfileErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSavingProfile(true);
+    try {
+      const saved = editingProfile
+        ? await updateProfile(editingProfile.id, {
+          nome: profileForm.nome,
+          observacoes: profileForm.observacoes,
+        })
+        : await addProfile({
+          nome: profileForm.nome,
+          observacoes: profileForm.observacoes,
+        });
+
+      if (saved) setProfileDialogOpen(false);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSaveProfileItem = async () => {
+    if (!selectedProfile) return;
+
+    const quantidade = parseDecimalInput(itemForm.quantidade_por_pedido);
+    const errors: Partial<Record<'insumo_id' | 'quantidade_por_pedido', string>> = {};
+    const alreadyExists = selectedProfile.items.some((item) => item.insumo_id === itemForm.insumo_id);
+
+    if (!itemForm.insumo_id) errors.insumo_id = 'Selecione uma embalagem';
+    if (alreadyExists) errors.insumo_id = 'Essa embalagem ja esta no modelo';
+
+    try {
+      validatePackagingItemQuantity(quantidade);
+    } catch {
+      errors.quantidade_por_pedido = 'Informe uma quantidade maior que zero';
+    }
+
+    setItemErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSavingItem(true);
+    try {
+      const saved = await addProfileItem({
+        profile_id: selectedProfile.id,
+        insumo_id: itemForm.insumo_id,
+        quantidade_por_pedido: quantidade,
+        observacoes: itemForm.observacoes,
+      });
+
+      if (saved) setItemDialogOpen(false);
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+  const handleConfirmDeleteProfile = async () => {
+    if (!deleteProfileConfirm) return;
+    await deleteProfile(deleteProfileConfirm.id);
+    setDeleteProfileConfirm(null);
+  };
+
+  const handleConfirmDeleteItem = async () => {
+    if (!deleteItemConfirm) return;
+    await deleteProfileItem(deleteItemConfirm.id);
+    setDeleteItemConfirm(null);
+  };
+
+  if (insumosLoading || profilesLoading) {
+    return <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />Carregando...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-display font-semibold">Modelos de Embalagem</h2>
+          <p className="text-muted-foreground text-sm">
+            Monte combinações como bar individual, caixa presente ou retirada simples.
+          </p>
+        </div>
+        <Button onClick={() => handleOpenProfileDialog()} className="gap-2">
+          <Plus size={18} /> Novo Modelo
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+          <p className="text-sm text-muted-foreground">Modelos ativos</p>
+          <p className="text-2xl font-display font-bold mt-1">{profiles.length}</p>
+        </div>
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+          <p className="text-sm text-muted-foreground">Itens vinculados</p>
+          <p className="text-2xl font-display font-bold mt-1">{totalItensVinculados}</p>
+        </div>
+        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+          <p className="text-sm text-muted-foreground">Embalagens cadastradas</p>
+          <p className="text-2xl font-display font-bold mt-1">{embalagens.length}</p>
+        </div>
+      </div>
+
+      {profiles.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card py-12 text-center text-muted-foreground">
+          <Package className="w-10 h-10 mx-auto mb-3" />
+          <p>Nenhum modelo de embalagem cadastrado.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {profiles.map((profile) => {
+            const summary = summarizePackagingProfileItems(profile.items);
+
+            return (
+              <div key={profile.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-lg font-semibold text-foreground">{profile.nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {summary.itemsCount} item{summary.itemsCount === 1 ? '' : 's'} no modelo
+                      {summary.totalQuantity > 0 ? ` • ${formatInsumoQuantidadeCompacta(summary.totalQuantity)} un por pedido` : ''}
+                    </p>
+                    {profile.observacoes && (
+                      <p className="mt-1 text-sm text-muted-foreground">{profile.observacoes}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenProfileDialog(profile)}
+                      aria-label={`Editar modelo ${profile.nome}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleteProfileConfirm(profile)}
+                      aria-label={`Arquivar modelo ${profile.nome}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {profile.items.length === 0 ? (
+                    <p className="rounded-lg bg-muted/50 px-3 py-3 text-sm text-muted-foreground">
+                      Nenhuma embalagem vinculada.
+                    </p>
+                  ) : (
+                    profile.items.map((item) => (
+                      <div key={item.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg bg-muted/40 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{item.insumos?.nome ?? 'Embalagem removida'}</p>
+                          {item.observacoes && <p className="text-xs text-muted-foreground">{item.observacoes}</p>}
+                        </div>
+                        <p className="text-sm font-medium text-foreground">
+                          {formatInsumoQuantidadeCompacta(item.quantidade_por_pedido)} {item.insumos?.unidade ?? 'un'}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteItemConfirm({ id: item.id, nome: item.insumos?.nome ?? 'item' })}
+                          aria-label={`Remover ${item.insumos?.nome ?? 'item'} do modelo`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4 w-full gap-2"
+                  onClick={() => handleOpenItemDialog(profile)}
+                  disabled={embalagens.length === 0}
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar embalagem
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {editingProfile ? 'Editar modelo' : 'Novo modelo de embalagem'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="packaging-profile-nome">Nome</Label>
+              <Input
+                id="packaging-profile-nome"
+                value={profileForm.nome}
+                onChange={(event) => {
+                  setProfileForm({ ...profileForm, nome: event.target.value });
+                  if (profileErrors.nome) setProfileErrors({ ...profileErrors, nome: '' });
+                }}
+                placeholder="Ex: Bar individual"
+                aria-invalid={!!profileErrors.nome}
+                aria-describedby={profileErrors.nome ? 'packaging-profile-nome-error' : undefined}
+              />
+              {profileErrors.nome && <p id="packaging-profile-nome-error" className="text-xs text-destructive">{profileErrors.nome}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="packaging-profile-observacoes">Observações</Label>
+              <Textarea
+                id="packaging-profile-observacoes"
+                value={profileForm.observacoes}
+                onChange={(event) => setProfileForm({ ...profileForm, observacoes: event.target.value })}
+                placeholder="Ex: Usado nos pedidos para bares"
+              />
+            </div>
+            <Button onClick={handleSaveProfile} className="w-full" disabled={savingProfile}>
+              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {editingProfile ? 'Salvar modelo' : 'Criar modelo'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Adicionar embalagem</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Modelo: <strong className="text-foreground">{selectedProfile?.nome}</strong>
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="packaging-profile-item">Embalagem</Label>
+              <select
+                id="packaging-profile-item"
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                value={itemForm.insumo_id}
+                onChange={(event) => {
+                  setItemForm({ ...itemForm, insumo_id: event.target.value });
+                  if (itemErrors.insumo_id) setItemErrors({ ...itemErrors, insumo_id: '' });
+                }}
+                aria-invalid={!!itemErrors.insumo_id}
+                aria-describedby={itemErrors.insumo_id ? 'packaging-profile-item-error' : undefined}
+              >
+                <option value="">Selecione uma embalagem...</option>
+                {embalagens.map((embalagem) => (
+                  <option key={embalagem.id} value={embalagem.id}>
+                    {embalagem.nome} ({embalagem.unidade})
+                  </option>
+                ))}
+              </select>
+              {itemErrors.insumo_id && <p id="packaging-profile-item-error" className="text-xs text-destructive">{itemErrors.insumo_id}</p>}
+              {embalagens.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Cadastre itens do tipo Embalagem em Insumos/Embalagens para montar modelos.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="packaging-profile-quantity">Quantidade por pedido</Label>
+              <Input
+                id="packaging-profile-quantity"
+                type="text"
+                inputMode="decimal"
+                value={itemForm.quantidade_por_pedido}
+                onChange={(event) => {
+                  setItemForm({ ...itemForm, quantidade_por_pedido: event.target.value });
+                  if (itemErrors.quantidade_por_pedido) setItemErrors({ ...itemErrors, quantidade_por_pedido: '' });
+                }}
+                placeholder="Ex: 1"
+                aria-invalid={!!itemErrors.quantidade_por_pedido}
+                aria-describedby={itemErrors.quantidade_por_pedido ? 'packaging-profile-quantity-error' : undefined}
+              />
+              {itemErrors.quantidade_por_pedido && <p id="packaging-profile-quantity-error" className="text-xs text-destructive">{itemErrors.quantidade_por_pedido}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="packaging-profile-item-observacoes">Observações</Label>
+              <Textarea
+                id="packaging-profile-item-observacoes"
+                value={itemForm.observacoes}
+                onChange={(event) => setItemForm({ ...itemForm, observacoes: event.target.value })}
+                placeholder="Ex: Só quando o pedido for para retirada"
+              />
+            </div>
+            <Button onClick={handleSaveProfileItem} className="w-full" disabled={savingItem || embalagens.length === 0}>
+              {savingItem ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Adicionar ao modelo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteProfileConfirm} onOpenChange={(open) => !open && setDeleteProfileConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arquivar modelo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O modelo {deleteProfileConfirm?.nome} deixara de aparecer, mas os itens de estoque permanecem cadastrados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteProfile}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Arquivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteItemConfirm} onOpenChange={(open) => !open && setDeleteItemConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover embalagem do modelo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteItemConfirm?.nome} sera removido apenas deste modelo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteItem}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 export function EstoquePage() {
   return (
     <div className="space-y-6 animate-fade-in">
@@ -2026,13 +2436,15 @@ export function EstoquePage() {
       </div>
 
       <Tabs defaultValue="insumos" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl mb-8 border border-border shadow-sm p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-2 gap-1 sm:grid-cols-4 max-w-4xl mb-8 border border-border shadow-sm p-1 rounded-lg h-auto">
           <TabsTrigger value="insumos" className="rounded-md">Insumos/Embalagens</TabsTrigger>
+          <TabsTrigger value="modelos" className="rounded-md">Modelos</TabsTrigger>
           <TabsTrigger value="massas" className="rounded-md">Massas Base (g)</TabsTrigger>
           <TabsTrigger value="produtos" className="rounded-md">Produtos Finais (un)</TabsTrigger>
         </TabsList>
         <div className="mt-4">
             <TabsContent value="insumos" className="mt-0 outline-none"><InsumosTab /></TabsContent>
+            <TabsContent value="modelos" className="mt-0 outline-none"><PackagingProfilesTab /></TabsContent>
             <TabsContent value="massas" className="mt-0 outline-none"><MassasTab /></TabsContent>
             <TabsContent value="produtos" className="mt-0 outline-none"><ProdutosTab /></TabsContent>
         </div>
