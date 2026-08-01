@@ -51,7 +51,7 @@ import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { cn, formatCurrencyBRL } from '@/lib/utils';
 
 interface NovoPedidoFormProps {
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
   pedidoModelo?: Pedido;
   trigger?: ReactNode;
 }
@@ -383,7 +383,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
       // Reset form
       resetForm();
       setOpen(false);
-      onSuccess?.();
+      await onSuccess?.();
     } finally {
       setLoading(false);
     }

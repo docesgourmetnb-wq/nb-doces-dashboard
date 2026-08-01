@@ -24,7 +24,7 @@ export function usePaginatedPedidos() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const fetchPedidos = useCallback(async () => {
+  const fetchPedidos = useCallback(async (pageOverride = page) => {
     if (!user) {
       setPedidos([]);
       setTotalCount(0);
@@ -67,7 +67,7 @@ export function usePaginatedPedidos() {
       setTotalCount(count || 0);
 
       // Data query with range
-      const from = page * PAGE_SIZE;
+      const from = pageOverride * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
       let dataQuery = supabase
@@ -100,12 +100,8 @@ export function usePaginatedPedidos() {
   }, [user, toast, showArchived, statusFilter, search, page]);
 
   const refetchFirstPage = useCallback(async () => {
-    if (page === 0) {
-      await fetchPedidos();
-      return;
-    }
-
-    setPage(0);
+    if (page !== 0) setPage(0);
+    await fetchPedidos(0);
   }, [fetchPedidos, page]);
 
   useEffect(() => {
