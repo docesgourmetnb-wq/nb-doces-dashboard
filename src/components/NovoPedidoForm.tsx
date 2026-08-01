@@ -1,5 +1,5 @@
 import { type ReactNode, useMemo, useState } from 'react';
-import { Plus, Trash2, Loader2, UserPlus, Calendar } from 'lucide-react';
+import { Plus, Trash2, Loader2, UserPlus, Calendar, CopyPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
@@ -37,6 +37,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
+import { buildPedidoRecorrenteFromModelo } from '@/domain/pedidoModelos';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
   type BrigadeiroTamanhoFilter,
@@ -149,6 +150,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const [categoriaProduto, setCategoriaProduto] = useState<ProdutoCategoria>('brigadeiro');
   const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [quantidade, setQuantidade] = useState(1);
+  const isPedidoRecorrente = Boolean(pedidoModelo);
   const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
 
   const produtosBolo = useMemo(() => {
@@ -268,16 +270,18 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
 
     setClienteNovoTelefone('');
     setClienteNovoEmail('');
+    const recorrente = buildPedidoRecorrenteFromModelo(pedidoModelo);
+
     setDataPedido(new Date());
-    setTipoPedido(pedidoModelo.tipo_pedido);
-    setTipoEntrega(pedidoModelo.tipo_entrega);
-    setEnderecoEntrega(pedidoModelo.endereco_entrega || '');
-    setCanalVenda(pedidoModelo.canal_venda);
-    setFormaPagamento(pedidoModelo.forma_pagamento);
-    setPackagingProfileId(pedidoModelo.packaging_profile_id || 'none');
-    setValorPago('');
-    setObservacoes(pedidoModelo.observacoes || '');
-    setItens((pedidoModelo.itens || []).map((item) => ({ ...item })));
+    setTipoPedido(recorrente.tipo_pedido);
+    setTipoEntrega(recorrente.tipo_entrega);
+    setEnderecoEntrega(recorrente.endereco_entrega);
+    setCanalVenda(recorrente.canal_venda);
+    setFormaPagamento(recorrente.forma_pagamento);
+    setPackagingProfileId(recorrente.packaging_profile_id || 'none');
+    setValorPago(recorrente.valor_pago);
+    setObservacoes(recorrente.observacoes);
+    setItens(recorrente.itens);
     setSelectedBrigadeiro('');
     setCategoriaProduto('brigadeiro');
     setTamanhoProdutoFilter('todos');
@@ -426,11 +430,25 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
-            {pedidoModelo ? 'Duplicar Pedido' : 'Novo Pedido'}
+            {isPedidoRecorrente ? 'Pedido recorrente' : 'Novo Pedido'}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {isPedidoRecorrente && pedidoModelo && (
+            <div className="rounded-lg border border-accent bg-accent/30 p-3 text-sm text-accent-foreground">
+              <div className="flex gap-2">
+                <CopyPlus className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">Baseado no pedido de {getClienteDisplayName(pedidoModelo)}</p>
+                  <p>
+                    Itens, atendimento e embalagem foram reaproveitados. A data é nova e o pagamento começa em branco.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Client Selection */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
