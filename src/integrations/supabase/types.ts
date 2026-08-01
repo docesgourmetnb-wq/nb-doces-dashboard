@@ -581,6 +581,84 @@ export type Database = {
           },
         ]
       }
+      packaging_profile_items: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string
+          observacoes: string | null
+          profile_id: string
+          quantidade_por_pedido: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id: string
+          observacoes?: string | null
+          profile_id: string
+          quantidade_por_pedido: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          observacoes?: string | null
+          profile_id?: string
+          quantidade_por_pedido?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packaging_profile_items_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packaging_profile_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "packaging_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packaging_profiles: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       produto_variacoes: {
         Row: {
           ativo: boolean
