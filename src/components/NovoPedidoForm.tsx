@@ -6,6 +6,7 @@ import { type Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { type ProdutoCatalogoVariacao, useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
 import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
+import { usePackagingProfiles } from '@/hooks/usePackagingProfiles';
 import {
   CANAIS_VENDA,
   CANAL_VENDA_LABELS,
@@ -123,6 +124,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const { produtos: produtosCatalogo } = useProdutosCatalogo();
   const { clientes, addCliente } = useClientes();
   const { addPedido } = usePedidos();
+  const { profiles: packagingProfiles, loading: packagingProfilesLoading } = usePackagingProfiles();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -137,6 +139,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const [enderecoEntrega, setEnderecoEntrega] = useState('');
   const [canalVenda, setCanalVenda] = useState<CanalVenda>('whatsapp');
   const [formaPagamento, setFormaPagamento] = useState<Pedido['forma_pagamento']>('pix');
+  const [packagingProfileId, setPackagingProfileId] = useState('none');
   const [valorPago, setValorPago] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [itens, setItens] = useState<ItemPedido[]>([]);
@@ -195,6 +198,9 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const produtosPorId = useMemo(() => {
     return new Map(produtosBrigadeiro.map((produto) => [produto.id, produto]));
   }, [produtosBrigadeiro]);
+  const selectedPackagingProfile = packagingProfileId !== 'none'
+    ? packagingProfiles.find((profile) => profile.id === packagingProfileId) ?? null
+    : null;
 
   const selectedProdutoData = produtosDisponiveis.find((produto) => produto.key === selectedBrigadeiro) || null;
   const itemPendente: ItemPedido | null = selectedProdutoData && quantidade > 0
@@ -268,6 +274,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setEnderecoEntrega(pedidoModelo.endereco_entrega || '');
     setCanalVenda(pedidoModelo.canal_venda);
     setFormaPagamento(pedidoModelo.forma_pagamento);
+    setPackagingProfileId(pedidoModelo.packaging_profile_id || 'none');
     setValorPago('');
     setObservacoes(pedidoModelo.observacoes || '');
     setItens((pedidoModelo.itens || []).map((item) => ({ ...item })));
@@ -363,6 +370,8 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
         status: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
         status_operacional: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
         status_financeiro: statusFinanceiro,
+        packaging_profile_id: packagingProfileId === 'none' ? null : packagingProfileId,
+        packaging_profile_nome: selectedPackagingProfile?.nome ?? null,
         observacoes: observacoes.trim() || null,
       }, itensDoPedido);
       if (!novoPedido) return;
@@ -388,6 +397,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setEnderecoEntrega('');
     setCanalVenda('whatsapp');
     setFormaPagamento('pix');
+    setPackagingProfileId('none');
     setValorPago('');
     setObservacoes('');
     setItens([]);
@@ -584,6 +594,43 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
                   <p id="pedido-endereco-entrega-error" className="text-xs text-destructive">Informe o endereço para entrega.</p>
                 )}
               </div>
+            )}
+          </div>
+
+          {/* Packaging Profile */}
+          <div className="space-y-2">
+            <Label htmlFor="pedido-modelo-embalagem">Modelo de embalagem</Label>
+            <Select value={packagingProfileId} onValueChange={setPackagingProfileId}>
+              <SelectTrigger id="pedido-modelo-embalagem">
+                <SelectValue placeholder="Selecione um modelo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem modelo definido</SelectItem>
+                {packagingProfilesLoading ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Carregando modelos...
+                  </div>
+                ) : packagingProfiles.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    Nenhum modelo cadastrado
+                  </div>
+                ) : (
+                  packagingProfiles.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {profile.nome}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {selectedPackagingProfile ? (
+              <p className="text-xs text-muted-foreground">
+                {selectedPackagingProfile.items.length} item(ns) de embalagem vinculados. O estoque não será baixado automaticamente.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Opcional. Use para registrar o padrão de embalagem usado neste pedido.
+              </p>
             )}
           </div>
 

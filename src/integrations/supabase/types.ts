@@ -512,6 +512,8 @@ export type Database = {
           forma_pagamento: string
           id: string
           observacoes: string | null
+          packaging_profile_id: string | null
+          packaging_profile_nome: string | null
           saldo_restante: number | null
           status: string
           status_financeiro: string
@@ -536,6 +538,8 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           observacoes?: string | null
+          packaging_profile_id?: string | null
+          packaging_profile_nome?: string | null
           saldo_restante?: number | null
           status?: string
           status_financeiro?: string
@@ -560,6 +564,8 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           observacoes?: string | null
+          packaging_profile_id?: string | null
+          packaging_profile_nome?: string | null
           saldo_restante?: number | null
           status?: string
           status_financeiro?: string
@@ -577,6 +583,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_packaging_profile_id_fkey"
+            columns: ["packaging_profile_id"]
+            isOneToOne: false
+            referencedRelation: "packaging_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1256,6 +1269,7 @@ export type Database = {
           p_forma_pagamento: string
           p_itens?: Json
           p_observacoes: string
+          p_packaging_profile_id?: string | null
           p_status: string
           p_tipo_entrega?: string
           p_tipo_pedido: string
@@ -1275,6 +1289,8 @@ export type Database = {
           forma_pagamento: string
           id: string
           observacoes: string | null
+          packaging_profile_id: string | null
+          packaging_profile_nome: string | null
           saldo_restante: number | null
           status: string
           status_financeiro: string
