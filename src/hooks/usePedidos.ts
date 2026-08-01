@@ -47,6 +47,8 @@ export interface Pedido {
   status: PedidoStatus;
   status_operacional: PedidoStatus;
   status_financeiro: PedidoFinanceiroStatus;
+  packaging_profile_id?: string | null;
+  packaging_profile_nome?: string | null;
   observacoes?: string | null;
   itens?: ItemPedido[];
   archived_at?: string | null;
@@ -123,6 +125,7 @@ interface CreatePedidoWithItemsRpc {
       p_endereco_entrega: string | null;
       p_canal_venda: CanalVenda;
       p_valor_pago: number;
+      p_packaging_profile_id?: string | null;
     },
   ): Promise<{
     data: PedidoRow | null;
@@ -180,6 +183,8 @@ export function toPedidoWithItems(pedido: PedidoWithRelations): Pedido {
     status: ((p['status_operacional'] as string) || pedido.status) as Pedido['status'],
     status_operacional: ((p['status_operacional'] as string) || pedido.status) as Pedido['status'],
     status_financeiro: ((p['status_financeiro'] as PedidoFinanceiroStatus) ?? 'nao_pago') as PedidoFinanceiroStatus,
+    packaging_profile_id: (p['packaging_profile_id'] as string | null) ?? null,
+    packaging_profile_nome: (p['packaging_profile_nome'] as string | null) ?? null,
     observacoes: pedido.observacoes,
     itens,
     archived_at: pedido.archived_at,
@@ -329,6 +334,7 @@ export function usePedidos() {
         p_endereco_entrega: pedido.endereco_entrega || null,
         p_canal_venda: pedido.canal_venda,
         p_valor_pago: pedido.valor_pago,
+        p_packaging_profile_id: pedido.packaging_profile_id || null,
       });
 
       if (error) throw error;

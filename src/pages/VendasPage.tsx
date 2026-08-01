@@ -385,6 +385,11 @@ export function VendasPage() {
                           <p className="text-xs">
                             {ENTREGA_LABELS[pedido.tipo_entrega]} • {CANAL_VENDA_LABELS[pedido.canal_venda]}
                           </p>
+                          {pedido.packaging_profile_nome && (
+                            <p className="text-xs text-muted-foreground">
+                              Embalagem: {pedido.packaging_profile_nome}
+                            </p>
+                          )}
                         </div>
                       </td>
                       <td className="p-4">
@@ -499,6 +504,12 @@ export function VendasPage() {
                                     <p className="text-muted-foreground">Canal</p>
                                     <p className="font-medium">{CANAL_VENDA_LABELS[pedido.canal_venda]}</p>
                                   </div>
+                                  {pedido.packaging_profile_nome && (
+                                    <div className="col-span-2">
+                                      <p className="text-muted-foreground">Modelo de embalagem</p>
+                                      <p className="font-medium">{pedido.packaging_profile_nome}</p>
+                                    </div>
+                                  )}
                                   {pedido.endereco_entrega && (
                                     <div className="col-span-2">
                                       <p className="text-muted-foreground">Endereço</p>
