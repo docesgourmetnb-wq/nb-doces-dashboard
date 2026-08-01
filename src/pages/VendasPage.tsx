@@ -452,8 +452,8 @@ export function VendasPage() {
                               <button
                                 type="button"
                                 className="p-2 hover:bg-muted rounded-lg transition-colors"
-                                title="Duplicar pedido"
-                                aria-label={`Duplicar pedido de ${getClienteDisplayName(pedido)}`}
+                                title="Criar pedido recorrente"
+                                aria-label={`Criar pedido recorrente com base no pedido de ${getClienteDisplayName(pedido)}`}
                               >
                                 <CopyPlus size={18} className="text-muted-foreground" />
                               </button>
