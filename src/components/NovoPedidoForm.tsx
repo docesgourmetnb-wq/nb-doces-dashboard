@@ -12,11 +12,14 @@ import {
   CANAL_VENDA_LABELS,
   ENTREGA_LABELS,
   ENTREGA_TIPOS,
+  canCreateHistoricalOrderAsDelivered,
+  deriveInitialPedidoStatus,
   derivePedidoFinanceiroStatus,
   type CanalVenda,
   type EntregaTipo,
 } from '@/domain/pedidos';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -118,6 +121,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const [canalVenda, setCanalVenda] = useState<CanalVenda>('whatsapp');
   const [formaPagamento, setFormaPagamento] = useState<Pedido['forma_pagamento']>('pix');
   const [packagingProfileId, setPackagingProfileId] = useState('none');
+  const [historicalDelivered, setHistoricalDelivered] = useState(false);
   const [valorPago, setValorPago] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [itens, setItens] = useState<ItemPedido[]>([]);
@@ -192,6 +196,12 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     }
   }, [isPedidoHistorico, packagingProfileId]);
 
+  useEffect(() => {
+    if (!isPedidoHistorico && historicalDelivered) {
+      setHistoricalDelivered(false);
+    }
+  }, [historicalDelivered, isPedidoHistorico]);
+
   const selectedProdutoData = produtosDisponiveis.find((produto) => produto.key === selectedBrigadeiro) || null;
   const itemPendente: ItemPedido | null = selectedProdutoData && quantidade > 0
     ? {
@@ -232,12 +242,19 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     : valorPagoNumber > valorTotal
       ? 'O valor pago não pode ser maior que o total do pedido.'
       : null;
+  const statusFinanceiro = valorPagoValido ? derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber) : 'nao_pago';
+  const canMarkHistoricalDelivered = canCreateHistoricalOrderAsDelivered({
+    isHistoricalOrder: isPedidoHistorico,
+    valorTotal,
+    valorPago: valorPagoValido ? valorPagoNumber : 0,
+  });
+  const historicalDeliveredValido = !historicalDelivered || canMarkHistoricalDelivered;
   const enderecoEntregaValido = tipoEntrega !== 'entrega' || enderecoEntrega.trim().length > 0;
 
   const clienteNome = modoCliente === 'existente' 
     ? clientes.find(c => c.id === clienteId)?.nome || ''
     : clienteNovo.trim();
-  const canSubmit = Boolean(clienteNome) && itensDoPedido.length > 0 && valorPagoValido && enderecoEntregaValido;
+  const canSubmit = Boolean(clienteNome) && itensDoPedido.length > 0 && valorPagoValido && enderecoEntregaValido && historicalDeliveredValido;
 
   const applyPedidoModelo = () => {
     if (!pedidoModelo) return;
@@ -267,6 +284,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setCanalVenda(recorrente.canal_venda);
     setFormaPagamento(recorrente.forma_pagamento);
     setPackagingProfileId(recorrente.packaging_profile_id || 'none');
+    setHistoricalDelivered(false);
     setValorPago(recorrente.valor_pago);
     setObservacoes(recorrente.observacoes);
     setItens(recorrente.itens);
@@ -320,7 +338,12 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setLoading(true);
     try {
       const dataCriacao = format(new Date(), 'yyyy-MM-dd');
-      const statusFinanceiro = derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber);
+      const statusOperacionalInicial = deriveInitialPedidoStatus({
+        isHistoricalOrder: isPedidoHistorico,
+        markHistoricalAsDelivered: historicalDelivered,
+        valorTotal,
+        valorPago: valorPagoNumber,
+      });
       let pedidoClienteId = modoCliente === 'existente' && clienteId ? clienteId : null;
       let pedidoClienteNome = clienteNome;
 
@@ -358,8 +381,8 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
         valor_pago: valorPagoNumber,
         saldo_restante: Math.max(valorTotal - valorPagoNumber, 0),
         forma_pagamento: formaPagamento,
-        status: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
-        status_operacional: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
+        status: statusOperacionalInicial,
+        status_operacional: statusOperacionalInicial,
         status_financeiro: statusFinanceiro,
         packaging_profile_id: isPedidoHistorico || packagingProfileId === 'none' ? null : packagingProfileId,
         packaging_profile_nome: isPedidoHistorico ? null : selectedPackagingProfile?.nome ?? null,
@@ -389,6 +412,7 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     setCanalVenda('whatsapp');
     setFormaPagamento('pix');
     setPackagingProfileId('none');
+    setHistoricalDelivered(false);
     setValorPago('');
     setObservacoes('');
     setItens([]);
@@ -538,8 +562,34 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
               </PopoverContent>
             </Popover>
             {isPedidoHistorico && (
-              <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
-                Pedido histórico: datas anteriores a {FINANCIAL_CONTROL_START_LABEL} ficam apenas no registro comercial. Não entra na operação atual, não reserva estoque e não usa modelo de embalagem.
+              <div className="space-y-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+                <p>
+                  Pedido histórico: datas anteriores a {FINANCIAL_CONTROL_START_LABEL} ficam apenas no registro comercial. Não entra na operação atual, não reserva estoque e não usa modelo de embalagem.
+                </p>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="pedido-historico-entregue"
+                    checked={historicalDelivered}
+                    onCheckedChange={(checked) => setHistoricalDelivered(checked === true)}
+                    aria-describedby="pedido-historico-entregue-help"
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="pedido-historico-entregue"
+                      className="cursor-pointer text-sm font-medium text-warning"
+                    >
+                      Registrar histórico como entregue
+                    </Label>
+                    <p id="pedido-historico-entregue-help" className="text-xs text-warning/80">
+                      Use para pedidos antigos já finalizados. Disponível apenas quando o valor pago cobre o total.
+                    </p>
+                    {historicalDelivered && !canMarkHistoricalDelivered && (
+                      <p className="text-xs font-medium text-destructive">
+                        Para salvar como entregue, informe o pagamento total do pedido.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
