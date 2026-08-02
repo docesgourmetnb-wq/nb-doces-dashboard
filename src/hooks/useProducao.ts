@@ -8,6 +8,7 @@ import {
   cancelMassProduction,
   completeMassProduction,
   executeProductionOrder,
+  updateMassProductionPlan,
   updateMassProductionStatus,
 } from '@/services/productionExecutionService';
 
@@ -178,12 +179,11 @@ export function useProducao() {
       delete nonStatusUpdates.status;
 
       if (Object.keys(nonStatusUpdates).length > 0) {
-        const { error } = await supabase
-          .from('producao_diaria')
-          .update(nonStatusUpdates)
-          .eq('id', id);
+        const planUpdates: { producaoId: string; data?: string; quantidade?: number } = { producaoId: id };
+        if (nonStatusUpdates.data !== undefined) planUpdates.data = nonStatusUpdates.data;
+        if (nonStatusUpdates.quantidade !== undefined) planUpdates.quantidade = nonStatusUpdates.quantidade;
 
-        if (error) throw error;
+        await updateMassProductionPlan(planUpdates);
       }
 
       if (shouldComplete) {
