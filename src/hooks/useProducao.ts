@@ -7,6 +7,7 @@ import {
   buildProductionIdempotencyKey,
   cancelMassProduction,
   completeMassProduction,
+  createMassProductionPlan,
   executeProductionOrder,
   updateMassProductionPlan,
   updateMassProductionStatus,
@@ -116,25 +117,18 @@ export function useProducao() {
         });
       }
 
-      const { data, error } = await supabase
-        .from('producao_diaria')
-        .insert({
-          data: item.data,
-          brigadeiro_id: item.brigadeiro_id ?? null,
-          brigadeiro_nome: item.brigadeiro_nome,
-          quantidade: item.quantidade,
-          custo_total: item.custo_total,
-          status: item.status,
-          recipe_version_id: integration?.recipeVersionId ?? item.recipe_version_id ?? null,
-          consumir_estoque: integration?.consumeStockOnCompletion ?? item.consumir_estoque ?? false,
-          rendimento_previsto: integration?.expectedYield ?? item.rendimento_previsto ?? null,
-          observacoes: integration?.notes ?? item.observacoes ?? null,
-          user_id: user.id,
-        })
-        .select()
-        .single();
+      const data = await createMassProductionPlan({
+        data: item.data,
+        brigadeiroId: item.brigadeiro_id ?? null,
+        brigadeiroNome: item.brigadeiro_nome,
+        quantidade: item.quantidade,
+        custoTotal: item.custo_total,
+        recipeVersionId: integration?.recipeVersionId ?? item.recipe_version_id ?? null,
+        consumirEstoque: integration?.consumeStockOnCompletion ?? item.consumir_estoque ?? false,
+        rendimentoPrevisto: integration?.expectedYield ?? item.rendimento_previsto ?? null,
+        observacoes: integration?.notes ?? item.observacoes ?? null,
+      });
 
-      if (error) throw error;
       await fetchProducao();
       toast({ title: integration?.enabled ? 'Produção registrada e estoque movimentado!' : 'Produção planejada!' });
       return data as ProducaoDiaria;
