@@ -16,6 +16,7 @@ import {
   getPedidoStatusBadgeClass,
   getPedidoFinanceiroStatusBadgeClass,
   getPedidoFinanceiroStatusLabel,
+  getPedidoStatusOptions,
   isPedidoTerminal,
   calculateNextPedidoValorPago,
   CANAL_VENDA_LABELS,
@@ -346,7 +347,14 @@ export function VendasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPedidos.map((pedido) => (
+                  {filteredPedidos.map((pedido) => {
+                    const isPedidoHistorico = getIsHistoricalFinancialOrder(pedido);
+                    const statusOptions = getPedidoStatusOptions({
+                      isHistoricalOrder: isPedidoHistorico,
+                      currentStatus: pedido.status,
+                    });
+
+                    return (
                     <tr key={pedido.id} className={cn(
                       "border-t border-border hover:bg-muted/30 transition-colors",
                       pedido.archived_at && "opacity-50"
@@ -356,7 +364,7 @@ export function VendasPage() {
                         {pedido.archived_at && (
                           <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Arquivado</span>
                         )}
-                        {getIsHistoricalFinancialOrder(pedido) && (
+                        {isPedidoHistorico && (
                           <span className="ml-2 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">Histórico</span>
                         )}
                       </td>
@@ -387,7 +395,7 @@ export function VendasPage() {
                             {getPedidoFinanceiroStatusLabel(pedido.status_financeiro)}
                           </span>
                           <p className="text-xs text-muted-foreground">{PAGAMENTO_LABELS[pedido.forma_pagamento]}</p>
-                          {getIsHistoricalFinancialOrder(pedido) && (
+                          {isPedidoHistorico && (
                             <p className="text-xs text-muted-foreground">Fora do financeiro oficial</p>
                           )}
                           {pedido.saldo_restante > 0 && (
@@ -418,11 +426,14 @@ export function VendasPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {PEDIDO_STATUSES.map(s => (
+                            {statusOptions.map(s => (
                               <SelectItem key={s} value={s}>{getPedidoStatusLabel(s)}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {isPedidoHistorico && (
+                          <p className="mt-1 text-xs text-muted-foreground">Registro comercial</p>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
@@ -461,7 +472,7 @@ export function VendasPage() {
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4 py-4">
-                                {getIsHistoricalFinancialOrder(pedido) && (
+                                {isPedidoHistorico && (
                                   <div className="rounded-lg border border-accent bg-accent/30 p-3 text-sm text-accent-foreground">
                                     Pedido histórico: não compõe o financeiro oficial iniciado em {FINANCIAL_CONTROL_START_LABEL}.
                                   </div>
@@ -601,7 +612,8 @@ export function VendasPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
