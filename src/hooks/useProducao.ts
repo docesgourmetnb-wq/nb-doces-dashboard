@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getProducaoErrorMessage, type ProducaoStatus } from '@/domain/producao';
 import {
   buildProductionIdempotencyKey,
+  cancelMassProduction,
   completeMassProduction,
   executeProductionOrder,
 } from '@/services/productionExecutionService';
@@ -221,12 +222,7 @@ export function useProducao() {
 
   const cancelProducao = async (id: string, reason?: string) => {
     try {
-      const { error } = await supabase
-        .from('producao_diaria')
-        .update({ deleted_at: new Date().toISOString(), deleted_reason: reason || null })
-        .eq('id', id);
-
-      if (error) throw error;
+      await cancelMassProduction({ producaoId: id, reason: reason || null });
       await fetchProducao();
       toast({ title: 'Produção cancelada.' });
     } catch (error: unknown) {

@@ -19,6 +19,10 @@ export interface CompleteMassProductionResult {
   movement_count: number;
 }
 
+export interface CancelMassProductionResult {
+  id: string;
+}
+
 interface ExecuteProductionRpcParams {
   p_recipe_version_id: string;
   p_output_item_id: string;
@@ -49,6 +53,21 @@ interface CompleteMassProductionRpc {
     params: CompleteMassProductionRpcParams,
   ): Promise<{
     data: CompleteMassProductionResult[] | CompleteMassProductionResult | null;
+    error: Error | null;
+  }>;
+}
+
+interface CancelMassProductionRpcParams {
+  p_producao_id: string;
+  p_reason: string | null;
+}
+
+interface CancelMassProductionRpc {
+  (
+    fn: 'cancel_mass_production',
+    params: CancelMassProductionRpcParams,
+  ): Promise<{
+    data: CancelMassProductionResult | null;
     error: Error | null;
   }>;
 }
@@ -103,6 +122,27 @@ export async function completeMassProduction(payload: {
   }
 
   return result as CompleteMassProductionResult;
+}
+
+export async function cancelMassProduction(payload: {
+  producaoId: string;
+  reason?: string | null;
+}): Promise<CancelMassProductionResult> {
+  const cancelRpc = supabase.rpc.bind(supabase) as unknown as CancelMassProductionRpc;
+  const { data, error } = await cancelRpc('cancel_mass_production', {
+    p_producao_id: payload.producaoId,
+    p_reason: payload.reason ?? null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.id) {
+    throw new Error('Falha ao cancelar produção: resposta inválida da RPC.');
+  }
+
+  return data;
 }
 
 export function buildProductionIdempotencyKey(seed: {
