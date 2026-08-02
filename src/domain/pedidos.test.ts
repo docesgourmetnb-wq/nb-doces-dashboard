@@ -10,6 +10,7 @@ import {
   getPedidoStatusUpdateErrorMessage,
   getPedidoStatusBadgeClass,
   getPedidoFinanceiroStatusLabel,
+  getPedidoStatusOptions,
   getPedidoStatusLabel,
   isPedidoTerminal,
   shouldGenerateRevenue,
@@ -90,6 +91,33 @@ test('deriveInitialPedidoStatus only creates delivered historical orders when al
     }),
     'orcamento',
   );
+});
+
+test('getPedidoStatusOptions removes operational production states from historical orders', () => {
+  assert.deepEqual(getPedidoStatusOptions({ isHistoricalOrder: false }), [
+    'orcamento',
+    'confirmado',
+    'em-producao',
+    'pronto',
+    'entregue',
+    'cancelado',
+  ]);
+  assert.deepEqual(getPedidoStatusOptions({ isHistoricalOrder: true }), [
+    'orcamento',
+    'confirmado',
+    'entregue',
+    'cancelado',
+  ]);
+});
+
+test('getPedidoStatusOptions preserves a legacy current status for historical orders', () => {
+  assert.deepEqual(getPedidoStatusOptions({ isHistoricalOrder: true, currentStatus: 'pronto' }), [
+    'orcamento',
+    'confirmado',
+    'entregue',
+    'cancelado',
+    'pronto',
+  ]);
 });
 
 test('getPedidoFinanceiroStatusLabel returns labels for known statuses', () => {

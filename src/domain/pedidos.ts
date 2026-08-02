@@ -1,6 +1,8 @@
 export const PEDIDO_STATUSES = ['orcamento', 'confirmado', 'em-producao', 'pronto', 'entregue', 'cancelado'] as const;
 export type PedidoStatus = (typeof PEDIDO_STATUSES)[number];
 
+export const PEDIDO_HISTORICO_STATUSES = ['orcamento', 'confirmado', 'entregue', 'cancelado'] as const;
+
 export const PEDIDO_FINANCEIRO_STATUSES = ['nao_pago', 'parcial', 'pago'] as const;
 export type PedidoFinanceiroStatus = (typeof PEDIDO_FINANCEIRO_STATUSES)[number];
 
@@ -76,6 +78,21 @@ export function deriveInitialPedidoStatus(input: InitialPedidoStatusInput): Pedi
   }
 
   return input.valorPago > 0 ? 'confirmado' : 'orcamento';
+}
+
+export function getPedidoStatusOptions(input: { isHistoricalOrder: boolean; currentStatus?: PedidoStatus | string | null }) {
+  if (!input.isHistoricalOrder) return [...PEDIDO_STATUSES];
+
+  const historicalStatuses: PedidoStatus[] = [...PEDIDO_HISTORICO_STATUSES];
+  if (
+    input.currentStatus &&
+    PEDIDO_STATUSES.includes(input.currentStatus as PedidoStatus) &&
+    !historicalStatuses.includes(input.currentStatus as PedidoStatus)
+  ) {
+    historicalStatuses.push(input.currentStatus as PedidoStatus);
+  }
+
+  return historicalStatuses;
 }
 
 export function calculateNextPedidoValorPago(valorPagoAtual: number, saldoRestante: number, valorRecebido: number) {
