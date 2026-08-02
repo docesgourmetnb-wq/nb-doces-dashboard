@@ -2199,6 +2199,10 @@ function PackagingProfilesTab() {
                       {summary.itemsCount} item{summary.itemsCount === 1 ? '' : 's'} no modelo
                       {summary.totalQuantity > 0 ? ` • ${formatInsumoQuantidadeCompacta(summary.totalQuantity)} un por pedido` : ''}
                     </p>
+                    <p className="text-sm text-muted-foreground">
+                      Custo conhecido: {formatCurrencyBRLPrecise(summary.knownCost)}
+                      {summary.itemsWithoutKnownCost > 0 ? ' • há itens sem custo informado' : ''}
+                    </p>
                     {profile.observacoes && (
                       <p className="mt-1 text-sm text-muted-foreground">{profile.observacoes}</p>
                     )}

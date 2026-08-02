@@ -39,6 +39,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
 import { buildPedidoRecorrenteFromModelo } from '@/domain/pedidoModelos';
 import { getPedidoItemDisplayInfo, getPedidoItemDisplayLabel } from '@/domain/pedidoItens';
+import { summarizePackagingProfileItems } from '@/domain/embalagens';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
   type BrigadeiroTamanhoFilter,
@@ -173,6 +174,9 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   }, [produtosBrigadeiro]);
   const selectedPackagingProfile = packagingProfileId !== 'none'
     ? packagingProfiles.find((profile) => profile.id === packagingProfileId) ?? null
+    : null;
+  const selectedPackagingSummary = selectedPackagingProfile
+    ? summarizePackagingProfileItems(selectedPackagingProfile.items)
     : null;
 
   const selectedProdutoData = produtosDisponiveis.find((produto) => produto.key === selectedBrigadeiro) || null;
@@ -613,9 +617,20 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
               </SelectContent>
             </Select>
             {selectedPackagingProfile ? (
-              <p className="text-xs text-muted-foreground">
-                {selectedPackagingProfile.items.length} item(ns) de embalagem vinculados. O estoque não será baixado automaticamente.
-              </p>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>
+                  {selectedPackagingSummary?.itemsCount ?? 0} item(ns) vinculados
+                  {selectedPackagingSummary && selectedPackagingSummary.knownCost > 0
+                    ? ` • custo conhecido estimado: ${formatCurrencyBRL(selectedPackagingSummary.knownCost)}`
+                    : ' • custo conhecido estimado: R$ 0,00'}
+                </p>
+                <p>
+                  {selectedPackagingSummary?.itemsWithoutKnownCost
+                    ? 'Há itens sem custo informado. '
+                    : ''}
+                  O estoque não será baixado automaticamente.
+                </p>
+              </div>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Opcional. Use para registrar o padrão de embalagem usado neste pedido.
