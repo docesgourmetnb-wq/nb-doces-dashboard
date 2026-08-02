@@ -30,6 +30,44 @@ function toEstoqueMassa(insumo: InsumoRow): EstoqueMassa {
   };
 }
 
+interface RegisterBaseMassStockRpc {
+  (
+    fn: 'register_base_mass_stock',
+    params: {
+      p_sabor: string;
+      p_quantidade_inicial: number;
+    },
+  ): Promise<{
+    data: InsumoRow | null;
+    error: Error | null;
+  }>;
+}
+
+interface AdjustBaseMassStockRpc {
+  (
+    fn: 'adjust_base_mass_stock',
+    params: {
+      p_insumo_id: string;
+      p_quantidade_delta: number;
+    },
+  ): Promise<{
+    data: InsumoRow | null;
+    error: Error | null;
+  }>;
+}
+
+interface InactivateBaseMassStockRpc {
+  (
+    fn: 'inactivate_base_mass_stock',
+    params: {
+      p_insumo_id: string;
+    },
+  ): Promise<{
+    data: InsumoRow | null;
+    error: Error | null;
+  }>;
+}
+
 export function useEstoqueMassas() {
   const [massas, setMassas] = useState<EstoqueMassa[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +86,8 @@ export function useEstoqueMassas() {
       const { data, error } = await supabase
         .from('insumos')
         .select('*')
-        .eq('unidade', 'SYS_MASSA');
+        .eq('unidade', 'SYS_MASSA')
+        .eq('ativo', true);
 
       if (error) throw error;
       
@@ -77,25 +116,24 @@ export function useEstoqueMassas() {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('insumos')
-        .insert([{ 
-           nome: `[MASSA] ${sabor}`, 
-           unidade: 'SYS_MASSA',
-           quantidade_atual: quantidade_g, 
-           quantidade_minima: 0,
-           consumo_medio: 0,
-           preco_unitario: 0,
-           user_id: user.id 
-        }])
-        .select()
-        .single();
+      const registerStockRpc = supabase.rpc.bind(supabase) as unknown as RegisterBaseMassStockRpc;
+      const { data, error } = await registerStockRpc('register_base_mass_stock', {
+        p_sabor: sabor,
+        p_quantidade_inicial: quantidade_g,
+      });
 
       if (error) throw error;
+      if (!data) throw new Error('Massa base não retornada pelo banco');
       
       const novaMassa = toEstoqueMassa(data);
 
-      setMassas(prev => [...prev, novaMassa].sort((a, b) => a.sabor.localeCompare(b.sabor)));
+      setMassas(prev => {
+        const exists = prev.some((massa) => massa.id === novaMassa.id);
+        const newState = exists
+          ? prev.map((massa) => massa.id === novaMassa.id ? novaMassa : massa)
+          : [...prev, novaMassa];
+        return newState.sort((a, b) => a.sabor.localeCompare(b.sabor));
+      });
       toast({
         title: 'Massa adicionada',
         description: 'Sabor cadastrado no estoque.',
@@ -126,14 +164,16 @@ export function useEstoqueMassas() {
     }
 
     try {
-      const { error } = await supabase
-        .from('insumos')
-        .update({ quantidade_atual: novaQuantidade, updated_at: new Date().toISOString() })
-        .eq('id', id);
+      const adjustStockRpc = supabase.rpc.bind(supabase) as unknown as AdjustBaseMassStockRpc;
+      const { data, error } = await adjustStockRpc('adjust_base_mass_stock', {
+        p_insumo_id: id,
+        p_quantidade_delta: quantidadeDelta,
+      });
 
       if (error) throw error;
 
-      setMassas(prev => prev.map(m => m.id === id ? { ...m, quantidade_g: novaQuantidade } : m));
+      const quantidadeAtual = data?.quantidade_atual ?? novaQuantidade;
+      setMassas(prev => prev.map(m => m.id === id ? { ...m, quantidade_g: quantidadeAtual } : m));
       toast({
         title: 'Estoque atualizado',
         description: `Saldo atualizado com sucesso.`,
@@ -151,17 +191,17 @@ export function useEstoqueMassas() {
 
   const deleteMassa = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('insumos')
-        .delete()
-        .eq('id', id);
+      const inactivateStockRpc = supabase.rpc.bind(supabase) as unknown as InactivateBaseMassStockRpc;
+      const { error } = await inactivateStockRpc('inactivate_base_mass_stock', {
+        p_insumo_id: id,
+      });
 
       if (error) throw error;
 
       setMassas(prev => prev.filter(m => m.id !== id));
       toast({
-        title: 'Registro excluído',
-        description: 'Sabor removido do estoque.',
+        title: 'Massa inativada',
+        description: 'Sabor removido da operação, com histórico preservado.',
       });
       return true;
     } catch (error: unknown) {
