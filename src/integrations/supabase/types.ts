@@ -1367,6 +1367,39 @@ export type Database = {
           producao_id: string
         }[]
       }
+      create_mass_production_plan: {
+        Args: {
+          p_brigadeiro_id?: string | null
+          p_brigadeiro_nome: string
+          p_consumir_estoque?: boolean
+          p_custo_total?: number
+          p_data: string
+          p_observacoes?: string | null
+          p_quantidade: number
+          p_recipe_version_id?: string | null
+          p_rendimento_previsto?: number | null
+        }
+        Returns: {
+          brigadeiro_id: string | null
+          brigadeiro_nome: string
+          consumir_estoque: boolean | null
+          created_at: string
+          custo_total: number
+          data: string
+          deleted_at: string | null
+          deleted_reason: string | null
+          id: string
+          insumos_consumidos_at: string | null
+          observacoes: string | null
+          quantidade: number
+          recipe_version_id: string | null
+          rendimento_previsto: number | null
+          rendimento_real: number | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+      }
       create_pedido_with_items: {
         Args: {
           p_canal_venda?: string

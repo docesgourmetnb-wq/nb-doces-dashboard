@@ -34,6 +34,10 @@ export interface UpdateMassProductionPlanResult {
   quantidade: number;
 }
 
+export interface CreateMassProductionPlanResult {
+  id: string;
+}
+
 interface ExecuteProductionRpcParams {
   p_recipe_version_id: string;
   p_output_item_id: string;
@@ -110,6 +114,28 @@ interface UpdateMassProductionPlanRpc {
     params: UpdateMassProductionPlanRpcParams,
   ): Promise<{
     data: UpdateMassProductionPlanResult | null;
+    error: Error | null;
+  }>;
+}
+
+interface CreateMassProductionPlanRpcParams {
+  p_data: string;
+  p_brigadeiro_nome: string;
+  p_quantidade: number;
+  p_recipe_version_id: string | null;
+  p_consumir_estoque: boolean;
+  p_rendimento_previsto: number | null;
+  p_observacoes: string | null;
+  p_brigadeiro_id: string | null;
+  p_custo_total: number;
+}
+
+interface CreateMassProductionPlanRpc {
+  (
+    fn: 'create_mass_production_plan',
+    params: CreateMassProductionPlanRpcParams,
+  ): Promise<{
+    data: CreateMassProductionPlanResult | null;
     error: Error | null;
   }>;
 }
@@ -226,6 +252,41 @@ export async function updateMassProductionPlan(payload: {
 
   if (!data?.id) {
     throw new Error('Falha ao atualizar planejamento da produção: resposta inválida da RPC.');
+  }
+
+  return data;
+}
+
+export async function createMassProductionPlan(payload: {
+  data: string;
+  brigadeiroNome: string;
+  quantidade: number;
+  recipeVersionId?: string | null;
+  consumirEstoque?: boolean;
+  rendimentoPrevisto?: number | null;
+  observacoes?: string | null;
+  brigadeiroId?: string | null;
+  custoTotal?: number;
+}): Promise<CreateMassProductionPlanResult> {
+  const createPlanRpc = supabase.rpc.bind(supabase) as unknown as CreateMassProductionPlanRpc;
+  const { data, error } = await createPlanRpc('create_mass_production_plan', {
+    p_data: payload.data,
+    p_brigadeiro_nome: payload.brigadeiroNome,
+    p_quantidade: payload.quantidade,
+    p_recipe_version_id: payload.recipeVersionId ?? null,
+    p_consumir_estoque: payload.consumirEstoque ?? false,
+    p_rendimento_previsto: payload.rendimentoPrevisto ?? null,
+    p_observacoes: payload.observacoes ?? null,
+    p_brigadeiro_id: payload.brigadeiroId ?? null,
+    p_custo_total: payload.custoTotal ?? 0,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.id) {
+    throw new Error('Falha ao planejar produção: resposta inválida da RPC.');
   }
 
   return data;
