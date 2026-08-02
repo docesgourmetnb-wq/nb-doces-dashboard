@@ -2,7 +2,7 @@ import { type ReactNode, useMemo, useState } from 'react';
 import { Plus, Trash2, Loader2, UserPlus, Calendar, CopyPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { type Brigadeiro, useBrigadeiros } from '@/hooks/useBrigadeiros';
+import { useBrigadeiros } from '@/hooks/useBrigadeiros';
 import { type ProdutoCatalogoVariacao, useProdutosCatalogo } from '@/hooks/useProdutosCatalogo';
 import { useClientes } from '@/hooks/useClientes';
 import { usePedidos, ItemPedido, Pedido, getClienteDisplayName } from '@/hooks/usePedidos';
@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { findClienteByContato } from '@/domain/clientes';
 import { buildPedidoRecorrenteFromModelo } from '@/domain/pedidoModelos';
+import { getPedidoItemDisplayInfo, getPedidoItemDisplayLabel } from '@/domain/pedidoItens';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
   type BrigadeiroTamanhoFilter,
@@ -88,36 +89,6 @@ function getPedidoItemKey(item: Pick<ItemPedido, 'brigadeiro_id' | 'produto_vari
   if (item.produto_variacao_id) return `variacao:${item.produto_variacao_id}`;
   if (item.brigadeiro_id) return `brigadeiro:${item.brigadeiro_id}`;
   return `manual:${item.brigadeiro_nome.toLowerCase().trim()}`;
-}
-
-function getPedidoItemProdutoInfo(item: ItemPedido, produtosPorId: Map<string, Brigadeiro>) {
-  if ((item.produto_categoria ?? item.brigadeiro_categoria) === 'bolo') {
-    const nomeBase = item.produto_nome || item.brigadeiro_nome || 'Bolo';
-    const tamanho = item.produto_variacao_nome && item.produto_variacao_nome !== nomeBase
-      ? item.produto_variacao_nome
-      : item.produto_variacao_tamanho || item.produto_variacao_cobertura || null;
-
-    return { nomeBase, tamanho };
-  }
-
-  const produto = item.brigadeiro_id ? produtosPorId.get(item.brigadeiro_id) : undefined;
-  const nome = produto?.nome ?? item.brigadeiro_nome ?? '';
-  const nomeBase = produto
-    ? getProdutoNomeComercial(produto)
-    : getProdutoNomeComercial({
-        nome,
-        categoria: item.brigadeiro_categoria ?? null,
-        tamanho_g: item.brigadeiro_tamanho_g ?? null,
-      }) || item.brigadeiro_nome || 'Produto';
-  const tamanho = produto
-    ? getProdutoTamanhoComercial(produto)
-    : getProdutoTamanhoComercial({
-        nome,
-        categoria: item.brigadeiro_categoria ?? null,
-        tamanho_g: item.brigadeiro_tamanho_g ?? null,
-      });
-
-  return { nomeBase, tamanho };
 }
 
 export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoFormProps) {
@@ -740,19 +711,18 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
             {itens.length > 0 && (
               <div className="space-y-2 border border-border rounded-lg p-4 bg-muted/30">
                 {itens.map((item, index) => {
-                  const produtoInfo = getPedidoItemProdutoInfo(item, produtosPorId);
-                  const itemLabel = produtoInfo.tamanho
-                    ? `${produtoInfo.nomeBase} ${produtoInfo.tamanho}`
-                    : produtoInfo.nomeBase;
+                  const produtoLookup = item.brigadeiro_id ? produtosPorId.get(item.brigadeiro_id) : null;
+                  const produtoInfo = getPedidoItemDisplayInfo(item, produtoLookup);
+                  const itemLabel = getPedidoItemDisplayLabel(produtoInfo);
 
                   return (
                     <div key={index} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{produtoInfo.nomeBase}</p>
-                          {produtoInfo.tamanho && (
+                          {produtoInfo.detalhe && (
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                              {produtoInfo.tamanho}
+                              {produtoInfo.detalhe}
                             </span>
                           )}
                         </div>

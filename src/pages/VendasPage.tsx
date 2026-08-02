@@ -22,6 +22,7 @@ import {
   ENTREGA_LABELS,
   PAGAMENTO_LABELS,
 } from '@/domain/pedidos';
+import { getPedidoItemDisplayInfo } from '@/domain/pedidoItens';
 import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate, isHistoricalFinancialOrder } from '@/domain/financeiro';
 import { parseDecimalInput } from '@/domain/numeros';
 import {
@@ -40,28 +41,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
-import { getProdutoNomeComercial, getProdutoTamanhoComercial } from '@/domain/produtos';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-function getPedidoItemDetalhe(
-  item: NonNullable<Pedido['itens']>[number],
-  produtoInfo: { nome: string; categoria: string | null; tamanho_g: number | null },
-) {
-  if (item.produto_categoria === 'bolo') {
-    const detalhes = [
-      item.produto_variacao_nome,
-      item.produto_variacao_tamanho,
-      item.produto_variacao_cobertura,
-    ]
-      .map((value) => value?.trim())
-      .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
-
-    return detalhes.join(' • ') || null;
-  }
-
-  return getProdutoTamanhoComercial(produtoInfo);
-}
 
 export function VendasPage() {
   const { updatePedidoStatus, updatePedidoPayment, archivePedido, unarchivePedido } = usePedidos();
@@ -528,13 +509,12 @@ export function VendasPage() {
                                     <p className="text-muted-foreground text-sm mb-2">Itens</p>
                                     <div className="space-y-2">
                                       {pedido.itens.map((item, index) => {
-                                        const produtoInfo = {
+                                        const produtoLookup = {
                                           nome: item.produto_nome ?? item.brigadeiro_nome,
                                           categoria: item.produto_categoria ?? item.brigadeiro_categoria ?? null,
                                           tamanho_g: item.brigadeiro_tamanho_g ?? null,
                                         };
-                                        const produtoBase = getProdutoNomeComercial(produtoInfo);
-                                        const produtoTamanho = getPedidoItemDetalhe(item, produtoInfo);
+                                        const produtoInfo = getPedidoItemDisplayInfo(item, produtoLookup);
                                         const precoUnitario = formatCurrencyBRL(item.preco_unitario);
                                         const subtotal = formatCurrencyBRL(item.quantidade * item.preco_unitario);
 
@@ -542,10 +522,10 @@ export function VendasPage() {
                                           <div key={`${item.brigadeiro_id || item.brigadeiro_nome}-${index}`} className="flex justify-between items-center gap-4 p-3 bg-muted/50 rounded-lg">
                                             <div className="min-w-0">
                                               <div className="flex flex-wrap items-center gap-2">
-                                                <p className="font-medium">{produtoBase}</p>
-                                                {produtoTamanho && (
+                                                <p className="font-medium">{produtoInfo.nomeBase}</p>
+                                                {produtoInfo.detalhe && (
                                                   <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                                                    {produtoTamanho}
+                                                    {produtoInfo.detalhe}
                                                   </span>
                                                 )}
                                               </div>
