@@ -8,6 +8,7 @@ import {
   cancelMassProduction,
   completeMassProduction,
   executeProductionOrder,
+  updateMassProductionStatus,
 } from '@/services/productionExecutionService';
 
 export interface ProducaoDiaria {
@@ -158,13 +159,8 @@ export function useProducao() {
         return;
       }
 
-      const { error } = await supabase
-        .from('producao_diaria')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-      setProducao(producao.map(p => p.id === id ? { ...p, status } : p));
+      const updated = await updateMassProductionStatus({ producaoId: id, status });
+      setProducao(producao.map(p => p.id === id ? { ...p, status: updated.status as ProducaoStatus } : p));
       toast({ title: 'Status atualizado!' });
     } catch (error: unknown) {
       toast({
@@ -179,7 +175,7 @@ export function useProducao() {
     try {
       const shouldComplete = updates.status === 'concluido';
       const nonStatusUpdates = { ...updates };
-      if (shouldComplete) delete nonStatusUpdates.status;
+      delete nonStatusUpdates.status;
 
       if (Object.keys(nonStatusUpdates).length > 0) {
         const { error } = await supabase
@@ -202,12 +198,12 @@ export function useProducao() {
         }
       }
 
-      const { error } = await supabase
-        .from('producao_diaria')
-        .update(shouldComplete ? { status: 'concluido' } : updates)
-        .eq('id', id);
+      if (shouldComplete) {
+        await updateMassProductionStatus({ producaoId: id, status: 'concluido' });
+      } else if (updates.status) {
+        await updateMassProductionStatus({ producaoId: id, status: updates.status });
+      }
 
-      if (error) throw error;
       // Refetch to get recalculated custo_total from trigger
       await fetchProducao();
       toast({ title: 'Produção atualizada!' });

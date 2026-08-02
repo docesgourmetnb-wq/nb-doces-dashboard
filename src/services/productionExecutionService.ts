@@ -23,6 +23,11 @@ export interface CancelMassProductionResult {
   id: string;
 }
 
+export interface UpdateMassProductionStatusResult {
+  id: string;
+  status: string;
+}
+
 interface ExecuteProductionRpcParams {
   p_recipe_version_id: string;
   p_output_item_id: string;
@@ -68,6 +73,21 @@ interface CancelMassProductionRpc {
     params: CancelMassProductionRpcParams,
   ): Promise<{
     data: CancelMassProductionResult | null;
+    error: Error | null;
+  }>;
+}
+
+interface UpdateMassProductionStatusRpcParams {
+  p_producao_id: string;
+  p_status: string;
+}
+
+interface UpdateMassProductionStatusRpc {
+  (
+    fn: 'update_mass_production_status',
+    params: UpdateMassProductionStatusRpcParams,
+  ): Promise<{
+    data: UpdateMassProductionStatusResult | null;
     error: Error | null;
   }>;
 }
@@ -140,6 +160,27 @@ export async function cancelMassProduction(payload: {
 
   if (!data?.id) {
     throw new Error('Falha ao cancelar produção: resposta inválida da RPC.');
+  }
+
+  return data;
+}
+
+export async function updateMassProductionStatus(payload: {
+  producaoId: string;
+  status: string;
+}): Promise<UpdateMassProductionStatusResult> {
+  const updateStatusRpc = supabase.rpc.bind(supabase) as unknown as UpdateMassProductionStatusRpc;
+  const { data, error } = await updateStatusRpc('update_mass_production_status', {
+    p_producao_id: payload.producaoId,
+    p_status: payload.status,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.id) {
+    throw new Error('Falha ao atualizar status da produção: resposta inválida da RPC.');
   }
 
   return data;
