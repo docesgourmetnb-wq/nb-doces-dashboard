@@ -6,6 +6,7 @@ import { Pedido, toPedidoWithItems } from '@/hooks/usePedidos';
 import { buildPedidoSearchFilter, sanitizePedidoSearchTerm } from '@/domain/pedidos';
 
 const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
@@ -19,6 +20,7 @@ export function usePaginatedPedidos() {
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -33,7 +35,7 @@ export function usePaginatedPedidos() {
     }
     setLoading(true);
     try {
-      const searchTerm = sanitizePedidoSearchTerm(search);
+      const searchTerm = sanitizePedidoSearchTerm(debouncedSearch);
       let clienteIds: string[] = [];
       if (searchTerm) {
         const { data: clientesData, error: clientesError } = await supabase
@@ -97,7 +99,7 @@ export function usePaginatedPedidos() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, showArchived, statusFilter, search, page]);
+  }, [user, toast, showArchived, statusFilter, debouncedSearch, page]);
 
   const refetchFirstPage = useCallback(async () => {
     if (page !== 0) setPage(0);
@@ -108,10 +110,15 @@ export function usePaginatedPedidos() {
     fetchPedidos();
   }, [fetchPedidos]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [showArchived, statusFilter, search]);
+  }, [showArchived, statusFilter, debouncedSearch]);
 
   return {
     pedidos,
