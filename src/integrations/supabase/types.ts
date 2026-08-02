@@ -1449,6 +1449,27 @@ export type Database = {
           user_id: string
         }
       }
+      register_final_product_stock: {
+        Args: {
+          p_brigadeiro_id: string
+          p_quantidade_inicial?: number
+        }
+        Returns: {
+          ativo: boolean
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          tipo_estoque: string | null
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
       update_pedido_payment: {
         Args: {
           p_data_pagamento?: string
