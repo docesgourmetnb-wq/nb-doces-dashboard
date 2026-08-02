@@ -1336,6 +1336,36 @@ export type Database = {
           user_id: string
         }
       }
+      add_packaging_profile_item: {
+        Args: {
+          p_insumo_id: string
+          p_observacoes?: string | null
+          p_profile_id: string
+          p_quantidade_por_pedido: number
+        }
+        Returns: {
+          created_at: string
+          id: string
+          insumo_id: string
+          observacoes: string | null
+          profile_id: string
+          quantidade_por_pedido: number
+          updated_at: string
+          user_id: string
+        }
+      }
+      archive_packaging_profile: {
+        Args: { p_profile_id: string }
+        Returns: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+          user_id: string
+        }
+      }
       can_access_module: { Args: { p_module: string }; Returns: boolean }
       cancel_mass_production: {
         Args: { p_producao_id: string; p_reason?: string | null }
@@ -1604,6 +1634,35 @@ export type Database = {
           user_id: string
         }
       }
+      remove_packaging_profile_item: {
+        Args: { p_item_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          insumo_id: string
+          observacoes: string | null
+          profile_id: string
+          quantidade_por_pedido: number
+          updated_at: string
+          user_id: string
+        }
+      }
+      save_packaging_profile: {
+        Args: {
+          p_nome?: string | null
+          p_observacoes?: string | null
+          p_profile_id?: string | null
+        }
+        Returns: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+          user_id: string
+        }
+      }
       update_pedido_payment: {
         Args: {
           p_data_pagamento?: string
@@ -1694,6 +1753,23 @@ export type Database = {
           rendimento_real: number | null
           status: string
           updated_at: string | null
+          user_id: string
+        }
+      }
+      update_packaging_profile_item: {
+        Args: {
+          p_item_id: string
+          p_observacoes?: string | null
+          p_quantidade_por_pedido: number
+        }
+        Returns: {
+          created_at: string
+          id: string
+          insumo_id: string
+          observacoes: string | null
+          profile_id: string
+          quantidade_por_pedido: number
+          updated_at: string
           user_id: string
         }
       }
