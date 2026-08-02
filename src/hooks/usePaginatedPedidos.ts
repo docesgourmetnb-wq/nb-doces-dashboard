@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,8 @@ export function usePaginatedPedidos() {
   const { toast } = useToast();
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const activeFiltersKey = `${showArchived}|${statusFilter}|${debouncedSearch}`;
+  const lastFiltersKeyRef = useRef(activeFiltersKey);
 
   const fetchPedidos = useCallback(async (pageOverride = page) => {
     if (!user) {
@@ -102,23 +104,30 @@ export function usePaginatedPedidos() {
   }, [user, toast, showArchived, statusFilter, debouncedSearch, page]);
 
   const refetchFirstPage = useCallback(async () => {
-    if (page !== 0) setPage(0);
+    if (page !== 0) {
+      setPage(0);
+      return;
+    }
     await fetchPedidos(0);
   }, [fetchPedidos, page]);
 
   useEffect(() => {
+    const filtersChanged = lastFiltersKeyRef.current !== activeFiltersKey;
+    if (filtersChanged) {
+      lastFiltersKeyRef.current = activeFiltersKey;
+      if (page !== 0) {
+        setPage(0);
+        return;
+      }
+    }
+
     fetchPedidos();
-  }, [fetchPedidos]);
+  }, [activeFiltersKey, fetchPedidos, page]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
   }, [search]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(0);
-  }, [showArchived, statusFilter, debouncedSearch]);
 
   return {
     pedidos,
