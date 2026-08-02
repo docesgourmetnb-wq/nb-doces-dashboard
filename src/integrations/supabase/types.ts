@@ -1294,6 +1294,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_base_mass_stock: {
+        Args: {
+          p_insumo_id: string
+          p_quantidade_delta: number
+        }
+        Returns: {
+          ativo: boolean
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          tipo_estoque: string | null
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
       adjust_final_product_stock: {
         Args: {
           p_insumo_id: string
@@ -1416,6 +1437,24 @@ export type Database = {
         Args: { p_stock_item_id: string }
         Returns: number
       }
+      inactivate_base_mass_stock: {
+        Args: { p_insumo_id: string }
+        Returns: {
+          ativo: boolean
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          tipo_estoque: string | null
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
       inactivate_final_product_stock: {
         Args: { p_insumo_id: string }
         Returns: {
@@ -1461,6 +1500,27 @@ export type Database = {
           preco_unitario: number
           quantidade_atual: number
           quantidade_minima: number
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
+      register_base_mass_stock: {
+        Args: {
+          p_quantidade_inicial?: number
+          p_sabor: string
+        }
+        Returns: {
+          ativo: boolean
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          tipo_estoque: string | null
           ultima_compra: string | null
           unidade: string
           updated_at: string
