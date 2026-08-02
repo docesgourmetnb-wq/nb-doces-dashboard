@@ -1641,6 +1641,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      update_mass_production_status: {
+        Args: { p_producao_id: string; p_status: string }
+        Returns: {
+          brigadeiro_id: string | null
+          brigadeiro_nome: string
+          consumir_estoque: boolean | null
+          created_at: string
+          custo_total: number
+          data: string
+          deleted_at: string | null
+          deleted_reason: string | null
+          id: string
+          insumos_consumidos_at: string | null
+          observacoes: string | null
+          quantidade: number
+          recipe_version_id: string | null
+          rendimento_previsto: number | null
+          rendimento_real: number | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "operator" | "viewer"
