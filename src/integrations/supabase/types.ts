@@ -1416,6 +1416,24 @@ export type Database = {
         Args: { p_stock_item_id: string }
         Returns: number
       }
+      inactivate_final_product_stock: {
+        Args: { p_insumo_id: string }
+        Returns: {
+          ativo: boolean
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          tipo_estoque: string | null
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
       is_official_financial_transaction: {
         Args: {
           p_referencia: string

@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useAuditLog } from '@/hooks/useAuditLog';
 import { Brigadeiro } from './useBrigadeiros';
 
 type InsumoRow = Tables<'insumos'>;
@@ -68,12 +67,23 @@ interface RegisterFinalProductStockRpc {
   }>;
 }
 
+interface InactivateFinalProductStockRpc {
+  (
+    fn: 'inactivate_final_product_stock',
+    params: {
+      p_insumo_id: string;
+    },
+  ): Promise<{
+    data: InsumoRow | null;
+    error: Error | null;
+  }>;
+}
+
 export function useEstoqueProdutos() {
   const [produtos, setProdutos] = useState<EstoqueProduto[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { log: auditLog } = useAuditLog();
 
   const fetchProdutos = useCallback(async () => {
     if (!user) {
@@ -190,19 +200,14 @@ export function useEstoqueProdutos() {
 
   const deleteProduto = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('insumos')
-        .update({ ativo: false, updated_at: new Date().toISOString() })
-        .eq('id', id);
+      const inactivateStockRpc = supabase.rpc.bind(supabase) as unknown as InactivateFinalProductStockRpc;
+      const { error } = await inactivateStockRpc('inactivate_final_product_stock', {
+        p_insumo_id: id,
+      });
 
       if (error) throw error;
 
-      const produto = produtos.find(p => p.id === id);
       setProdutos(prev => prev.filter(p => p.id !== id));
-      await auditLog('estoque_produto_final', id, 'final_product_stock_inactivated', {
-        produto_nome: produto?.brigadeiro?.nome || null,
-        quantidade_atual: produto?.quantidade_un ?? null,
-      });
       toast({
         title: 'Produto final inativado',
         description: 'Produto removido da operação, com histórico preservado.',
