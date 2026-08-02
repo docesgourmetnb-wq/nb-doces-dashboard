@@ -42,6 +42,19 @@ function sortByBrigadeiroName(a: EstoqueProduto, b: EstoqueProduto) {
   return (a.brigadeiro?.nome || '').localeCompare(b.brigadeiro?.nome || '');
 }
 
+interface AdjustFinalProductStockRpc {
+  (
+    fn: 'adjust_final_product_stock',
+    params: {
+      p_insumo_id: string;
+      p_quantidade_delta: number;
+    },
+  ): Promise<{
+    data: InsumoRow | null;
+    error: Error | null;
+  }>;
+}
+
 export function useEstoqueProdutos() {
   const [produtos, setProdutos] = useState<EstoqueProduto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,21 +157,16 @@ export function useEstoqueProdutos() {
     }
 
     try {
-      const { error } = await supabase
-        .from('insumos')
-        .update({ quantidade_atual: novaQuantidade, updated_at: new Date().toISOString() })
-        .eq('id', id);
+      const adjustStockRpc = supabase.rpc.bind(supabase) as unknown as AdjustFinalProductStockRpc;
+      const { data, error } = await adjustStockRpc('adjust_final_product_stock', {
+        p_insumo_id: id,
+        p_quantidade_delta: quantidadeDelta,
+      });
 
       if (error) throw error;
 
-      setProdutos(prev => prev.map(p => p.id === id ? { ...p, quantidade_un: novaQuantidade } : p));
-      await auditLog('estoque_produto_final', id, 'final_product_stock_adjusted', {
-        produto_nome: produto.brigadeiro?.nome || null,
-        quantidade_anterior: produto.quantidade_un,
-        quantidade_delta: quantidadeDelta,
-        quantidade_atual: novaQuantidade,
-        tipo: quantidadeDelta > 0 ? 'entrada' : 'saida',
-      });
+      const quantidadeAtual = data?.quantidade_atual ?? novaQuantidade;
+      setProdutos(prev => prev.map(p => p.id === id ? { ...p, quantidade_un: quantidadeAtual } : p));
       toast({
         title: 'Estoque atualizado',
         description: `Saldo de unidades atualizado com sucesso.`,
