@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  canCreateHistoricalOrderAsDelivered,
   derivePedidoFinanceiroStatus,
+  deriveInitialPedidoStatus,
   buildPedidoSearchFilter,
   calculateNextPedidoValorPago,
   getPedidoStatusUpdateErrorMessage,
@@ -43,6 +45,51 @@ test('derivePedidoFinanceiroStatus derives status from paid amount', () => {
   assert.equal(derivePedidoFinanceiroStatus(100, 0), 'nao_pago');
   assert.equal(derivePedidoFinanceiroStatus(100, 50), 'parcial');
   assert.equal(derivePedidoFinanceiroStatus(100, 100), 'pago');
+});
+
+test('canCreateHistoricalOrderAsDelivered requires historical order and full payment', () => {
+  assert.equal(canCreateHistoricalOrderAsDelivered({ isHistoricalOrder: true, valorTotal: 100, valorPago: 100 }), true);
+  assert.equal(canCreateHistoricalOrderAsDelivered({ isHistoricalOrder: true, valorTotal: 100, valorPago: 50 }), false);
+  assert.equal(canCreateHistoricalOrderAsDelivered({ isHistoricalOrder: false, valorTotal: 100, valorPago: 100 }), false);
+});
+
+test('deriveInitialPedidoStatus only creates delivered historical orders when allowed', () => {
+  assert.equal(
+    deriveInitialPedidoStatus({
+      isHistoricalOrder: true,
+      markHistoricalAsDelivered: true,
+      valorTotal: 100,
+      valorPago: 100,
+    }),
+    'entregue',
+  );
+  assert.equal(
+    deriveInitialPedidoStatus({
+      isHistoricalOrder: true,
+      markHistoricalAsDelivered: true,
+      valorTotal: 100,
+      valorPago: 50,
+    }),
+    'confirmado',
+  );
+  assert.equal(
+    deriveInitialPedidoStatus({
+      isHistoricalOrder: false,
+      markHistoricalAsDelivered: true,
+      valorTotal: 100,
+      valorPago: 100,
+    }),
+    'confirmado',
+  );
+  assert.equal(
+    deriveInitialPedidoStatus({
+      isHistoricalOrder: true,
+      markHistoricalAsDelivered: false,
+      valorTotal: 100,
+      valorPago: 0,
+    }),
+    'orcamento',
+  );
 });
 
 test('getPedidoFinanceiroStatusLabel returns labels for known statuses', () => {

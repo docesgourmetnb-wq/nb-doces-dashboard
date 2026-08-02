@@ -57,6 +57,27 @@ export function derivePedidoFinanceiroStatus(valorTotal: number, valorPago: numb
   return 'parcial';
 }
 
+export interface InitialPedidoStatusInput {
+  isHistoricalOrder: boolean;
+  markHistoricalAsDelivered: boolean;
+  valorTotal: number;
+  valorPago: number;
+}
+
+export function canCreateHistoricalOrderAsDelivered(
+  input: Pick<InitialPedidoStatusInput, 'isHistoricalOrder' | 'valorTotal' | 'valorPago'>,
+) {
+  return input.isHistoricalOrder && derivePedidoFinanceiroStatus(input.valorTotal, input.valorPago) === 'pago';
+}
+
+export function deriveInitialPedidoStatus(input: InitialPedidoStatusInput): PedidoStatus {
+  if (input.markHistoricalAsDelivered && canCreateHistoricalOrderAsDelivered(input)) {
+    return 'entregue';
+  }
+
+  return input.valorPago > 0 ? 'confirmado' : 'orcamento';
+}
+
 export function calculateNextPedidoValorPago(valorPagoAtual: number, saldoRestante: number, valorRecebido: number) {
   if (!Number.isFinite(valorRecebido) || valorRecebido <= 0) return null;
   if (valorRecebido > saldoRestante) return null;
