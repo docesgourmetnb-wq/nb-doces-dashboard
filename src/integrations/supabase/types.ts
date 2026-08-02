@@ -269,6 +269,50 @@ export type Database = {
         }
         Relationships: []
       }
+      insumo_manual_exits: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string
+          motivo: string | null
+          quantidade: number
+          saldo_anterior: number | null
+          saldo_atual: number | null
+          unidade: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id: string
+          motivo?: string | null
+          quantidade: number
+          saldo_anterior?: number | null
+          saldo_atual?: number | null
+          unidade: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          motivo?: string | null
+          quantidade?: number
+          saldo_anterior?: number | null
+          saldo_atual?: number | null
+          unidade?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumo_manual_exits_insumo_owner_fkey"
+            columns: ["user_id", "insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       insumo_purchase_entries: {
         Row: {
           conteudo_por_embalagem: number | null
