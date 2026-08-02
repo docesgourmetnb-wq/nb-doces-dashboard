@@ -1348,7 +1348,7 @@ export type Database = {
         }[]
       }
       get_stock_balance: {
-        Args: { p_stock_item_id: string; p_user_id: string }
+        Args: { p_stock_item_id: string }
         Returns: number
       }
       is_official_financial_transaction: {
