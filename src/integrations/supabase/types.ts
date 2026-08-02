@@ -1294,6 +1294,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_final_product_stock: {
+        Args: {
+          p_insumo_id: string
+          p_quantidade_delta: number
+        }
+        Returns: {
+          ativo: boolean
+          consumo_medio: number
+          created_at: string
+          id: string
+          nome: string
+          preco_unitario: number
+          quantidade_atual: number
+          quantidade_minima: number
+          tipo_estoque: string | null
+          ultima_compra: string | null
+          unidade: string
+          updated_at: string
+          user_id: string
+        }
+      }
       can_access_module: { Args: { p_module: string }; Returns: boolean }
       complete_mass_production: {
         Args: { p_producao_id: string; p_rendimento_real?: number }
