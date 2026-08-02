@@ -120,6 +120,20 @@ export function formatInsumoPackageReference(
     return `${equivalente.toLocaleString('pt-BR')} ${embalagemLabel} de ${conteudoFormatado} ${unidade}`;
   }
 
+  if (equivalente > 1) {
+    const embalagensInteiras = Math.floor(equivalente);
+    const restante = quantidadeAtual - embalagensInteiras * conteudoPorEmbalagem;
+    const embalagemLabel = embalagensInteiras === 1 ? 'embalagem' : 'embalagens';
+    const restanteFormatado = restante.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+    const referencia = `${embalagensInteiras.toLocaleString('pt-BR')} ${embalagemLabel} de ${conteudoFormatado} ${unidade} + ${restanteFormatado} ${unidade} avulsos`;
+
+    if (!includeAvailableQuantity) {
+      return referencia;
+    }
+
+    return `${quantidadeFormatada} ${unidade} disponíveis · ${referencia}`;
+  }
+
   const percentual = (equivalente * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
   if (!includeAvailableQuantity) {
     return `${percentual}% de uma embalagem de ${conteudoFormatado} ${unidade}`;

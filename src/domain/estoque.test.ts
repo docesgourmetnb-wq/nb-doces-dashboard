@@ -87,10 +87,22 @@ test('formatInsumoPackageReference avoids decimal package labels for fractional 
   assert.equal(formatInsumoPackageReference(505, 1000, 'g'), '505 g disponíveis · 50,5% de uma embalagem de 1.000 g');
 });
 
+test('formatInsumoPackageReference shows whole packages plus loose quantity above one package', () => {
+  assert.equal(
+    formatInsumoPackageReference(860, 380, 'g'),
+    '860 g disponíveis · 2 embalagens de 380 g + 100 g avulsos',
+  );
+});
+
 test('formatInsumoPackageReference can omit available quantity for movement history', () => {
   assert.equal(
     formatInsumoPackageReference(505, 1000, 'g', { includeAvailableQuantity: false }),
     '50,5% de uma embalagem de 1.000 g',
+  );
+
+  assert.equal(
+    formatInsumoPackageReference(860, 380, 'g', { includeAvailableQuantity: false }),
+    '2 embalagens de 380 g + 100 g avulsos',
   );
 });
 
