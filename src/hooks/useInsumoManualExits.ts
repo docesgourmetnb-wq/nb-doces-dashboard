@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,36 +26,6 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
 }
 
-function readNumber(metadata: Record<string, Json | undefined>, key: string) {
-  const value = metadata[key];
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function readString(metadata: Record<string, Json | undefined>, key: string) {
-  const value = metadata[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function parseManualExitMetadata(metadata: Json | null) {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return {
-      quantidade: 0,
-      unidade: '',
-      motivo: null,
-      saldo_anterior: null,
-      saldo_atual: null,
-    };
-  }
-
-  return {
-    quantidade: readNumber(metadata, 'quantidade') ?? 0,
-    unidade: readString(metadata, 'unidade') ?? '',
-    motivo: readString(metadata, 'motivo'),
-    saldo_anterior: readNumber(metadata, 'saldo_anterior'),
-    saldo_atual: readNumber(metadata, 'saldo_atual'),
-  };
-}
-
 export function useInsumoManualExits(filters: UseInsumoManualExitsFilters = {}) {
   const [exits, setExits] = useState<InsumoManualExit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,17 +49,15 @@ export function useInsumoManualExits(filters: UseInsumoManualExitsFilters = {}) 
       }
 
       let query = supabase
-        .from('audit_log')
+        .from('insumo_manual_exits')
         .select('*')
-        .eq('entity_type', 'insumo')
-        .eq('action', 'stock_manual_exit_registered')
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (insumoId !== 'todos') {
-        query = query.eq('entity_id', insumoId);
+        query = query.eq('insumo_id', insumoId);
       } else if (insumoIds && insumoIds.length > 0) {
-        query = query.in('entity_id', insumoIds);
+        query = query.in('insumo_id', insumoIds);
       }
 
       const { data, error } = await query;
@@ -100,9 +67,13 @@ export function useInsumoManualExits(filters: UseInsumoManualExitsFilters = {}) 
       setExits((data || []).map((entry) => ({
         id: entry.id,
         user_id: entry.user_id,
-        insumo_id: entry.entity_id,
+        insumo_id: entry.insumo_id,
+        quantidade: Number(entry.quantidade || 0),
+        unidade: entry.unidade || '',
+        motivo: entry.motivo || null,
+        saldo_anterior: entry.saldo_anterior === null ? null : Number(entry.saldo_anterior),
+        saldo_atual: entry.saldo_atual === null ? null : Number(entry.saldo_atual),
         created_at: entry.created_at,
-        ...parseManualExitMetadata(entry.metadata),
       })));
     } catch (error: unknown) {
       toast({
