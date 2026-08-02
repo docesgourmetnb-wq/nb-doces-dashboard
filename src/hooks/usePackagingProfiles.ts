@@ -8,7 +8,7 @@ export type PackagingProfileBase = Tables<'packaging_profiles'>;
 export type PackagingProfileItemBase = Tables<'packaging_profile_items'>;
 
 export type PackagingProfileItem = PackagingProfileItemBase & {
-  insumos?: Pick<Tables<'insumos'>, 'id' | 'nome' | 'unidade' | 'tipo_estoque'> | null;
+  insumos?: Pick<Tables<'insumos'>, 'id' | 'nome' | 'unidade' | 'tipo_estoque' | 'preco_unitario'> | null;
 };
 
 export type PackagingProfile = PackagingProfileBase & {
@@ -87,7 +87,7 @@ export function usePackagingProfiles() {
     try {
       const { data, error } = await supabase
         .from('packaging_profiles')
-        .select('*, packaging_profile_items(*, insumos(id,nome,unidade,tipo_estoque))')
+        .select('*, packaging_profile_items(*, insumos(id,nome,unidade,tipo_estoque,preco_unitario))')
         .eq('ativo', true)
         .order('nome');
 
