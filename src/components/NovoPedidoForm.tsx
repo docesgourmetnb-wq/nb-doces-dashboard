@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Loader2, UserPlus, Calendar, CopyPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,6 +40,7 @@ import { findClienteByContato } from '@/domain/clientes';
 import { buildPedidoRecorrenteFromModelo } from '@/domain/pedidoModelos';
 import { getPedidoItemDisplayInfo, getPedidoItemDisplayLabel } from '@/domain/pedidoItens';
 import { summarizePackagingProfileItems } from '@/domain/embalagens';
+import { FINANCIAL_CONTROL_START_LABEL, isHistoricalOrder } from '@/domain/financeiro';
 import {
   BRIGADEIRO_TAMANHO_FILTERS,
   type BrigadeiroTamanhoFilter,
@@ -92,6 +93,10 @@ function getPedidoItemKey(item: Pick<ItemPedido, 'brigadeiro_id' | 'produto_vari
   return `manual:${item.brigadeiro_nome.toLowerCase().trim()}`;
 }
 
+function formatLocalDateForInput(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoFormProps) {
   const { brigadeiros } = useBrigadeiros();
   const { produtos: produtosCatalogo } = useProdutosCatalogo();
@@ -123,6 +128,8 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const [tamanhoProdutoFilter, setTamanhoProdutoFilter] = useState<BrigadeiroTamanhoFilter>('todos');
   const [quantidade, setQuantidade] = useState(1);
   const isPedidoRecorrente = Boolean(pedidoModelo);
+  const dataEntrega = formatLocalDateForInput(dataPedido);
+  const isPedidoHistorico = isHistoricalOrder({ data_entrega: dataEntrega });
   const produtosBrigadeiro = useMemo(() => filterProdutosBrigadeiro(brigadeiros), [brigadeiros]);
 
   const produtosBolo = useMemo(() => {
@@ -178,6 +185,12 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
   const selectedPackagingSummary = selectedPackagingProfile
     ? summarizePackagingProfileItems(selectedPackagingProfile.items)
     : null;
+
+  useEffect(() => {
+    if (isPedidoHistorico && packagingProfileId !== 'none') {
+      setPackagingProfileId('none');
+    }
+  }, [isPedidoHistorico, packagingProfileId]);
 
   const selectedProdutoData = produtosDisponiveis.find((produto) => produto.key === selectedBrigadeiro) || null;
   const itemPendente: ItemPedido | null = selectedProdutoData && quantidade > 0
@@ -306,7 +319,6 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
     
     setLoading(true);
     try {
-      const dataEntrega = `${dataPedido.getFullYear()}-${String(dataPedido.getMonth() + 1).padStart(2, '0')}-${String(dataPedido.getDate()).padStart(2, '0')}`;
       const dataCriacao = format(new Date(), 'yyyy-MM-dd');
       const statusFinanceiro = derivePedidoFinanceiroStatus(valorTotal, valorPagoNumber);
       let pedidoClienteId = modoCliente === 'existente' && clienteId ? clienteId : null;
@@ -349,8 +361,8 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
         status: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
         status_operacional: valorPagoNumber > 0 ? 'confirmado' : 'orcamento',
         status_financeiro: statusFinanceiro,
-        packaging_profile_id: packagingProfileId === 'none' ? null : packagingProfileId,
-        packaging_profile_nome: selectedPackagingProfile?.nome ?? null,
+        packaging_profile_id: isPedidoHistorico || packagingProfileId === 'none' ? null : packagingProfileId,
+        packaging_profile_nome: isPedidoHistorico ? null : selectedPackagingProfile?.nome ?? null,
         observacoes: observacoes.trim() || null,
       }, itensDoPedido);
       if (!novoPedido) return;
@@ -525,6 +537,11 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
                 />
               </PopoverContent>
             </Popover>
+            {isPedidoHistorico && (
+              <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+                Pedido histórico: datas anteriores a {FINANCIAL_CONTROL_START_LABEL} ficam apenas no registro comercial. Não entra na operação atual, não reserva estoque e não usa modelo de embalagem.
+              </div>
+            )}
           </div>
 
           {/* Order Type */}
@@ -593,8 +610,8 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
           {/* Packaging Profile */}
           <div className="space-y-2">
             <Label htmlFor="pedido-modelo-embalagem">Modelo de embalagem</Label>
-            <Select value={packagingProfileId} onValueChange={setPackagingProfileId}>
-              <SelectTrigger id="pedido-modelo-embalagem">
+            <Select value={packagingProfileId} onValueChange={setPackagingProfileId} disabled={isPedidoHistorico}>
+              <SelectTrigger id="pedido-modelo-embalagem" disabled={isPedidoHistorico}>
                 <SelectValue placeholder="Selecione um modelo" />
               </SelectTrigger>
               <SelectContent>
@@ -616,7 +633,11 @@ export function NovoPedidoForm({ onSuccess, pedidoModelo, trigger }: NovoPedidoF
                 )}
               </SelectContent>
             </Select>
-            {selectedPackagingProfile ? (
+            {isPedidoHistorico ? (
+              <p className="text-xs text-muted-foreground">
+                Indisponível para pedidos históricos. O pedido será registrado sem vínculo operacional de embalagem.
+              </p>
+            ) : selectedPackagingProfile ? (
               <div className="space-y-1 text-xs text-muted-foreground">
                 <p>
                   {selectedPackagingSummary?.itemsCount ?? 0} item(ns) vinculados
