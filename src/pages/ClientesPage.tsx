@@ -35,33 +35,17 @@ import {
   getPedidosVinculadosAoCliente,
 } from '@/domain/clientes';
 import { FINANCIAL_CONTROL_START_LABEL, isFinancialControlDate } from '@/domain/financeiro';
-import { getProdutoNomeComercial, getProdutoTamanhoComercial } from '@/domain/produtos';
+import { getPedidoItemDisplayInfo } from '@/domain/pedidoItens';
 
 function formatPedidoItemResumo(item: ItemPedido) {
   const quantidade = `${item.quantidade}x`;
-
-  if (item.produto_categoria === 'bolo') {
-    const nome = item.produto_nome || item.brigadeiro_nome || 'Bolo';
-    const detalhes = [
-      item.produto_variacao_nome,
-      item.produto_variacao_tamanho,
-      item.produto_variacao_cobertura,
-    ]
-      .map((value) => value?.trim())
-      .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
-
-    return `${quantidade} ${nome}${detalhes.length > 0 ? ` (${detalhes.join(' • ')})` : ''}`;
-  }
-
-  const produtoInfo = {
+  const produtoInfo = getPedidoItemDisplayInfo(item, {
     nome: item.produto_nome || item.brigadeiro_nome || 'Produto',
     categoria: item.produto_categoria ?? item.brigadeiro_categoria ?? null,
     tamanho_g: item.brigadeiro_tamanho_g ?? null,
-  };
-  const nome = getProdutoNomeComercial(produtoInfo);
-  const tamanho = getProdutoTamanhoComercial(produtoInfo);
+  });
 
-  return `${quantidade} ${nome}${tamanho ? ` ${tamanho}` : ''}`;
+  return `${quantidade} ${produtoInfo.nomeBase}${produtoInfo.detalhe ? ` (${produtoInfo.detalhe})` : ''}`;
 }
 
 export function ClientesPage() {
