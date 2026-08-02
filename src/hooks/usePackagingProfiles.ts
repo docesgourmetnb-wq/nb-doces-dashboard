@@ -18,6 +18,54 @@ export type PackagingProfile = PackagingProfileBase & {
 type PackagingProfileInsert = TablesInsert<'packaging_profiles'>;
 type PackagingProfileItemInsert = TablesInsert<'packaging_profile_items'>;
 
+interface SavePackagingProfileRpc {
+  (
+    fn: 'save_packaging_profile',
+    params: {
+      p_profile_id: string | null;
+      p_nome: string;
+      p_observacoes: string | null;
+    },
+  ): Promise<{ data: PackagingProfileBase | null; error: Error | null }>;
+}
+
+interface ArchivePackagingProfileRpc {
+  (
+    fn: 'archive_packaging_profile',
+    params: { p_profile_id: string },
+  ): Promise<{ data: PackagingProfileBase | null; error: Error | null }>;
+}
+
+interface AddPackagingProfileItemRpc {
+  (
+    fn: 'add_packaging_profile_item',
+    params: {
+      p_profile_id: string;
+      p_insumo_id: string;
+      p_quantidade_por_pedido: number;
+      p_observacoes: string | null;
+    },
+  ): Promise<{ data: PackagingProfileItemBase | null; error: Error | null }>;
+}
+
+interface UpdatePackagingProfileItemRpc {
+  (
+    fn: 'update_packaging_profile_item',
+    params: {
+      p_item_id: string;
+      p_quantidade_por_pedido: number;
+      p_observacoes: string | null;
+    },
+  ): Promise<{ data: PackagingProfileItemBase | null; error: Error | null }>;
+}
+
+interface RemovePackagingProfileItemRpc {
+  (
+    fn: 'remove_packaging_profile_item',
+    params: { p_item_id: string },
+  ): Promise<{ data: PackagingProfileItemBase | null; error: Error | null }>;
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Erro inesperado';
 }
@@ -76,15 +124,12 @@ export function usePackagingProfiles() {
     if (!user) return undefined;
 
     try {
-      const { data, error } = await supabase
-        .from('packaging_profiles')
-        .insert({
-          nome: input.nome.trim(),
-          observacoes: input.observacoes?.trim() || null,
-          user_id: user.id,
-        })
-        .select()
-        .single();
+      const saveProfileRpc = supabase.rpc.bind(supabase) as unknown as SavePackagingProfileRpc;
+      const { data, error } = await saveProfileRpc('save_packaging_profile', {
+        p_profile_id: null,
+        p_nome: input.nome.trim(),
+        p_observacoes: input.observacoes?.trim() || null,
+      });
 
       if (error) throw error;
       await fetchProfiles();
@@ -102,15 +147,12 @@ export function usePackagingProfiles() {
 
   const updateProfile = async (id: string, input: { nome: string; observacoes?: string | null }) => {
     try {
-      const { data, error } = await supabase
-        .from('packaging_profiles')
-        .update({
-          nome: input.nome?.trim(),
-          observacoes: input.observacoes?.trim() || null,
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      const saveProfileRpc = supabase.rpc.bind(supabase) as unknown as SavePackagingProfileRpc;
+      const { data, error } = await saveProfileRpc('save_packaging_profile', {
+        p_profile_id: id,
+        p_nome: input.nome.trim(),
+        p_observacoes: input.observacoes?.trim() || null,
+      });
 
       if (error) throw error;
       await fetchProfiles();
@@ -128,10 +170,10 @@ export function usePackagingProfiles() {
 
   const deleteProfile = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('packaging_profiles')
-        .update({ ativo: false })
-        .eq('id', id);
+      const archiveProfileRpc = supabase.rpc.bind(supabase) as unknown as ArchivePackagingProfileRpc;
+      const { error } = await archiveProfileRpc('archive_packaging_profile', {
+        p_profile_id: id,
+      });
 
       if (error) throw error;
       await fetchProfiles();
@@ -149,15 +191,13 @@ export function usePackagingProfiles() {
     if (!user) return undefined;
 
     try {
-      const { data, error } = await supabase
-        .from('packaging_profile_items')
-        .insert({
-          ...input,
-          user_id: user.id,
-          observacoes: input.observacoes?.trim() || null,
-        })
-        .select()
-        .single();
+      const addItemRpc = supabase.rpc.bind(supabase) as unknown as AddPackagingProfileItemRpc;
+      const { data, error } = await addItemRpc('add_packaging_profile_item', {
+        p_profile_id: input.profile_id,
+        p_insumo_id: input.insumo_id,
+        p_quantidade_por_pedido: input.quantidade_por_pedido,
+        p_observacoes: input.observacoes?.trim() || null,
+      });
 
       if (error) throw error;
       await fetchProfiles();
@@ -175,15 +215,12 @@ export function usePackagingProfiles() {
 
   const updateProfileItem = async (id: string, input: { quantidade_por_pedido: number; observacoes?: string | null }) => {
     try {
-      const { data, error } = await supabase
-        .from('packaging_profile_items')
-        .update({
-          quantidade_por_pedido: input.quantidade_por_pedido,
-          observacoes: input.observacoes?.trim() || null,
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      const updateItemRpc = supabase.rpc.bind(supabase) as unknown as UpdatePackagingProfileItemRpc;
+      const { data, error } = await updateItemRpc('update_packaging_profile_item', {
+        p_item_id: id,
+        p_quantidade_por_pedido: input.quantidade_por_pedido,
+        p_observacoes: input.observacoes?.trim() || null,
+      });
 
       if (error) throw error;
       await fetchProfiles();
@@ -201,10 +238,10 @@ export function usePackagingProfiles() {
 
   const deleteProfileItem = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('packaging_profile_items')
-        .delete()
-        .eq('id', id);
+      const removeItemRpc = supabase.rpc.bind(supabase) as unknown as RemovePackagingProfileItemRpc;
+      const { error } = await removeItemRpc('remove_packaging_profile_item', {
+        p_item_id: id,
+      });
 
       if (error) throw error;
       await fetchProfiles();
