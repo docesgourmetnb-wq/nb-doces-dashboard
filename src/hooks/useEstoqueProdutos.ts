@@ -55,6 +55,19 @@ interface AdjustFinalProductStockRpc {
   }>;
 }
 
+interface RegisterFinalProductStockRpc {
+  (
+    fn: 'register_final_product_stock',
+    params: {
+      p_brigadeiro_id: string;
+      p_quantidade_inicial: number;
+    },
+  ): Promise<{
+    data: InsumoRow | null;
+    error: Error | null;
+  }>;
+}
+
 export function useEstoqueProdutos() {
   const [produtos, setProdutos] = useState<EstoqueProduto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,30 +113,23 @@ export function useEstoqueProdutos() {
   }, [fetchProdutos]);
 
   const addProduto = async (brigadeiro_id: string, quantidade_un: number, brigadeiro_nome: string) => {
-    if (!user) return null;
-
     try {
-      const { data, error } = await supabase
-        .from('insumos')
-        .insert([{
-          nome: `[PRODUTO] ${brigadeiro_id}::${brigadeiro_nome}`,
-          unidade: 'SYS_PROD',
-          quantidade_atual: quantidade_un,
-          quantidade_minima: 0,
-          consumo_medio: 0,
-          preco_unitario: 0,
-          ativo: true,
-          user_id: user.id,
-        }])
-        .select()
-        .single();
+      const registerStockRpc = supabase.rpc.bind(supabase) as unknown as RegisterFinalProductStockRpc;
+      const { data, error } = await registerStockRpc('register_final_product_stock', {
+        p_brigadeiro_id: brigadeiro_id,
+        p_quantidade_inicial: quantidade_un,
+      });
 
       if (error) throw error;
+      if (!data) throw new Error('Produto final não retornado pelo banco');
       
       const novoProduto = toEstoqueProduto(data, brigadeiro_nome);
 
       setProdutos(prev => {
-          const newState = [...prev, novoProduto];
+          const exists = prev.some((produto) => produto.id === novoProduto.id);
+          const newState = exists
+            ? prev.map((produto) => produto.id === novoProduto.id ? novoProduto : produto)
+            : [...prev, novoProduto];
           return newState.sort(sortByBrigadeiroName);
       });
 
