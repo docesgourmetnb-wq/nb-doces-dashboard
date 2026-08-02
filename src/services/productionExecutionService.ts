@@ -28,6 +28,12 @@ export interface UpdateMassProductionStatusResult {
   status: string;
 }
 
+export interface UpdateMassProductionPlanResult {
+  id: string;
+  data: string;
+  quantidade: number;
+}
+
 interface ExecuteProductionRpcParams {
   p_recipe_version_id: string;
   p_output_item_id: string;
@@ -88,6 +94,22 @@ interface UpdateMassProductionStatusRpc {
     params: UpdateMassProductionStatusRpcParams,
   ): Promise<{
     data: UpdateMassProductionStatusResult | null;
+    error: Error | null;
+  }>;
+}
+
+interface UpdateMassProductionPlanRpcParams {
+  p_producao_id: string;
+  p_data: string | null;
+  p_quantidade: number | null;
+}
+
+interface UpdateMassProductionPlanRpc {
+  (
+    fn: 'update_mass_production_plan',
+    params: UpdateMassProductionPlanRpcParams,
+  ): Promise<{
+    data: UpdateMassProductionPlanResult | null;
     error: Error | null;
   }>;
 }
@@ -181,6 +203,29 @@ export async function updateMassProductionStatus(payload: {
 
   if (!data?.id) {
     throw new Error('Falha ao atualizar status da produção: resposta inválida da RPC.');
+  }
+
+  return data;
+}
+
+export async function updateMassProductionPlan(payload: {
+  producaoId: string;
+  data?: string;
+  quantidade?: number;
+}): Promise<UpdateMassProductionPlanResult> {
+  const updatePlanRpc = supabase.rpc.bind(supabase) as unknown as UpdateMassProductionPlanRpc;
+  const { data, error } = await updatePlanRpc('update_mass_production_plan', {
+    p_producao_id: payload.producaoId,
+    p_data: payload.data ?? null,
+    p_quantidade: payload.quantidade ?? null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.id) {
+    throw new Error('Falha ao atualizar planejamento da produção: resposta inválida da RPC.');
   }
 
   return data;
