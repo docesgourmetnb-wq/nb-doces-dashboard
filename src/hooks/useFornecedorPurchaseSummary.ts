@@ -26,14 +26,19 @@ export function useFornecedorPurchaseSummary() {
 
     try {
       const { data, error } = await supabase
-        .from('transacoes')
-        .select('fornecedor_id, valor, data')
-        .eq('tipo', 'saida')
-        .eq('categoria', 'Insumos')
-        .not('fornecedor_id', 'is', null);
+        .from('insumo_purchase_entries')
+        .select('fornecedor_id, valor_total, data_compra')
+        .not('fornecedor_id', 'is', null)
+        .gt('valor_total', 0);
 
       if (error) throw error;
-      setSummaryByFornecedorId(summarizeFornecedorPurchases((data || []) as FornecedorPurchaseRow[]));
+      const purchaseRows: FornecedorPurchaseRow[] = (data || []).map((entry) => ({
+        fornecedor_id: entry.fornecedor_id,
+        valor: Number(entry.valor_total) || 0,
+        data: entry.data_compra,
+      }));
+
+      setSummaryByFornecedorId(summarizeFornecedorPurchases(purchaseRows));
     } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar compras por fornecedor',
