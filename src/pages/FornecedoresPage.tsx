@@ -2,11 +2,19 @@ import { useState } from 'react';
 import { Building2, CalendarDays, Edit2, Loader2, Mail, Phone, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { useFornecedores, type Fornecedor } from '@/hooks/useFornecedores';
 import { useFornecedorPurchaseSummary } from '@/hooks/useFornecedorPurchaseSummary';
+import { useFornecedorPurchases } from '@/hooks/useFornecedorPurchases';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -25,21 +33,34 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { parseDecimalInput } from '@/domain/numeros';
 import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
+
+const COMPRA_AVULSA_CATEGORIAS = ['Utensilios', 'Equipamentos', 'Limpeza', 'Outros'] as const;
 
 export function FornecedoresPage() {
   const { fornecedores, loading, addFornecedor, updateFornecedor, deleteFornecedor } = useFornecedores();
-  const { summaryByFornecedorId, loading: loadingPurchaseSummary } = useFornecedorPurchaseSummary();
+  const { summaryByFornecedorId, loading: loadingPurchaseSummary, refetch: refetchPurchaseSummary } = useFornecedorPurchaseSummary();
+  const { historyGroups, loading: loadingPurchaseHistory, addLoosePurchase } = useFornecedorPurchases();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [editingFornecedor, setEditingFornecedor] = useState<Fornecedor | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [purchaseFormLoading, setPurchaseFormLoading] = useState(false);
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [ativo, setAtivo] = useState(true);
+  const [purchaseFornecedorId, setPurchaseFornecedorId] = useState('');
+  const [purchaseDescricao, setPurchaseDescricao] = useState('');
+  const [purchaseCategoria, setPurchaseCategoria] = useState<typeof COMPRA_AVULSA_CATEGORIAS[number]>('Utensilios');
+  const [purchaseValor, setPurchaseValor] = useState('');
+  const [purchaseData, setPurchaseData] = useState('');
+  const [purchaseOrigemPagamento, setPurchaseOrigemPagamento] = useState<'fora_caixa' | 'caixa'>('fora_caixa');
+  const [purchaseObservacoes, setPurchaseObservacoes] = useState('');
 
   const filteredFornecedores = fornecedores.filter((fornecedor) => {
     const termo = search.toLowerCase();
@@ -59,6 +80,16 @@ export function FornecedoresPage() {
     setEditingFornecedor(null);
   };
 
+  const resetPurchaseForm = () => {
+    setPurchaseFornecedorId('');
+    setPurchaseDescricao('');
+    setPurchaseCategoria('Utensilios');
+    setPurchaseValor('');
+    setPurchaseData('');
+    setPurchaseOrigemPagamento('fora_caixa');
+    setPurchaseObservacoes('');
+  };
+
   const openEditDialog = (fornecedor: Fornecedor) => {
     setEditingFornecedor(fornecedor);
     setNome(fornecedor.nome);
@@ -68,6 +99,12 @@ export function FornecedoresPage() {
     setObservacoes(fornecedor.observacoes || '');
     setAtivo(fornecedor.ativo);
     setDialogOpen(true);
+  };
+
+  const openPurchaseDialog = (fornecedor: Fornecedor) => {
+    resetPurchaseForm();
+    setPurchaseFornecedorId(fornecedor.id);
+    setPurchaseDialogOpen(true);
   };
 
   const handleSubmit = async () => {
@@ -94,6 +131,32 @@ export function FornecedoresPage() {
       resetForm();
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handlePurchaseSubmit = async () => {
+    const valor = parseDecimalInput(purchaseValor);
+    if (!purchaseFornecedorId || !purchaseDescricao.trim() || !Number.isFinite(valor) || valor <= 0) return;
+
+    setPurchaseFormLoading(true);
+    try {
+      const created = await addLoosePurchase({
+        fornecedorId: purchaseFornecedorId,
+        descricao: purchaseDescricao.trim(),
+        categoria: purchaseCategoria,
+        valorTotal: valor,
+        dataCompra: purchaseData || null,
+        origemPagamento: purchaseOrigemPagamento,
+        observacoes: purchaseObservacoes.trim() || null,
+      });
+
+      if (created) {
+        await refetchPurchaseSummary();
+        setPurchaseDialogOpen(false);
+        resetPurchaseForm();
+      }
+    } finally {
+      setPurchaseFormLoading(false);
     }
   };
 
@@ -196,6 +259,130 @@ export function FornecedoresPage() {
                       Salvando...
                     </>
                   ) : editingFornecedor ? 'Atualizar' : 'Cadastrar'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={purchaseDialogOpen} onOpenChange={(open) => {
+          setPurchaseDialogOpen(open);
+          if (!open) resetPurchaseForm();
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display text-xl">Compra avulsa</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="compra-avulsa-fornecedor">Fornecedor *</Label>
+                <Select value={purchaseFornecedorId} onValueChange={setPurchaseFornecedorId}>
+                  <SelectTrigger id="compra-avulsa-fornecedor">
+                    <SelectValue placeholder="Selecione um fornecedor" />
+                  </SelectTrigger>
+                  <SelectContent side="bottom" align="start" avoidCollisions={false}>
+                    {fornecedores.filter((fornecedor) => fornecedor.ativo).map((fornecedor) => (
+                      <SelectItem key={fornecedor.id} value={fornecedor.id}>
+                        {fornecedor.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="compra-avulsa-descricao">Descrição *</Label>
+                <Input
+                  id="compra-avulsa-descricao"
+                  value={purchaseDescricao}
+                  onChange={(event) => setPurchaseDescricao(event.target.value)}
+                  placeholder="Ex: Utensilio de producao"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="compra-avulsa-categoria">Categoria</Label>
+                  <Select
+                    value={purchaseCategoria}
+                    onValueChange={(value) => setPurchaseCategoria(value as typeof COMPRA_AVULSA_CATEGORIAS[number])}
+                  >
+                    <SelectTrigger id="compra-avulsa-categoria">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent side="bottom" align="start" avoidCollisions={false}>
+                      {COMPRA_AVULSA_CATEGORIAS.map((categoria) => (
+                        <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compra-avulsa-valor">Valor total (R$) *</Label>
+                  <Input
+                    id="compra-avulsa-valor"
+                    type="text"
+                    inputMode="decimal"
+                    value={purchaseValor}
+                    onChange={(event) => setPurchaseValor(event.target.value)}
+                    placeholder="Ex: 24,90"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="compra-avulsa-data">Data da compra</Label>
+                  <Input
+                    id="compra-avulsa-data"
+                    type="date"
+                    value={purchaseData}
+                    onChange={(event) => setPurchaseData(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compra-avulsa-origem">Origem do pagamento</Label>
+                  <Select
+                    value={purchaseOrigemPagamento}
+                    onValueChange={(value) => setPurchaseOrigemPagamento(value as 'fora_caixa' | 'caixa')}
+                  >
+                    <SelectTrigger id="compra-avulsa-origem">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent side="bottom" align="start" avoidCollisions={false}>
+                      <SelectItem value="fora_caixa">Fora do caixa</SelectItem>
+                      <SelectItem value="caixa">Caixa da empresa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Fora do caixa soma no fornecedor, mas não cria despesa no Financeiro.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="compra-avulsa-observacoes">Observações</Label>
+                <Textarea
+                  id="compra-avulsa-observacoes"
+                  value={purchaseObservacoes}
+                  onChange={(event) => setPurchaseObservacoes(event.target.value)}
+                  placeholder="Detalhes da nota ou uso do item..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button variant="outline" onClick={() => setPurchaseDialogOpen(false)} disabled={purchaseFormLoading}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handlePurchaseSubmit}
+                  disabled={
+                    purchaseFormLoading
+                    || !purchaseFornecedorId
+                    || !purchaseDescricao.trim()
+                    || !(parseDecimalInput(purchaseValor) > 0)
+                  }
+                >
+                  {purchaseFormLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : 'Registrar compra'}
                 </Button>
               </div>
             </div>
@@ -321,6 +508,18 @@ export function FornecedoresPage() {
                   </div>
                 </div>
 
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full gap-2"
+                  onClick={() => openPurchaseDialog(fornecedor)}
+                  disabled={!fornecedor.ativo}
+                >
+                  <ShoppingCart size={16} />
+                  Compra avulsa
+                </Button>
+
                 <div className="mt-4 space-y-2">
                   {fornecedor.telefone && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -349,6 +548,53 @@ export function FornecedoresPage() {
             })}
           </div>
         )}
+      </section>
+
+      <section aria-labelledby="fornecedor-historico-heading" className="bg-card border border-border rounded-lg">
+        <div className="p-5 border-b border-border">
+          <h2 id="fornecedor-historico-heading" className="font-display text-xl font-semibold text-foreground">
+            Histórico de compras
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Entradas de estoque e compras avulsas agrupadas por fornecedor e data.
+          </p>
+        </div>
+        <div className="divide-y divide-border">
+          {loadingPurchaseHistory ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : historyGroups.length === 0 ? (
+            <p className="p-5 text-sm text-muted-foreground">Nenhuma compra registrada ainda.</p>
+          ) : (
+            historyGroups.slice(0, 12).map((group) => (
+              <div key={group.id} className="p-5">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-foreground">{group.fornecedor_nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {group.data ? formatLocalDate(group.data, 'dd/MM/yyyy') : 'Sem data de compra'}
+                      {' '}• {group.quantidadeLancamentos} lançamento(s)
+                    </p>
+                  </div>
+                  <p className="font-display text-xl font-semibold text-foreground">
+                    {formatCurrencyBRL(group.total)}
+                  </p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {group.itens.map((item) => (
+                    <span
+                      key={item.id}
+                      className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+                    >
+                      {item.descricao} • {formatCurrencyBRL(item.valor)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </section>
     </div>
   );

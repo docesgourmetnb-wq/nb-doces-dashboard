@@ -25,20 +25,34 @@ export function useFornecedorPurchaseSummary() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('insumo_purchase_entries')
-        .select('fornecedor_id, valor_total, data_compra')
-        .not('fornecedor_id', 'is', null)
-        .gt('valor_total', 0);
+      const [{ data: stockEntries, error: stockError }, { data: looseEntries, error: looseError }] = await Promise.all([
+        supabase
+          .from('insumo_purchase_entries')
+          .select('fornecedor_id, valor_total, data_compra')
+          .not('fornecedor_id', 'is', null)
+          .gt('valor_total', 0),
+        supabase
+          .from('fornecedor_purchase_entries')
+          .select('fornecedor_id, valor_total, data_compra')
+          .gt('valor_total', 0),
+      ]);
 
-      if (error) throw error;
-      const purchaseRows: FornecedorPurchaseRow[] = (data || []).map((entry) => ({
+      if (stockError) throw stockError;
+      if (looseError) throw looseError;
+
+      const stockRows: FornecedorPurchaseRow[] = (stockEntries || []).map((entry) => ({
         fornecedor_id: entry.fornecedor_id,
         valor: Number(entry.valor_total) || 0,
         data: entry.data_compra,
       }));
 
-      setSummaryByFornecedorId(summarizeFornecedorPurchases(purchaseRows));
+      const looseRows: FornecedorPurchaseRow[] = (looseEntries || []).map((entry) => ({
+        fornecedor_id: entry.fornecedor_id,
+        valor: Number(entry.valor_total) || 0,
+        data: entry.data_compra,
+      }));
+
+      setSummaryByFornecedorId(summarizeFornecedorPurchases([...stockRows, ...looseRows]));
     } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar compras por fornecedor',
