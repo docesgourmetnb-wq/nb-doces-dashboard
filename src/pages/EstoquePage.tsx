@@ -1431,7 +1431,7 @@ function InsumosTab() {
             <span>Item</span>
             <span>Saldo</span>
             <span>Mínimo</span>
-            <span>Custo conhecido</span>
+            <span>Último custo conhecido</span>
             <span className="text-right">Ações</span>
           </div>
           {filteredInsumos.length === 0 ? (
@@ -1469,7 +1469,7 @@ function InsumosTab() {
                         {getInsumoTipoEstoqueLabel(insumo.tipo_estoque)}
                       </p>
                       <p className="text-xs text-muted-foreground lg:hidden">
-                        {formatCurrencyBRL(knownUnitCost)} / {insumo.unidade}
+                        Custo conhecido: {formatCurrencyBRL(knownUnitCost)} / {insumo.unidade}
                       </p>
                     </div>
                     {stockBadge && (
@@ -1496,7 +1496,11 @@ function InsumosTab() {
                       </p>
                     </div>
                     <div className="hidden lg:block">
-                      <p className="text-muted-foreground">{formatCurrencyBRL(knownUnitCost)} / {insumo.unidade}</p>
+                      <p className="text-muted-foreground">
+                        {knownUnitCost > 0
+                          ? `${formatCurrencyBRL(knownUnitCost)} / ${insumo.unidade}`
+                          : 'Sem custo conhecido'}
+                      </p>
                     </div>
                   </div>
 
