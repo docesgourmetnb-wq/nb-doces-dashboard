@@ -1,7 +1,7 @@
 export interface FornecedorPurchaseRow {
   fornecedor_id: string | null;
   valor: number;
-  data: string;
+  data: string | null;
 }
 
 export interface FornecedorPurchaseSummary {
@@ -20,12 +20,14 @@ export function summarizeFornecedorPurchases(rows: FornecedorPurchaseRow[]) {
       ultimaCompra: null,
     };
 
+    const latestDate = row.data && (!current.ultimaCompra || row.data > current.ultimaCompra)
+      ? row.data
+      : current.ultimaCompra;
+
     acc[row.fornecedor_id] = {
       totalCompras: current.totalCompras + row.valor,
       quantidadeCompras: current.quantidadeCompras + 1,
-      ultimaCompra: !current.ultimaCompra || row.data > current.ultimaCompra
-        ? row.data
-        : current.ultimaCompra,
+      ultimaCompra: latestDate,
     };
 
     return acc;
