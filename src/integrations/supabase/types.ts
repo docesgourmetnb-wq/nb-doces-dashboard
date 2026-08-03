@@ -221,6 +221,56 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedor_purchase_entries: {
+        Row: {
+          categoria: string
+          created_at: string
+          data_compra: string | null
+          descricao: string
+          fornecedor_id: string
+          id: string
+          observacoes: string | null
+          origem_pagamento: string
+          transacao_referencia: string | null
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          data_compra?: string | null
+          descricao: string
+          fornecedor_id: string
+          id?: string
+          observacoes?: string | null
+          origem_pagamento?: string
+          transacao_referencia?: string | null
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data_compra?: string | null
+          descricao?: string
+          fornecedor_id?: string
+          id?: string
+          observacoes?: string | null
+          origem_pagamento?: string
+          transacao_referencia?: string | null
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_purchase_entries_fornecedor_owner_fkey"
+            columns: ["user_id", "fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       insumos: {
         Row: {
           ativo: boolean
