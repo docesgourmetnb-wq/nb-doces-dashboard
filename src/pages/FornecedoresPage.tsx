@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Building2, CalendarDays, Edit2, Loader2, Mail, Phone, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, CalendarDays, ChevronDown, Edit2, Loader2, Mail, Phone, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { useFornecedores, type Fornecedor } from '@/hooks/useFornecedores';
 import { useFornecedorPurchaseSummary } from '@/hooks/useFornecedorPurchaseSummary';
 import { useFornecedorPurchases } from '@/hooks/useFornecedorPurchases';
@@ -91,6 +91,16 @@ export function FornecedoresPage() {
   const [purchaseData, setPurchaseData] = useState('');
   const [purchaseOrigemPagamento, setPurchaseOrigemPagamento] = useState<'fora_caixa' | 'caixa'>('fora_caixa');
   const [purchaseObservacoes, setPurchaseObservacoes] = useState('');
+  const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<string[]>([]);
+  const [historyExpansionInitialized, setHistoryExpansionInitialized] = useState(false);
+
+  useEffect(() => {
+    const firstHistoryGroup = historyGroups[0];
+    if (!historyExpansionInitialized && firstHistoryGroup) {
+      setExpandedPurchaseIds([firstHistoryGroup.id]);
+      setHistoryExpansionInitialized(true);
+    }
+  }, [historyExpansionInitialized, historyGroups]);
 
   const filteredFornecedores = fornecedores.filter((fornecedor) => {
     const termo = search.toLowerCase();
@@ -135,6 +145,14 @@ export function FornecedoresPage() {
     resetPurchaseForm();
     setPurchaseFornecedorId(fornecedor.id);
     setPurchaseDialogOpen(true);
+  };
+
+  const togglePurchaseHistory = (groupId: string) => {
+    setExpandedPurchaseIds((current) => (
+      current.includes(groupId)
+        ? current.filter((id) => id !== groupId)
+        : [...current, groupId]
+    ));
   };
 
   const handleSubmit = async () => {
@@ -597,42 +615,61 @@ export function FornecedoresPage() {
           ) : historyGroups.length === 0 ? (
             <p className="p-5 text-sm text-muted-foreground">Nenhuma compra registrada ainda.</p>
           ) : (
-            historyGroups.slice(0, 12).map((group) => (
+            historyGroups.slice(0, 12).map((group) => {
+              const expanded = expandedPurchaseIds.includes(group.id);
+
+              return (
               <div key={group.id} className="p-5">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold text-foreground">{group.fornecedor_nome}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {group.data ? formatLocalDate(group.data, 'dd/MM/yyyy') : 'Sem data de compra'}
-                      {' '}• {group.quantidadeLancamentos} lançamento(s)
-                    </p>
-                  </div>
-                  <p className="font-display text-xl font-semibold text-foreground">
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between"
+                  onClick={() => togglePurchaseHistory(group.id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="flex min-w-0 items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <ChevronDown
+                        size={18}
+                        className={cn('transition-transform', expanded && 'rotate-180')}
+                      />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-foreground">{group.fornecedor_nome}</span>
+                      <span className="block text-sm text-muted-foreground">
+                        {group.data ? formatLocalDate(group.data, 'dd/MM/yyyy') : 'Sem data de compra'}
+                        {' '}• {group.quantidadeLancamentos} lançamento(s)
+                      </span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xl font-semibold text-foreground sm:text-right">
                     {formatCurrencyBRL(group.total)}
-                  </p>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {group.itens.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg bg-muted/50 px-3 py-2 text-sm"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                        <div>
-                          <p className="font-medium text-foreground">{item.descricao}</p>
-                          {formatPurchaseItemDetail(item) && (
-                            <p className="text-xs text-muted-foreground">
-                              {formatPurchaseItemDetail(item)}
-                            </p>
-                          )}
+                  </span>
+                </button>
+                {expanded && (
+                  <div className="mt-3 space-y-2 pl-0 sm:pl-11">
+                    {group.itens.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-lg bg-muted/50 px-3 py-2 text-sm"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                          <div>
+                            <p className="font-medium text-foreground">{item.descricao}</p>
+                            {formatPurchaseItemDetail(item) && (
+                              <p className="text-xs text-muted-foreground">
+                                {formatPurchaseItemDetail(item)}
+                              </p>
+                            )}
+                          </div>
+                          <p className="font-medium text-foreground">{formatCurrencyBRL(item.valor)}</p>
                         </div>
-                        <p className="font-medium text-foreground">{formatCurrencyBRL(item.valor)}</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>
