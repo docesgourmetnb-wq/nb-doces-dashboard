@@ -43,7 +43,7 @@ export function useFornecedorPurchases() {
       const [{ data: stockEntries, error: stockError }, { data: looseEntries, error: looseError }] = await Promise.all([
         supabase
           .from('insumo_purchase_entries')
-          .select('id, fornecedor_id, valor_total, data_compra, origem_pagamento, created_at, insumos(nome), fornecedores(nome)')
+          .select('id, fornecedor_id, valor_total, data_compra, origem_pagamento, created_at, quantidade, unidade, quantidade_embalagens, conteudo_por_embalagem, insumos(nome), fornecedores(nome)')
           .not('fornecedor_id', 'is', null)
           .gt('valor_total', 0)
           .order('data_compra', { ascending: false, nullsFirst: false })
@@ -67,6 +67,10 @@ export function useFornecedorPurchases() {
         fornecedor_nome: entry.fornecedores?.nome ?? 'Fornecedor',
         descricao: entry.insumos?.nome ?? 'Entrada de estoque',
         categoria: 'Estoque',
+        quantidade: Number(entry.quantidade) || null,
+        unidade: entry.unidade,
+        quantidade_embalagens: entry.quantidade_embalagens,
+        conteudo_por_embalagem: entry.conteudo_por_embalagem,
         valor: Number(entry.valor_total) || 0,
         data: entry.data_compra,
         origem: 'estoque',
@@ -80,6 +84,10 @@ export function useFornecedorPurchases() {
         fornecedor_nome: entry.fornecedores?.nome ?? 'Fornecedor',
         descricao: entry.descricao,
         categoria: entry.categoria,
+        quantidade: null,
+        unidade: null,
+        quantidade_embalagens: null,
+        conteudo_por_embalagem: null,
         valor: Number(entry.valor_total) || 0,
         data: entry.data_compra,
         origem: 'avulsa',
