@@ -32,6 +32,10 @@ test('groupFornecedorPurchaseHistory groups stock and loose purchases by supplie
       fornecedor_nome: 'Armazem do Mercado',
       descricao: 'Granule Melken Branco',
       categoria: 'Insumo',
+      quantidade: 1200,
+      unidade: 'g',
+      quantidade_embalagens: 3,
+      conteudo_por_embalagem: 400,
       valor: 143.97,
       data: '2026-08-03',
       origem: 'estoque',
@@ -44,6 +48,10 @@ test('groupFornecedorPurchaseHistory groups stock and loose purchases by supplie
       fornecedor_nome: 'Armazem do Mercado',
       descricao: 'Utensilio de producao',
       categoria: 'Utensilios',
+      quantidade: null,
+      unidade: null,
+      quantidade_embalagens: null,
+      conteudo_por_embalagem: null,
       valor: 25,
       data: '2026-08-03',
       origem: 'avulsa',
@@ -56,6 +64,10 @@ test('groupFornecedorPurchaseHistory groups stock and loose purchases by supplie
       fornecedor_nome: 'Outro fornecedor',
       descricao: 'Chocolate',
       categoria: 'Insumo',
+      quantidade: 1000,
+      unidade: 'g',
+      quantidade_embalagens: 1,
+      conteudo_por_embalagem: 1000,
       valor: 50,
       data: null,
       origem: 'estoque',
@@ -74,6 +86,8 @@ test('groupFornecedorPurchaseHistory groups stock and loose purchases by supplie
     quantidadeLancamentos: 2,
     itens: [groups[0].itens[0], groups[0].itens[1]],
   });
+  assert.equal(groups[0].itens[0].quantidade_embalagens, 3);
+  assert.equal(groups[0].itens[0].conteudo_por_embalagem, 400);
   assert.equal(groups[1].data, null);
   assert.equal(groups[1].total, 50);
 });

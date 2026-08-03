@@ -15,6 +15,10 @@ export interface FornecedorPurchaseHistoryRow extends FornecedorPurchaseRow {
   fornecedor_nome: string;
   descricao: string;
   categoria: string;
+  quantidade: number | null;
+  unidade: string | null;
+  quantidade_embalagens: number | null;
+  conteudo_por_embalagem: number | null;
   origem: 'estoque' | 'avulsa';
   origem_pagamento: string;
   created_at: string;

@@ -38,6 +38,36 @@ import { cn, formatCurrencyBRL, formatLocalDate } from '@/lib/utils';
 
 const COMPRA_AVULSA_CATEGORIAS = ['Utensilios', 'Equipamentos', 'Limpeza', 'Outros'] as const;
 
+function formatQuantity(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatPurchaseItemDetail(item: {
+  quantidade: number | null;
+  unidade: string | null;
+  quantidade_embalagens: number | null;
+  conteudo_por_embalagem: number | null;
+  valor: number;
+}) {
+  const details: string[] = [];
+
+  if (item.quantidade_embalagens && item.conteudo_por_embalagem && item.unidade) {
+    const unitPrice = item.valor / item.quantidade_embalagens;
+    details.push(`${formatQuantity(item.quantidade_embalagens)} emb. x ${formatQuantity(item.conteudo_por_embalagem)} ${item.unidade}`);
+    details.push(`${formatCurrencyBRL(unitPrice)} / emb.`);
+  } else if (item.quantidade && item.unidade) {
+    details.push(`${formatQuantity(item.quantidade)} ${item.unidade}`);
+  }
+
+  if (item.quantidade && item.unidade) {
+    details.push(`${formatCurrencyBRL(item.valor / item.quantidade)} / ${item.unidade}`);
+  }
+
+  return details.join(' • ');
+}
+
 export function FornecedoresPage() {
   const { fornecedores, loading, addFornecedor, updateFornecedor, deleteFornecedor } = useFornecedores();
   const { summaryByFornecedorId, loading: loadingPurchaseSummary, refetch: refetchPurchaseSummary } = useFornecedorPurchaseSummary();
@@ -581,14 +611,24 @@ export function FornecedoresPage() {
                     {formatCurrencyBRL(group.total)}
                   </p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 space-y-2">
                   {group.itens.map((item) => (
-                    <span
+                    <div
                       key={item.id}
-                      className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+                      className="rounded-lg bg-muted/50 px-3 py-2 text-sm"
                     >
-                      {item.descricao} • {formatCurrencyBRL(item.valor)}
-                    </span>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                        <div>
+                          <p className="font-medium text-foreground">{item.descricao}</p>
+                          {formatPurchaseItemDetail(item) && (
+                            <p className="text-xs text-muted-foreground">
+                              {formatPurchaseItemDetail(item)}
+                            </p>
+                          )}
+                        </div>
+                        <p className="font-medium text-foreground">{formatCurrencyBRL(item.valor)}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
