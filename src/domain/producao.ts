@@ -19,6 +19,26 @@ export function isProducaoConcluida(status: string): boolean {
   return status === 'concluido';
 }
 
+export function calculateProductionLoss(input: {
+  rendimentoPrevisto?: number | null | undefined;
+  rendimentoReal?: number | null | undefined;
+}) {
+  const previsto = Number(input.rendimentoPrevisto ?? 0);
+  const real = Number(input.rendimentoReal ?? 0);
+
+  if (!Number.isFinite(previsto) || !Number.isFinite(real) || previsto <= 0 || real <= 0) {
+    return null;
+  }
+
+  const perda = Math.max(previsto - real, 0);
+  const percentual = (perda / previsto) * 100;
+
+  return {
+    perda,
+    percentual,
+  };
+}
+
 function formatQuantity(value: string): string {
   const quantity = Number(value);
   if (!Number.isFinite(quantity)) return value;

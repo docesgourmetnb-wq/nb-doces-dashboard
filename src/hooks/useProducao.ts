@@ -142,11 +142,18 @@ export function useProducao() {
     }
   };
 
-  const updateProducaoStatus = async (id: string, status: ProducaoDiaria['status']) => {
+  const updateProducaoStatus = async (
+    id: string,
+    status: ProducaoDiaria['status'],
+    options?: { rendimentoReal?: number | null },
+  ) => {
     try {
       const item = producao.find((p) => p.id === id);
       if (status === 'concluido' && item?.recipe_version_id) {
-        const result = await completeMassProduction({ producaoId: id });
+        const result = await completeMassProduction({
+          producaoId: id,
+          rendimentoReal: options?.rendimentoReal ?? null,
+        });
         await fetchProducao();
         toast({
           title: result.movement_count > 0 ? 'Produção concluída e insumos consumidos!' : 'Produção concluída!',
