@@ -3,13 +3,14 @@ import { Plus, Calendar, Loader2, Pencil, Trash2, AlertTriangle, Cookie } from '
 import { useProducao, ProducaoDiaria } from '@/hooks/useProducao';
 import {
   PRODUCAO_STATUSES,
+  calculateProductionLoss,
   type ProducaoStatus,
   getProducaoStatusLabel,
   getProducaoStatusBadgeClass,
   isProducaoConcluida,
 } from '@/domain/producao';
 import { supabase } from '@/integrations/supabase/client';
-import { parseIntegerInput } from '@/domain/numeros';
+import { parseDecimalInput, parseIntegerInput } from '@/domain/numeros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -102,6 +103,8 @@ export function ProducaoPage() {
   // Cancel state
   const [cancelItem, setCancelItem] = useState<ProducaoDiaria | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [completeItem, setCompleteItem] = useState<ProducaoDiaria | null>(null);
+  const [completeRendimentoReal, setCompleteRendimentoReal] = useState('');
 
   // Status labels/classes now come from domain helpers
 
@@ -125,6 +128,12 @@ export function ProducaoPage() {
   const consumoAutomaticoLabel = formData.integrar_estoque
     ? 'Os insumos serão consumidos ao concluir a produção.'
     : 'Planejamento sem consumo automático de insumos.';
+  const rendimentoRealConclusao = parseDecimalInput(completeRendimentoReal);
+  const rendimentoRealConclusaoValido = Number.isFinite(rendimentoRealConclusao) && rendimentoRealConclusao > 0;
+  const perdaConclusao = completeItem ? calculateProductionLoss({
+    rendimentoPrevisto: completeItem.rendimento_previsto,
+    rendimentoReal: rendimentoRealConclusao,
+  }) : null;
 
   useEffect(() => {
     let mounted = true;
@@ -274,6 +283,39 @@ export function ProducaoPage() {
     try {
       await updateProducao(editItem.id, updates);
       setEditItem(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openCompleteDialog = (item: ProducaoDiaria) => {
+    setCompleteItem(item);
+    setCompleteRendimentoReal(item.rendimento_real ? String(item.rendimento_real) : '');
+  };
+
+  const closeCompleteDialog = () => {
+    setCompleteItem(null);
+    setCompleteRendimentoReal('');
+  };
+
+  const handleStatusChange = (item: ProducaoDiaria, status: ProducaoDiaria['status']) => {
+    if (status === 'concluido' && item.recipe_version_id && !isProducaoConcluida(item.status)) {
+      openCompleteDialog(item);
+      return;
+    }
+
+    updateProducaoStatus(item.id, status);
+  };
+
+  const handleComplete = async () => {
+    if (!completeItem || !rendimentoRealConclusaoValido) return;
+
+    setSaving(true);
+    try {
+      await updateProducaoStatus(completeItem.id, 'concluido', {
+        rendimentoReal: rendimentoRealConclusao,
+      });
+      closeCompleteDialog();
     } finally {
       setSaving(false);
     }
@@ -526,6 +568,58 @@ export function ProducaoPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Complete Dialog */}
+      <Dialog open={!!completeItem} onOpenChange={(open) => { if (!open) closeCompleteDialog(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Concluir Produção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              <p className="font-medium text-foreground">{completeItem?.brigadeiro_nome}</p>
+              <p className="text-muted-foreground">
+                Peso dos ingredientes: {Number(completeItem?.rendimento_previsto || 0).toLocaleString('pt-BR')} g
+              </p>
+              {completeItem?.consumir_estoque ? (
+                <p className="text-xs text-muted-foreground mt-1">Os insumos serão consumidos ao concluir.</p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="producao-rendimento-real">Peso real da massa pronta (g)</Label>
+              <Input
+                id="producao-rendimento-real"
+                inputMode="decimal"
+                value={completeRendimentoReal}
+                onChange={(event) => setCompleteRendimentoReal(event.target.value)}
+                placeholder="Ex: 1183"
+              />
+              <p className="text-xs text-muted-foreground">
+                Informe o peso final depois do cozimento e da retirada da panela.
+              </p>
+            </div>
+            {perdaConclusao && (
+              <div className="rounded-lg border border-border p-3 text-sm">
+                <p className="text-muted-foreground">
+                  Quebra estimada:{' '}
+                  <span className="font-medium text-foreground">
+                    {perdaConclusao.perda.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} g
+                  </span>
+                  {' '}({perdaConclusao.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)
+                </p>
+              </div>
+            )}
+            <Button
+              onClick={handleComplete}
+              className="w-full"
+              disabled={saving || !rendimentoRealConclusaoValido}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Concluir Produção
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Cancel Dialog */}
       <Dialog open={!!cancelItem} onOpenChange={(open) => { if (!open) { setCancelItem(null); setCancelReason(''); } }}>
         <DialogContent className="sm:max-w-md">
@@ -568,6 +662,10 @@ export function ProducaoPage() {
               <div className="divide-y divide-border">
                 {(producaoByDate[dateKey] || []).map((item) => {
                   const isDeleted = !!item.deleted_at;
+                  const productionLoss = calculateProductionLoss({
+                    rendimentoPrevisto: item.rendimento_previsto,
+                    rendimentoReal: item.rendimento_real,
+                  });
 
                   return (
                     <div key={item.id} className={cn("p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4", isDeleted && "opacity-50")}>
@@ -581,7 +679,17 @@ export function ProducaoPage() {
                         </p>
                         {item.rendimento_previsto ? (
                           <p className="text-xs text-muted-foreground">
-                            Rendimento previsto: {Number(item.rendimento_previsto).toLocaleString('pt-BR')} g
+                            Peso dos ingredientes: {Number(item.rendimento_previsto).toLocaleString('pt-BR')} g
+                          </p>
+                        ) : null}
+                        {item.rendimento_real ? (
+                          <p className="text-xs text-muted-foreground">
+                            Rendimento real: {Number(item.rendimento_real).toLocaleString('pt-BR')} g
+                          </p>
+                        ) : null}
+                        {productionLoss ? (
+                          <p className="text-xs text-muted-foreground">
+                            Quebra: {productionLoss.perda.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} g ({productionLoss.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)
                           </p>
                         ) : null}
                         {item.consumir_estoque && (
@@ -604,7 +712,7 @@ export function ProducaoPage() {
                             </Button>
                             <Select
                               value={item.status}
-                              onValueChange={(value: ProducaoDiaria['status']) => updateProducaoStatus(item.id, value)}
+                              onValueChange={(value: ProducaoDiaria['status']) => handleStatusChange(item, value)}
                             >
                               <SelectTrigger aria-label={`Status da produção de ${item.brigadeiro_nome}`} className={cn("w-full sm:w-[160px] text-xs font-medium rounded-full px-3", getProducaoStatusBadgeClass(item.status))}>
                                 <SelectValue />
